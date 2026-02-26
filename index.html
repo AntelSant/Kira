@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kira — Cámara</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <h2>Vista de la Cámara</h2>
+
+    <div class="camera-container">
+        <video id="video" autoplay playsinline></video>
+        <div class="error-message">
+            <span class="icon">📷</span>
+            <span>No se pudo acceder a la cámara</span>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <span class="status-dot"></span>
+        <span class="status-text">Conectando…</span>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

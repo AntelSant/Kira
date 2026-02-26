@@ -1,0 +1,126 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #0a0a0f;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #e0e0e0;
+    overflow: hidden;
+}
+
+h2 {
+    font-size: 1.6rem;
+    font-weight: 300;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    color: #c0c0c8;
+    text-shadow: 0 0 20px rgba(100, 140, 255, 0.3);
+}
+
+.camera-container {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.08),
+        0 20px 60px rgba(0, 0, 0, 0.6),
+        0 0 40px rgba(80, 120, 255, 0.08);
+    background: #111118;
+}
+
+.camera-container::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 17px;
+    padding: 1px;
+    background: linear-gradient(
+        135deg,
+        rgba(100, 140, 255, 0.3),
+        rgba(255, 255, 255, 0.05),
+        rgba(100, 140, 255, 0.15)
+    );
+    -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: 2;
+}
+
+#video {
+    display: block;
+    width: min(80vw, 720px);
+    height: auto;
+    border-radius: 16px;
+    transform: scaleX(-1);
+    object-fit: cover;
+}
+
+.status-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1.2rem;
+    font-size: 0.8rem;
+    color: #666;
+    letter-spacing: 0.05em;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #333;
+    transition: background 0.4s ease, box-shadow 0.4s ease;
+}
+
+.status-dot.active {
+    background: #4cff88;
+    box-shadow: 0 0 8px rgba(76, 255, 136, 0.5);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.status-dot.error {
+    background: #ff4c4c;
+    box-shadow: 0 0 8px rgba(255, 76, 76, 0.5);
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.error-message {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    width: min(80vw, 720px);
+    aspect-ratio: 16 / 9;
+    color: #888;
+    font-size: 0.95rem;
+}
+
+.error-message .icon {
+    font-size: 2.5rem;
+    opacity: 0.4;
+}
+
+.error-message.visible {
+    display: flex;
+}
