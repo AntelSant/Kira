@@ -125,6 +125,54 @@ h2 {
     display: flex;
 }
 
+/* ---------- Botón toggle ---------- */
+.toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1.2rem;
+    padding: 0.6rem 1.4rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    color: #aaa;
+    font-family: inherit;
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    outline: none;
+}
+
+.toggle-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #ddd;
+}
+
+.toggle-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.toggle-btn.active {
+    background: rgba(76, 255, 136, 0.08);
+    border-color: rgba(76, 255, 136, 0.3);
+    color: #4cff88;
+    box-shadow: 0 0 16px rgba(76, 255, 136, 0.1);
+}
+
+.toggle-btn.active:hover {
+    background: rgba(255, 76, 76, 0.08);
+    border-color: rgba(255, 76, 76, 0.3);
+    color: #ff6b6b;
+    box-shadow: 0 0 16px rgba(255, 76, 76, 0.1);
+}
+
+.btn-icon {
+    font-size: 1rem;
+}
+
 /* ---------- Flash ---------- */
 .flash-overlay {
     position: absolute;

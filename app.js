@@ -8,10 +8,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const flashOverlay = document.querySelector('.flash-overlay');
     const gallery = document.getElementById('gallery');
 
+    const toggleBtn = document.getElementById('toggle-capture');
+    const btnLabel = toggleBtn.querySelector('.btn-label');
+
     let photosTaken = 0;
     let detecting = false;
+    let captureEnabled = false;
+    let modelsLoaded = false;
     const COOLDOWN_MS = 3000;
     let lastCaptureTime = 0;
+
+    // ---------- Botón toggle ----------
+    toggleBtn.addEventListener('click', () => {
+        captureEnabled = !captureEnabled;
+        toggleBtn.classList.toggle('active', captureEnabled);
+        btnLabel.textContent = captureEnabled ? 'Detener captura' : 'Iniciar captura';
+
+        if (captureEnabled) {
+            statusText.textContent = 'Cámara activa · Captura automática ON';
+        } else {
+            statusText.textContent = 'Cámara activa · Captura detenida';
+        }
+    });
 
     // ---------- Cámara ----------
     async function initCamera() {
@@ -53,7 +71,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
 
-            statusText.textContent = 'Cámara activa · Detección de rostros ON';
+            modelsLoaded = true;
+            toggleBtn.disabled = false;
+            statusText.textContent = 'Cámara activa · Listo para capturar';
             console.log('Modelos de face-api.js cargados correctamente');
             detectLoop();
         } catch (err) {
@@ -81,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 })
             );
 
-            if (detections.length > 0) {
+            if (captureEnabled && detections.length > 0) {
                 const now = Date.now();
                 if (now - lastCaptureTime > COOLDOWN_MS) {
                     lastCaptureTime = now;
