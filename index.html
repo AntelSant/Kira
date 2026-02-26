@@ -12,6 +12,8 @@
 
     <div class="camera-container">
         <video id="video" autoplay playsinline></video>
+        <canvas id="snapshot-canvas" style="display:none;"></canvas>
+        <div class="flash-overlay"></div>
         <div class="error-message">
             <span class="icon">📷</span>
             <span>No se pudo acceder a la cámara</span>
@@ -21,8 +23,13 @@
     <div class="status-bar">
         <span class="status-dot"></span>
         <span class="status-text">Conectando…</span>
+        <span class="separator">·</span>
+        <span id="photo-counter">0 fotos capturadas</span>
     </div>
 
+    <div id="gallery" class="gallery"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
