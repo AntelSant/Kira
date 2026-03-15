@@ -1,4 +1,4 @@
-La interfaz de usuario construida en Angular
+La interfaz de usuario construida en Angular. (Esto correra en la laptop de Diego).
 
 	+ src/app/services/api.service.ts: Clases en typescript encargadas de hacer las peticiones HTTP a tu API de gestion para traer o enviar datos.
 

@@ -1,4 +1,4 @@
-El orquestador de datos (Python/FastAPI) corriendo en contenedores Docker.
+El orquestador de datos (Python/FastAPI) corriendo en contenedores Docker. (Este servidor correra en la laptop de Diego).
 
 	+ app/db/models.py: Definicion del esquemacon SQLAlchemy. Se deben de crear las clases exactas para las tablas usuarios (con campo BYTEA para los embeddings), materias, grupos, horarios, 
 	  inscripciones, asistencia y emociones.
