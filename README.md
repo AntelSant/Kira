@@ -76,7 +76,19 @@ server3-db/:Este directiorio centraliza la persistencia de los datos y la interf
 
 
 
+Para instalar todas las dependencias necesarias para cada proyecto es necesario hacer lo sigueinte:
 
+	# 1. Entrar a la carpeta del servidor
+		cd uas-asistencia-ia/carpeta_proyecto
+
+	# 2. Crear un entorno virtual para no afectar el sistema base
+		python3 -m venv venv
+
+	# 3. Activar el entorno virtual
+		source venv/bin/activate
+
+	# 4. Instalar las dependencias (incluyendo PyTorch con CUDA 12.1)
+		pip install -r requirements.txt
 
 
 
