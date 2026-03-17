@@ -22,6 +22,9 @@
             (Cambia la URL por la de tu repositorio real).
 
         Paso 2: Levantar el contenedor de la Base de Datos
+
+            Es necesario tener activada la extencion de wsl en el docker-desktop
+
             Estando dentro de la carpeta /server3-db, ejecuta el comando para que Docker lea el archivo docker-compose.yml y encienda PostgreSQL en segundo plano:
 
             Bash
