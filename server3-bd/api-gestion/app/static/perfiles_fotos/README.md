@@ -10,3 +10,5 @@ Para que el codigo funcione correctamente es necesario tener ejecutar los siguie
     source venv/bin/activate
 
     pip install sqlalchemy psycopg2-binary
+
+#Ignora esta linea#
