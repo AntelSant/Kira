@@ -1,0 +1,12 @@
+--extra-index-url https://download.pytorch.org/whl/cu121
+
+fastapi
+uvicorn
+torch
+torchvision
+hsemotion
+deepface
+httpx
+sqlalchemy
+psycopg2-binary
+pydantic

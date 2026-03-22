@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Fotos reales (no queremos subir fotos de prueba a GitHub)
+server3-db/api-gestion/app/static/perfiles/*
+!server3-db/api-gestion/app/static/perfiles/.gitkeep
+
+server1-face/capturas_temp/*
+
+# Docker
+.data/
