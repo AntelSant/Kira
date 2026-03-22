@@ -9,5 +9,7 @@ venv/
 server3-db/api-gestion/app/static/perfiles/*
 !server3-db/api-gestion/app/static/perfiles/.gitkeep
 
+server1-face/capturas_temp/*
+
 # Docker
 .data/
