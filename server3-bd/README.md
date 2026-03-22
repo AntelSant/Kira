@@ -42,8 +42,15 @@
             Bash
             cd api-gestion
             python3 -m venv venv
-            source venv/bin/activate
+            source venv/bin/activate / si usas fish source venv/bin/activate.fish
             pip install -r requirements.txt
+
+        Paso 4: Inyectar las tablas en PostgreSQL
+            Con el entorno activado y la base de datos corriendo, ejecuta el script que acabamos de crear para que SQLAlchemy construya toda la estructura:
+
+            Bash
+            python init_db.py
+            Verás el mensaje "¡Tablas creadas con éxito!".
 
             Una vez que la base de datos este creada ejecuta este comando para entrar al postgres:
             sudo docker exec -it kira_postgres psql -U admin -d uas_ai_db
@@ -62,9 +69,11 @@
             Salir de la consola de PostgreSQL y volver a tu terminal normal:
                 \q
 
-        Paso 4: Inyectar las tablas en PostgreSQL
-            Con el entorno activado y la base de datos corriendo, ejecuta el script que acabamos de crear para que SQLAlchemy construya toda la estructura:
+        Recomendaciones:
+            Instalar table plus en windows para poder ver una representacion visual de las tablas
 
-            Bash
-            python init_db.py
-            Verás el mensaje "¡Tablas creadas con éxito!".
+            Intalar Beekeeper Studio en linux: yay -S beekeeper-studio-bin
+
+        Ya que la base de datos este lista usa:
+            uvicorn main:app --reload
+        Para levantar el servidor.
