@@ -80,7 +80,7 @@ async def recibir_captura(data: CapturaRequest):
             
             # --- NUEVO: ENVIAR EL VECTOR AL SERVIDOR 2 ---
             # Para la prueba, usaremos una matrícula de ejemplo
-            matricula_alumno = "123456" 
+            matricula_alumno = "654321" 
             url_api = f"http://127.0.0.1:8003/api/usuarios/{matricula_alumno}/embedding"
             
             payload = {"vector_facial": vector_facial}
