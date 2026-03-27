@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+
+# Variables de entorno (archivos con datos sensibles)
+.env
+!.env.example
+
+# Fotos reales (no queremos subir fotos de prueba a GitHub)
+server3-db/api-gestion/app/static/perfiles/*
+!server3-db/api-gestion/app/static/perfiles/.gitkeep
+
+#Capturas temporales (no queremos subir capturas de prueba a GitHub)
+server1-face/capturas_temp/*
+
+# Docker
+.data/
+
+#Firmware
+.pio
+.vscode/.browse.c_cpp.db*
+.vscode/c_cpp_properties.json
+.vscode/launch.json
+.vscode/ipch
