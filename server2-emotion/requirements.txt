@@ -10,3 +10,7 @@ httpx
 sqlalchemy
 psycopg2-binary
 pydantic
+python-dotenv
+Pillow
+opencv-python
+numpy

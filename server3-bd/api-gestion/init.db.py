@@ -1,8 +1,12 @@
+import os
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from models import Base
 
-# Esta URL coincide con los datos que pusimos en el docker-compose.yml
-DATABASE_URL = "postgresql://admin:admin@localhost:5432/uas_ai_db"
+load_dotenv()  # Cargar variables de entorno desde .env
+
+# Leer la URL de la base de datos desde .env
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://admin:admin@localhost:5432/uas_ai_db")
 
 engine = create_engine(DATABASE_URL)
 
