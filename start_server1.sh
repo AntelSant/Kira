@@ -12,5 +12,8 @@ pip install --upgrade pip setuptools wheel
 pip install "pillow>=12.1.1" "numpy>=2.0.0"
 pip install -r requirements.txt
 
-# 3. Levantar Uvicorn en el puerto 8001
-uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+# 3. Leer el puerto desde .env (default 8001)
+PORT=$(grep -oP '^SERVER1_PORT=\K.*' .env 2>/dev/null || echo "8001")
+
+# 4. Levantar Uvicorn
+uvicorn main:app --host 0.0.0.0 --port "$PORT" --reload

@@ -3,7 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 venv/
+
+# Variables de entorno (archivos con datos sensibles)
 .env
+!.env.example
 
 # Fotos reales (no queremos subir fotos de prueba a GitHub)
 server3-db/api-gestion/app/static/perfiles/*

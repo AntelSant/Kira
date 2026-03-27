@@ -91,6 +91,15 @@ Para instalar todas las dependencias necesarias para cada proyecto es necesario 
 		pip install -r requirements.txt
 
 
+	Asi se ejecutan los script de inicio de los servidores, si ocupas permisos primero dale permisos de ejecucion sudo chmod +x:
+		# Servidor 1 — Reconocimiento Facial (Puerto 8001)
+		bash ~/Documentos/Kira/start_server1.sh
+
+		# Servidor 3 — API de Gestión / Base de Datos (Puerto 8003)
+		bash ~/Documentos/Kira/start_server3.sh
+
+
+
 
 
 

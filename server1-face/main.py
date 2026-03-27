@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()  # Cargar variables de entorno desde .env
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import base64
@@ -11,12 +14,18 @@ from PIL import Image
 import io
 import requests
 
+# --- VARIABLES DE ENTORNO ---
+SERVER3_URL = os.getenv("SERVER3_URL", "http://127.0.0.1:8003")
+SERVER2_URL = os.getenv("SERVER2_URL", "http://127.0.0.1:8002")
+CUDA_DEVICE = os.getenv("CUDA_DEVICE", "cuda:0")
+MATRICULA_TEST = os.getenv("MATRICULA_TEST", "654321")
+
 app = FastAPI(title="Servidor 1 - Captura y Extracción Facial")
 
 # --- CONFIGURACIÓN DE IA ---
 print("Cargando modelos de IA... (Esto puede tardar unos segundos)")
 # Detectar si tienes la RTX 4050 disponible, si no, usa el procesador
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+device = torch.device(CUDA_DEVICE if torch.cuda.is_available() else 'cpu')
 print(f"Dispositivo de procesamiento: {device}")
 
 # MTCNN: El modelo que busca y recorta la cara
@@ -80,8 +89,8 @@ async def recibir_captura(data: CapturaRequest):
             
             # --- NUEVO: ENVIAR EL VECTOR AL SERVIDOR 2 ---
             # Para la prueba, usaremos una matrícula de ejemplo
-            matricula_alumno = "654321" 
-            url_api = f"http://127.0.0.1:8003/api/usuarios/{matricula_alumno}/embedding"
+            matricula_alumno = MATRICULA_TEST
+            url_api = f"{SERVER3_URL}/api/usuarios/{matricula_alumno}/embedding"
             
             payload = {"vector_facial": vector_facial}
             

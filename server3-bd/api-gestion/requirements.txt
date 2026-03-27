@@ -5,3 +5,5 @@ alembic
 psycopg2-binary
 pydantic
 python-multipart
+python-dotenv
+pgvector
