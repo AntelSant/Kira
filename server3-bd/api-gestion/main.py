@@ -4,8 +4,19 @@ from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from database import get_db
-from models import Usuario, TipoUsuario  # Importamos el modelo y el Enum
+from pydantic import BaseModel
+from typing import List
+
+# --- IMPORTACIONES DE TU BASE DE DATOS Y MODELOS ---
+from database import get_db, engine 
+from models import Base, Usuario, TipoUsuario  
+
+# --- MAGIA DE SQLALCHEMY ---
+# Esta línea va a tu PostgreSQL y crea TODAS las tablas si no existen
+print("⏳ Verificando y construyendo tablas en la base de datos...")
+Base.metadata.create_all(bind=engine)
+print("✅ ¡Tablas listas y creadas!")
+# ---------------------------
 
 # Crear la carpeta física para guardar las fotos si no existe
 os.makedirs("app/static/perfiles", exist_ok=True)
@@ -75,3 +86,35 @@ async def registrar_usuario(
         if os.path.exists(ruta_relativa):
             os.remove(ruta_relativa)
         raise HTTPException(status_code=400, detail="La matrícula ya está registrada.")
+
+# ==========================================
+# NUEVO: ENDPOINT PARA LA INTELIGENCIA ARTIFICIAL
+# ==========================================
+
+# Modelo para recibir el vector matemático desde el Servidor 1
+class EmbeddingUpdate(BaseModel):
+    vector_facial: List[float]
+
+@app.put("/api/usuarios/{matricula}/embedding")
+def actualizar_embedding_facial(
+    matricula: str, 
+    data: EmbeddingUpdate, 
+    db: Session = Depends(get_db)
+):
+    """Endpoint exclusivo para que el Servidor 1 (IA) guarde la huella matemática"""
+    
+    # Buscamos al usuario usando su matrícula
+    usuario = db.query(Usuario).filter(Usuario.matricula_o_num_empleado == matricula).first()
+    
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # pgvector se encarga de transformar la lista de Python al formato correcto de la BD
+    usuario.embedding_facial = data.vector_facial
+    
+    try:
+        db.commit()
+        return {"mensaje": "Huella facial (embedding) guardada con éxito en la base de datos"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al guardar el vector: {str(e)}")

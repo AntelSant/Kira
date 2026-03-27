@@ -2,6 +2,7 @@ import enum
 from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, Date, Time, LargeBinary, DateTime, Enum, Index, UniqueConstraint, CheckConstraint
 from sqlalchemy.sql import func
 from sqlalchemy.orm import declarative_base, relationship
+from pgvector.sqlalchemy import Vector
 
 Base = declarative_base()
 
@@ -47,7 +48,7 @@ class Usuario(Base, TimestampMixin):
     email = Column(String(100), unique=True)
     
     # El vector matemático se queda en binario, la foto se cambia a String (ruta del archivo)
-    embedding_facial = Column(LargeBinary)
+    embedding_facial = Column(Vector(512))
     foto_perfil = Column(String(255)) 
     
     activo = Column(Boolean, default=True)
