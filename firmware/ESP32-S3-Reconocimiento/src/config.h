@@ -2,11 +2,14 @@
 #define CONFIG_H
 
 // Credenciales WiFi (Cámbialas por las tuyas)
-const char* WIFI_SSID = "Totalplay-F3AA";
-const char* WIFI_PASSWORD = "F3AA8DA12rkzBTHF";
+// const char* WIFI_SSID = "Totalplay-F3AA";
+// const char* WIFI_PASSWORD = "F3AA8DA12rkzBTHF";
+const char* WIFI_SSID = "Zi";
+const char* WIFI_PASSWORD = "contraSegura";
 
 // Configuración del Servidor 1 (CachyOS)
-const char* SERVER_URL = "http://192.168.100.95:8001/api/capture";
+// const char* SERVER_URL = "http://192.168.100.95:8001/api/capture";
+const char* SERVER_URL = "http://10.80.32.164:8001/api/capture";
 
 // Pines de la cámara Freenove ESP32-S3 WROOM
 #define PWDN_GPIO_NUM  -1
