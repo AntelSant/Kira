@@ -9,6 +9,7 @@ import torch
 from facenet_pytorch import MTCNN, InceptionResnetV1
 from PIL import Image
 import io
+import requests
 
 app = FastAPI(title="Servidor 1 - Captura y Extracción Facial")
 
@@ -76,7 +77,24 @@ async def recibir_captura(data: CapturaRequest):
             vector_facial = embedding[0].cpu().numpy().tolist()
             
             print(f"🧠 Vector facial extraído con éxito. Tamaño: {len(vector_facial)} números.")
-            # print(f"Primeros 5 números del vector: {vector_facial[:5]}")
+            
+            # --- NUEVO: ENVIAR EL VECTOR AL SERVIDOR 2 ---
+            # Para la prueba, usaremos una matrícula de ejemplo
+            matricula_alumno = "123456" 
+            url_api = f"http://127.0.0.1:8003/api/usuarios/{matricula_alumno}/embedding"
+            
+            payload = {"vector_facial": vector_facial}
+            
+            try:
+                print(f"➡️ Enviando vector al Servidor 2 (Matrícula: {matricula_alumno})...")
+                respuesta = requests.put(url_api, json=payload)
+                
+                if respuesta.status_code == 200:
+                    print("✅ ¡ÉXITO! Vector guardado oficialmente en PostgreSQL")
+                else:
+                    print(f"⚠️ El Servidor 2 rechazó el dato. Código: {respuesta.status_code} - Info: {respuesta.text}")
+            except Exception as e:
+                print(f"❌ Error: No se pudo conectar con el Servidor 2. ¿Está encendido en el puerto 8003? Detalles: {e}")
             
             return {
                 "status": "success",
