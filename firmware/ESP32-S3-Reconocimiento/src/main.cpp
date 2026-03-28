@@ -201,10 +201,26 @@ void loop() {
   Serial.printf(">>> ROSTRO DETECTADO (score: %.2f, pos: %d,%d) <<<\n",
                 detection.first.score, detection.first.x, detection.first.y);
 
-  // ── Paso 3: Countdown de 5 segundos ─────────────────────────────
+  // ── Paso 3: Countdown con verificación continua ─────────────────
+  bool rostroMantenido = true;
   for (int i = COUNTDOWN_SEC; i > 0; i--) {
     mostrarCountdown(i);
-    delay(1000);
+    delay(700); // esperar parte del segundo
+
+    // Re-capturar y verificar que el rostro sigue presente
+    if (!camera.capture().isOk() || !detection.run().isOk() ||
+        detection.notFound()) {
+      rostroMantenido = false;
+      Serial.println(">> Rostro perdido durante countdown, cancelando");
+      mostrarMensaje("Cancelado", "Rostro perdido", 1500);
+      break;
+    }
+    delay(300); // completar ~1s
+  }
+
+  if (!rostroMantenido) {
+    mostrarMensaje("Escaneando...", "Ponte enfrente");
+    return; // volver al loop sin capturar ni enviar
   }
 
   // ── Paso 4: Capturar la foto real (después del countdown) ───────
