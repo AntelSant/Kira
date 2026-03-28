@@ -15,29 +15,24 @@ import io
 import requests
 
 # --- VARIABLES DE ENTORNO ---
-SERVER3_URL = os.getenv("SERVER3_URL", "http://127.0.0.1:8003")
-SERVER2_URL = os.getenv("SERVER2_URL", "http://127.0.0.1:8002")
+SERVER3_URL = os.getenv("SERVER3_URL", "http://127.0.0.1:8003") # Base de Datos y Gestión
+SERVER2_URL = os.getenv("SERVER2_URL", "http://127.0.0.1:8002") # Análisis de Emociones
 CUDA_DEVICE = os.getenv("CUDA_DEVICE", "cuda:0")
-MATRICULA_TEST = os.getenv("MATRICULA_TEST", "654321")
 
-app = FastAPI(title="Servidor 1 - Captura y Extracción Facial")
+app = FastAPI(title="Servidor 1 - Orquestador de Asistencia IA")
 
 # --- CONFIGURACIÓN DE IA ---
-print("Cargando modelos de IA... (Esto puede tardar unos segundos)")
-# Detectar si tienes la RTX 4050 disponible, si no, usa el procesador
+print("Cargando modelos de IA en GPU... 🚀")
 device = torch.device(CUDA_DEVICE if torch.cuda.is_available() else 'cpu')
 print(f"Dispositivo de procesamiento: {device}")
 
-# MTCNN: El modelo que busca y recorta la cara
 mtcnn = MTCNN(keep_all=False, device=device)
-
-# ResNet: El modelo que convierte la cara en un vector matemático (Embedding)
 resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
 print("✅ Modelos de IA listos.")
 
 # --- CARPETAS ---
 os.makedirs("capturas_temp", exist_ok=True)
-os.makedirs("caras_recortadas", exist_ok=True) # Nueva carpeta para ver qué detectó la IA
+os.makedirs("caras_recortadas", exist_ok=True)
 
 class CapturaRequest(BaseModel):
     foto_base64: str
@@ -45,75 +40,94 @@ class CapturaRequest(BaseModel):
     fecha: str
     hora: str
 
-@app.post("/api/capture")
-async def recibir_captura(data: CapturaRequest):
+@app.post("/api/capture") # Si tu ESP32 apunta a /api/reconocimiento, cambia esto
+async def procesar_asistencia(data: CapturaRequest):
     try:
-        # 1. Decodificar la imagen Base64 a bytes
+        # 1. Decodificar la imagen
         image_bytes = base64.b64decode(data.foto_base64)
-        
-        # 2. Convertir los bytes a una imagen legible para la IA (PIL Image)
         image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
         
-        # 3. Guardar la foto original como respaldo
         timestamp = f"{data.fecha.replace('-', '')}_{data.hora.replace(':', '')}"
-        original_path = f"capturas_temp/original_{data.grupo_id}_{timestamp}.jpg"
-        image.save(original_path)
-        print(f"📸 Foto original guardada: {original_path}")
-
-        # 4. PASO MÁGICO 1: Detectar la cara (MTCNN)
-        # aligned_face es un tensor de PyTorch ya recortado y normalizado
+        
+        # 2. Detectar y recortar la cara (MTCNN)
         aligned_face = mtcnn(image)
 
         if aligned_face is not None:
-            print("👤 ¡Rostro detectado!")
+            print("👤 ¡Rostro detectado por MTCNN!")
             
-            # (Opcional) Guardar el recorte de la cara para que veas qué vio la IA
+            # Guardar recorte (Opcional, para debug)
             face_save_path = f"caras_recortadas/cara_{timestamp}.jpg"
-            # Denormalizar el tensor para guardarlo como imagen visible
             face_img = aligned_face.permute(1, 2, 0).cpu().numpy()
             face_img = ((face_img + 1) * 127.5).astype(np.uint8)
             Image.fromarray(face_img).save(face_save_path)
             
-            # 5. PASO MÁGICO 2: Extraer características (ResNet)
-            # Agregamos una dimensión extra porque el modelo espera un "lote" de imágenes
+            # 3. Extraer características (ResNet)
             aligned_face = aligned_face.unsqueeze(0).to(device)
-            
-            # Pasamos la cara por la red neuronal
             with torch.no_grad():
                 embedding = resnet(aligned_face)
             
-            # Convertimos el resultado a una lista de Python
             vector_facial = embedding[0].cpu().numpy().tolist()
             
-            print(f"🧠 Vector facial extraído con éxito. Tamaño: {len(vector_facial)} números.")
+            # =========================================================
+            # FASE DE ORQUESTACIÓN CON LOS OTROS SERVIDORES
+            # =========================================================
             
-            # --- NUEVO: ENVIAR EL VECTOR AL SERVIDOR 2 ---
-            # Para la prueba, usaremos una matrícula de ejemplo
-            matricula_alumno = MATRICULA_TEST
-            url_api = f"{SERVER3_URL}/api/usuarios/{matricula_alumno}/embedding"
+            # A) PREGUNTAR AL SERVIDOR 3: "¿Quién es?"
+            print("🔍 Buscando identidad en Servidor 3 (PostgreSQL)...")
+            url_reconocer = f"{SERVER3_URL}/api/usuarios/reconocer"
+            resp_reconocer = requests.post(url_reconocer, json={
+                "vector_facial": vector_facial,
+                "umbral": 0.40 # Ajusta esto si es muy estricto o muy flexible
+            })
             
-            payload = {"vector_facial": vector_facial}
+            datos_id = resp_reconocer.json()
             
-            try:
-                print(f"➡️ Enviando vector al Servidor 2 (Matrícula: {matricula_alumno})...")
-                respuesta = requests.put(url_api, json=payload)
+            if not datos_id.get("encontrado"):
+                print("⚠️ Rostro desconocido. Acceso denegado.")
+                return {"status": "error", "mensaje": "Usuario desconocido"}
                 
-                if respuesta.status_code == 200:
-                    print("✅ ¡ÉXITO! Vector guardado oficialmente en PostgreSQL")
-                else:
-                    print(f"⚠️ El Servidor 2 rechazó el dato. Código: {respuesta.status_code} - Info: {respuesta.text}")
-            except Exception as e:
-                print(f"❌ Error: No se pudo conectar con el Servidor 2. ¿Está encendido en el puerto 8003? Detalles: {e}")
+            usuario = datos_id["usuario"]
+            print(f"✅ ¡Es {usuario['nombre']} {usuario['apellido']}!")
+
+            # B) PREGUNTAR AL SERVIDOR 2: "¿Qué emoción tiene?"
+            print("🎭 Consultando emoción al Servidor 2...")
+            emocion_detectada = "Neutro" # Default por si el Servidor 2 está apagado
+            try:
+                url_emocion = f"{SERVER2_URL}/api/emociones/analizar"
+                # Le mandamos el base64 original
+                resp_emocion = requests.post(url_emocion, json={"foto_base64": data.foto_base64}, timeout=3)
+                if resp_emocion.status_code == 200:
+                    emocion_detectada = resp_emocion.json().get("emocion", "Neutro")
+                    print(f"✨ Emoción detectada: {emocion_detectada}")
+            except requests.exceptions.RequestException:
+                print("⚠️ Servidor 2 apagado o inalcanzable. Usando emoción por defecto.")
+
+            # C) REGISTRAR ASISTENCIA EN EL SERVIDOR 3
+            print("💾 Guardando asistencia en Servidor 3...")
+            url_asistencia = f"{SERVER3_URL}/api/asistencia/registrar"
+            payload_asistencia = {
+                "usuario_id": usuario["id"],
+                "grupo_id": data.grupo_id,
+                "fecha": data.fecha,
+                "hora": data.hora,
+                "emocion": emocion_detectada
+            }
+            # Comentado hasta que crees este endpoint en el Servidor 3
+            requests.post(url_asistencia, json=payload_asistencia)
+
+            print("🎉 ¡Flujo completo exitoso!")
             
+            # D) RESPONDER AL ESP32
             return {
                 "status": "success",
-                "message": "Rostro detectado y vector extraído",
-                "vector_size": len(vector_facial)
+                "mensaje": f"Hola {usuario['nombre']}",
+                "emocion": emocion_detectada
             }
+            
         else:
             print("❌ No se detectó ningún rostro en la imagen.")
-            return {"status": "error", "message": "No se detectó rostro"}
+            return {"status": "error", "mensaje": "No se detectó rostro"}
 
     except Exception as e:
-        print(f"⚠️ Error procesando la captura: {e}")
+        print(f"⚠️ Error general: {e}")
         raise HTTPException(status_code=500, detail=str(e))

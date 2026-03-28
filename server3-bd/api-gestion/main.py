@@ -6,6 +6,11 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from pydantic import BaseModel
 from typing import List
+from datetime import datetime
+from models import (
+    Base, Usuario, TipoUsuario, Materia, Grupo,
+    Asistencia, Emocion, EstadoAsistencia, TipoRegistro, CategoriaEmocion
+)
 
 # --- IMPORTACIONES DE TU BASE DE DATOS Y MODELOS ---
 from database import get_db, engine 
@@ -88,10 +93,9 @@ async def registrar_usuario(
         raise HTTPException(status_code=400, detail="La matrícula ya está registrada.")
 
 # ==========================================
-# NUEVO: ENDPOINT PARA LA INTELIGENCIA ARTIFICIAL
+# ENDPOINT PARA GUARDAR LA HUELLA FACIAL (IA)
 # ==========================================
 
-# Modelo para recibir el vector matemático desde el Servidor 1
 class EmbeddingUpdate(BaseModel):
     vector_facial: List[float]
 
@@ -103,13 +107,11 @@ def actualizar_embedding_facial(
 ):
     """Endpoint exclusivo para que el Servidor 1 (IA) guarde la huella matemática"""
     
-    # Buscamos al usuario usando su matrícula
     usuario = db.query(Usuario).filter(Usuario.matricula_o_num_empleado == matricula).first()
     
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
-    # pgvector se encarga de transformar la lista de Python al formato correcto de la BD
     usuario.embedding_facial = data.vector_facial
     
     try:
@@ -118,3 +120,171 @@ def actualizar_embedding_facial(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error al guardar el vector: {str(e)}")
+
+# ==========================================
+# NUEVO: ENDPOINT PARA BUSCAR Y RECONOCER
+# ==========================================
+
+class ReconocerRequest(BaseModel):
+    vector_facial: List[float]
+    umbral: float = 0.40  # Tolerancia (Menos de 0.40 es la misma persona)
+
+@app.post("/api/usuarios/reconocer")
+def reconocer_usuario(data: ReconocerRequest, db: Session = Depends(get_db)):
+    """Busca en PostgreSQL el rostro más parecido al vector recibido usando Distancia Coseno"""
+    
+    # 1. Validar que la IA mandó exactamente 512 números
+    if len(data.vector_facial) != 512:
+        raise HTTPException(status_code=400, detail="El vector debe tener exactamente 512 dimensiones")
+
+    # 2. La magia de PGVECTOR: Buscar al usuario más parecido
+    resultado = db.query(
+        Usuario,
+        Usuario.embedding_facial.cosine_distance(data.vector_facial).label("distancia")
+    ).filter(Usuario.embedding_facial.isnot(None))\
+     .order_by("distancia").first()
+
+    # 3. Si la base de datos está vacía de rostros
+    if not resultado:
+        return {"encontrado": False, "mensaje": "Base de datos de rostros vacía."}
+
+    usuario, distancia = resultado
+
+    # 4. Verificamos si la distancia matemática es menor al umbral de seguridad
+    if distancia <= data.umbral:
+        return {
+            "encontrado": True,
+            "distancia": float(distancia),
+            "usuario": {
+                "id": usuario.id,
+                "nombre": usuario.nombre,
+                "apellido": usuario.apellido,
+                "matricula": usuario.matricula_o_num_empleado
+            }
+        }
+    else:
+        # Se parece a alguien, pero la distancia es muy grande (es un desconocido)
+        return {
+            "encontrado": False,
+            "distancia": float(distancia),
+            "mensaje": "Es un rostro desconocido."
+        }
+    
+# ==========================================
+# NUEVO: ENDPOINT PARA GUARDAR LA ASISTENCIA Y EMOCIÓN
+# ==========================================
+
+class RegistroAsistenciaRequest(BaseModel):
+    usuario_id: int
+    grupo_id: int
+    fecha: str
+    hora: str
+    emocion: str  
+
+@app.post("/api/asistencia/registrar")
+def registrar_asistencia(data: RegistroAsistenciaRequest, db: Session = Depends(get_db)):
+    """Guarda la asistencia y la emoción detectada al mismo tiempo"""
+    print(f"📥 Intentando registrar asistencia para Usuario ID: {data.usuario_id} en Grupo: {data.grupo_id}")
+    
+    # 1. Normalizar emoción para el Enum
+    emocion_limpia = data.emocion.lower().strip()
+    try:
+        emocion_enum = CategoriaEmocion(emocion_limpia)
+    except ValueError:
+        print(f"⚠️ Emoción '{emocion_limpia}' no válida, usando neutro")
+        emocion_enum = CategoriaEmocion.neutro
+
+    try:
+        # Convertir strings a objetos Python
+        fecha_obj = datetime.strptime(data.fecha, "%Y-%m-%d").date()
+        hora_obj = datetime.strptime(data.hora, "%H:%M:%S").time()
+
+        # 2. Crear Asistencia
+        nueva_asistencia = Asistencia(
+            usuario_id=data.usuario_id,
+            grupo_id=data.grupo_id,
+            fecha=fecha_obj,
+            hora_registro=hora_obj,
+            tipo_registro=TipoRegistro.entrada, 
+            tipo_usuario=TipoUsuario.alumno, # Ajustar si es necesario
+            estado=EstadoAsistencia.a_tiempo,   
+            emocion_detectada=emocion_enum
+        )
+        
+        db.add(nueva_asistencia)
+        db.commit()
+        db.refresh(nueva_asistencia)
+
+        # 3. Crear Detalle de Emoción
+        nueva_emocion = Emocion(
+            asistencia_id=nueva_asistencia.id,
+            usuario_id=data.usuario_id,
+            grupo_id=data.grupo_id,
+            fecha=fecha_obj,
+            hora=hora_obj,
+            emocion=emocion_enum,
+            confianza=0.95,
+            contexto=TipoRegistro.entrada
+        )
+        
+        db.add(nueva_emocion)
+        db.commit()
+        print("✅ Registro exitoso en PostgreSQL")
+        return {"status": "success", "mensaje": "Asistencia registrada"}
+    
+    except Exception as e:
+        db.rollback()
+        # --- EL CHISMOSO ---
+        print("\n❌ ERROR CRÍTICO EN SERVIDOR 3:")
+        print(str(e))
+        print("----------------------------\n")
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    # ==========================================
+# ENDPOINTS DE GESTIÓN (MATERIAS Y GRUPOS)
+# ==========================================
+
+class MateriaCreate(BaseModel):
+    nombre: str
+    clave: str
+
+class GrupoCreate(BaseModel):
+    id: int  # Lo pedimos explícitamente para poder forzar el ID 5
+    materia_id: int
+    profesor_id: int
+    aula: str
+    semestre: str
+    periodo: str
+
+@app.post("/api/materias/registrar")
+def registrar_materia(data: MateriaCreate, db: Session = Depends(get_db)):
+    """Registra una nueva materia en el sistema"""
+    nueva_materia = Materia(nombre=data.nombre, clave=data.clave)
+    try:
+        db.add(nueva_materia)
+        db.commit()
+        db.refresh(nueva_materia)
+        return {"mensaje": "Materia registrada", "materia_id": nueva_materia.id}
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="La clave de la materia ya existe")
+
+@app.post("/api/grupos/registrar")
+def registrar_grupo(data: GrupoCreate, db: Session = Depends(get_db)):
+    """Registra un nuevo grupo (Permite forzar el ID para compatibilidad con el ESP32)"""
+    nuevo_grupo = Grupo(
+        id=data.id, # Forzamos el ID 5 aquí
+        materia_id=data.materia_id,
+        profesor_id=data.profesor_id,
+        aula=data.aula,
+        semestre=data.semestre,
+        periodo=data.periodo
+    )
+    try:
+        db.add(nuevo_grupo)
+        db.commit()
+        db.refresh(nuevo_grupo)
+        return {"mensaje": "Grupo registrado", "grupo_id": nuevo_grupo.id}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Error al crear grupo: {str(e)}")
