@@ -8,8 +8,8 @@ const char *WIFI_PASSWORD = "F3AA8DA12rkzBTHF";
 // Configuración del Servidor 1 (CachyOS)
 const char *SERVER_URL = "http://192.168.100.95:8001/api/capture";
 
-// ID del grupo registrado en la base de datos (cámbialo si cambias de grupo)
-#define GRUPO_ID 1
+// Nombre del aula donde está instalado este dispositivo
+#define AULA_ID "Lab. Computo"
 
 // Pines de la cámara Freenove ESP32-S3 WROOM
 #define PWDN_GPIO_NUM -1

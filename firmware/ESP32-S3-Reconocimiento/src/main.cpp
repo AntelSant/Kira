@@ -311,7 +311,7 @@ void loop() {
   const char *prefix = "{\"foto_base64\":\"";
   char suffix[140];
   snprintf(suffix, sizeof(suffix),
-           "\",\"grupo_id\":%d,\"fecha\":\"%s\",\"hora\":\"%s\"}", GRUPO_ID,
+           "\",\"aula\":\"%s\",\"fecha\":\"%s\",\"hora\":\"%s\"}", AULA_ID,
            fechaStr, horaStr);
 
   size_t prefixLen = strlen(prefix);

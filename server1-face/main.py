@@ -49,7 +49,7 @@ os.makedirs("caras_recortadas", exist_ok=True)
 
 class CapturaRequest(BaseModel):
     foto_base64: str
-    grupo_id: int
+    aula: str
     fecha: str
     hora: str
 
@@ -84,7 +84,7 @@ def extraer_embedding(image: Image.Image):
 async def analizar_y_guardar_emocion(
     foto_b64: str,
     usuario_id: int,
-    grupo_id: int,
+    aula: str,
     fecha: str,
     hora: str,
     confianza_default: float = 0.0
@@ -112,7 +112,7 @@ async def analizar_y_guardar_emocion(
             # Paso 2: Registrar asistencia con emoción en Server3
             payload = {
                 "usuario_id": usuario_id,
-                "grupo_id": grupo_id,
+                "aula": aula,
                 "fecha": fecha,
                 "hora": hora,
                 "emocion": emocion_detectada,
@@ -179,7 +179,7 @@ async def procesar_asistencia(data: CapturaRequest, background_tasks: Background
             analizar_y_guardar_emocion,
             data.foto_base64,
             usuario["id"],
-            data.grupo_id,
+            data.aula,
             data.fecha,
             data.hora
         )

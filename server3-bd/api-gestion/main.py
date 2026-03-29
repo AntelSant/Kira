@@ -79,7 +79,7 @@ class ReconocerRequest(BaseModel):
 
 class RegistroAsistenciaRequest(BaseModel):
     usuario_id: int
-    grupo_id: int
+    aula: str
     fecha: str
     hora: str
     emocion: str
@@ -113,19 +113,19 @@ class InscripcionCreate(BaseModel):
 #  FUNCIONES AUXILIARES
 # ============================================================
 
-def calcular_estado(grupo_id: int, hora_registro, db: Session) -> EstadoAsistencia:
+def calcular_estado(grupo_id: int, fecha_obj: date, hora_registro, db: Session) -> EstadoAsistencia:
     """Calcula si es a_tiempo, retardo o fuera_de_horario según el Horario del grupo"""
-    dia_hoy = datetime.now().weekday()  # 0=Lunes ... 6=Domingo
+    dia_semana = fecha_obj.weekday()  # 0=Lunes ... 6=Domingo
     horario = db.query(Horario).filter(
         Horario.grupo_id == grupo_id,
-        Horario.dia_semana == dia_hoy
+        Horario.dia_semana == dia_semana
     ).first()
 
     if not horario:
         return EstadoAsistencia.fuera_de_horario
 
     limite_a_tiempo = (
-        datetime.combine(date.today(), horario.hora_inicio)
+        datetime.combine(fecha_obj, horario.hora_inicio)
         + timedelta(minutes=horario.tolerancia_minutos)
     ).time()
 
@@ -325,8 +325,8 @@ def reconocer_usuario(data: ReconocerRequest, db: Session = Depends(get_db)):
 
 @app.post("/api/asistencia/registrar")
 def registrar_asistencia(data: RegistroAsistenciaRequest, db: Session = Depends(get_db)):
-    """Guarda la asistencia y la emoción detectada. Calcula estado según horario real."""
-    print(f"📥 Registrando asistencia — Usuario {data.usuario_id}, Grupo {data.grupo_id}")
+    """Guarda la asistencia y la emoción detectada. Encuentra el grupo por aula y calcula estado según horario."""
+    print(f"📥 Registrando asistencia — Usuario {data.usuario_id}, Aula: {data.aula}")
 
     # Normalizar emoción
     emocion_limpia = data.emocion.lower().strip()
@@ -340,27 +340,52 @@ def registrar_asistencia(data: RegistroAsistenciaRequest, db: Session = Depends(
         fecha_obj = datetime.strptime(data.fecha, "%Y-%m-%d").date()
         hora_obj = datetime.strptime(data.hora, "%H:%M:%S").time()
 
+        # --- BUSCAR CLASE ACTIVA SEGÚN AULA ---
+        dia_semana = fecha_obj.weekday()
+        horarios_hoy = db.query(Horario).join(Grupo).filter(
+            Grupo.aula == data.aula,
+            Horario.dia_semana == dia_semana
+        ).all()
+
+        horario_activo = None
+        for h in horarios_hoy:
+            dt_inicio = datetime.combine(fecha_obj, h.hora_inicio)
+            dt_fin = datetime.combine(fecha_obj, h.hora_fin)
+            dt_actual = datetime.combine(fecha_obj, hora_obj)
+            
+            # Se considera activa desde 30 mins antes del inicio hasta la hora de fin
+            if dt_inicio - timedelta(minutes=30) <= dt_actual <= dt_fin:
+                horario_activo = h
+                break
+                
+        if not horario_activo:
+            print(f"⚠️ No hay clase programada en '{data.aula}' para el día {dia_semana} a las {hora_obj}")
+            return {"status": "error", "mensaje": f"No hay clase activa en aula '{data.aula}'"}
+            
+        grupo_id_activo = horario_activo.grupo_id
+        print(f"✅ Clase activa encontrada: Grupo ID {grupo_id_activo}")
+
         # --- ANTI-DUPLICADOS ---
         existente = db.query(Asistencia).filter(
             Asistencia.usuario_id == data.usuario_id,
-            Asistencia.grupo_id == data.grupo_id,
+            Asistencia.grupo_id == grupo_id_activo,
             Asistencia.fecha == fecha_obj
         ).first()
 
         if existente:
             print("⚠️ Asistencia ya registrada para hoy")
-            return {"status": "ya_registrado", "mensaje": "Asistencia ya registrada hoy para este grupo"}
+            return {"status": "ya_registrado", "mensaje": "Asistencia ya registrada hoy para esta clase"}
 
         # --- CALCULAR ESTADO SEGÚN HORARIO ---
-        estado = calcular_estado(data.grupo_id, hora_obj, db)
+        estado = calcular_estado(grupo_id_activo, fecha_obj, hora_obj, db)
 
-        # Determinar tipo de usuario
+        # Buscar usuario
         usuario = db.query(Usuario).filter(Usuario.id == data.usuario_id).first()
         tipo_usr = usuario.tipo if usuario else TipoUsuario.alumno
 
         nueva_asistencia = Asistencia(
             usuario_id=data.usuario_id,
-            grupo_id=data.grupo_id,
+            grupo_id=grupo_id_activo,
             fecha=fecha_obj,
             hora_registro=hora_obj,
             tipo_registro=TipoRegistro.entrada,
@@ -377,7 +402,7 @@ def registrar_asistencia(data: RegistroAsistenciaRequest, db: Session = Depends(
         nueva_emocion = Emocion(
             asistencia_id=nueva_asistencia.id,
             usuario_id=data.usuario_id,
-            grupo_id=data.grupo_id,
+            grupo_id=grupo_id_activo,
             fecha=fecha_obj,
             hora=hora_obj,
             emocion=emocion_enum,
