@@ -11,7 +11,7 @@ from facenet_pytorch import MTCNN
 
 # ==========================================
 # PARCHE DE SEGURIDAD PARA PYTORCH 2.6+
-# Forzamos weights_only=False para que HSEmotion pueda cargar su modelo
+# Forzamos weights_only=False por compatibilidad
 original_load = torch.load
 def patched_load(*args, **kwargs):
     kwargs['weights_only'] = False
@@ -19,7 +19,7 @@ def patched_load(*args, **kwargs):
 torch.load = patched_load
 # ==========================================
 
-from hsemotion.facial_emotions import HSEmotionRecognizer
+from emotiefflib.facial_analysis import EmotiEffLibRecognizerOnnx
 
 app = FastAPI(
     title="Servidor 2 - Analizador de Emociones",
@@ -34,9 +34,9 @@ print(f"🚀 Iniciando IA de Emociones en: {device}...")
 # MTCNN para buscar la cara en la foto
 mtcnn = MTCNN(keep_all=False, device=device)
 
-# HSEmotion para detectar la emoción
+# EmotiEffLib (sucesor de hsemotion) - usa ONNX, sin dependencias de timm
 model_name = 'enet_b0_8_best_vgaf'
-recognizer = HSEmotionRecognizer(model_name=model_name, device=device)
+recognizer = EmotiEffLibRecognizerOnnx(model_name=model_name)
 print("✅ Modelos cargados exitosamente.")
 
 class EmocionRequest(BaseModel):

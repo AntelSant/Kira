@@ -4,7 +4,7 @@ fastapi
 uvicorn
 torch
 torchvision
-hsemotion
+emotiefflib
 facenet-pytorch
 httpx
 sqlalchemy
