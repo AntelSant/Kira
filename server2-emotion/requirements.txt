@@ -4,13 +4,13 @@ fastapi
 uvicorn
 torch
 torchvision
-hsemotion
-deepface
+emotiefflib
+facenet-pytorch
 httpx
 sqlalchemy
 psycopg2-binary
 pydantic
 python-dotenv
-Pillow
+Pillow>=10.3.0
 opencv-python
-numpy
+numpy>=1.26.4

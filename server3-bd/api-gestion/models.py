@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, Date, Time, LargeBinary, DateTime, Enum, Index, UniqueConstraint, CheckConstraint
+from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, Date, Time, DateTime, Enum, CheckConstraint, UniqueConstraint
 from sqlalchemy.sql import func
 from sqlalchemy.orm import declarative_base, relationship
 from pgvector.sqlalchemy import Vector
@@ -37,6 +37,7 @@ class TimestampMixin:
 # ==========================================
 # 3. TABLAS (Modelos)
 # ==========================================
+
 class Usuario(Base, TimestampMixin):
     __tablename__ = 'usuarios'
     
@@ -47,17 +48,17 @@ class Usuario(Base, TimestampMixin):
     tipo = Column(Enum(TipoUsuario), nullable=False)
     email = Column(String(100), unique=True)
     
-    # El vector matemático se queda en binario, la foto se cambia a String (ruta del archivo)
+    # pgvector: 512 dimensiones para el modelo InceptionResnetV1
     embedding_facial = Column(Vector(512))
     foto_perfil = Column(String(255)) 
     
     activo = Column(Boolean, default=True)
     fecha_registro = Column(Date, default=func.current_date())
 
-    grupos_impartidos = relationship("Grupo", back_populates="profesor", cascade="all, delete-orphan")
-    inscripciones = relationship("Inscripcion", back_populates="alumno", cascade="all, delete-orphan")
-    asistencias = relationship("Asistencia", back_populates="usuario", cascade="all, delete-orphan")
-    emociones = relationship("Emocion", back_populates="usuario", cascade="all, delete-orphan")
+    grupos_impartidos = relationship("Grupo", back_populates="profesor")
+    inscripciones = relationship("Inscripcion", back_populates="alumno")
+    asistencias = relationship("Asistencia", back_populates="usuario")
+    emociones = relationship("Emocion", back_populates="usuario")
 
 class Materia(Base, TimestampMixin):
     __tablename__ = 'materias'
@@ -66,7 +67,7 @@ class Materia(Base, TimestampMixin):
     nombre = Column(String(100), nullable=False)
     clave = Column(String(20), unique=True, index=True, nullable=False)
 
-    grupos = relationship("Grupo", back_populates="materia", cascade="all, delete-orphan")
+    grupos = relationship("Grupo", back_populates="materia")
 
 class Grupo(Base, TimestampMixin):
     __tablename__ = 'grupos'
@@ -82,17 +83,15 @@ class Grupo(Base, TimestampMixin):
     profesor = relationship("Usuario", back_populates="grupos_impartidos")
     horarios = relationship("Horario", back_populates="grupo", cascade="all, delete-orphan")
     inscripciones = relationship("Inscripcion", back_populates="grupo", cascade="all, delete-orphan")
-    asistencias = relationship("Asistencia", back_populates="grupo", cascade="all, delete-orphan")
-    emociones = relationship("Emocion", back_populates="grupo", cascade="all, delete-orphan")
+    asistencias = relationship("Asistencia", back_populates="grupo")
+    emociones = relationship("Emocion", back_populates="grupo")
 
 class Horario(Base, TimestampMixin):
     __tablename__ = 'horarios'
     
     id = Column(Integer, primary_key=True, index=True)
     grupo_id = Column(Integer, ForeignKey('grupos.id', ondelete='CASCADE'), index=True)
-    
-    # Restricción: El día solo puede ser del 0 (Lunes) al 6 (Domingo)
-    dia_semana = Column(Integer, CheckConstraint('dia_semana >= 0 AND dia_semana <= 6', name='check_dia_semana'), nullable=False)
+    dia_semana = Column(Integer, CheckConstraint('dia_semana >= 0 AND dia_semana <= 6'), nullable=False)
     hora_inicio = Column(Time, nullable=False)
     hora_fin = Column(Time, nullable=False)
     tolerancia_minutos = Column(Integer, default=10)
@@ -101,8 +100,6 @@ class Horario(Base, TimestampMixin):
 
 class Inscripcion(Base, TimestampMixin):
     __tablename__ = 'inscripciones'
-    
-    # Restricción: Un alumno no puede estar inscrito dos veces en el mismo grupo
     __table_args__ = (UniqueConstraint('alumno_id', 'grupo_id', name='_alumno_grupo_uc'),)
     
     id = Column(Integer, primary_key=True, index=True)
@@ -124,14 +121,21 @@ class Asistencia(Base, TimestampMixin):
     tipo_usuario = Column(Enum(TipoUsuario))
     estado = Column(Enum(EstadoAsistencia))
     dispositivo_id = Column(String(50))
+    
+    # --- NUEVO CAMPO ---
+    emocion_detectada = Column(Enum(CategoriaEmocion), nullable=True)
 
     usuario = relationship("Usuario", back_populates="asistencias")
     grupo = relationship("Grupo", back_populates="asistencias")
+    # Relación para conectar con la tabla detallada de emociones si es necesario
+    detalle_emocion = relationship("Emocion", back_populates="asistencia_rel", uselist=False)
 
 class Emocion(Base, TimestampMixin):
     __tablename__ = 'emociones'
     
     id = Column(Integer, primary_key=True, index=True)
+    # Vinculamos opcionalmente a un registro de asistencia específico
+    asistencia_id = Column(Integer, ForeignKey('asistencia.id', ondelete='CASCADE'), nullable=True)
     usuario_id = Column(Integer, ForeignKey('usuarios.id', ondelete='CASCADE'), index=True)
     grupo_id = Column(Integer, ForeignKey('grupos.id', ondelete='CASCADE'), index=True)
     fecha = Column(Date, index=True)
@@ -140,5 +144,6 @@ class Emocion(Base, TimestampMixin):
     confianza = Column(Float)
     contexto = Column(Enum(TipoRegistro))
 
+    asistencia_rel = relationship("Asistencia", back_populates="detalle_emocion")
     usuario = relationship("Usuario", back_populates="emociones")
     grupo = relationship("Grupo", back_populates="emociones")

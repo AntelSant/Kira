@@ -133,6 +133,26 @@ void setup() {
   }
   Serial.println("\nWiFi OK: " + WiFi.localIP().toString());
 
+  // Sincronizar hora con NTP (UTC-7 Sinaloa, sin horario de verano)
+  configTime(-7 * 3600, 0, "pool.ntp.org", "time.nist.gov");
+  Serial.print("Sincronizando NTP");
+  mostrarMensaje("Sincronizando", "Hora NTP...");
+  struct tm timeinfo;
+  int ntpRetries = 0;
+  while (!getLocalTime(&timeinfo) && ntpRetries < 20) {
+    delay(500);
+    Serial.print(".");
+    ntpRetries++;
+  }
+  if (ntpRetries < 20) {
+    Serial.printf("\nNTP OK: %04d-%02d-%02d %02d:%02d:%02d\n",
+                  timeinfo.tm_year + 1900, timeinfo.tm_mon + 1,
+                  timeinfo.tm_mday, timeinfo.tm_hour, timeinfo.tm_min,
+                  timeinfo.tm_sec);
+  } else {
+    Serial.println("\nWARN: NTP timeout, se usara hora 00:00:00");
+  }
+
   // Cámara (EloquentEsp32cam)
   camera.pinout.freenove_s3();
   camera.brownout.disable();
@@ -201,10 +221,26 @@ void loop() {
   Serial.printf(">>> ROSTRO DETECTADO (score: %.2f, pos: %d,%d) <<<\n",
                 detection.first.score, detection.first.x, detection.first.y);
 
-  // ── Paso 3: Countdown de 5 segundos ─────────────────────────────
+  // ── Paso 3: Countdown con verificación continua ─────────────────
+  bool rostroMantenido = true;
   for (int i = COUNTDOWN_SEC; i > 0; i--) {
     mostrarCountdown(i);
-    delay(1000);
+    delay(700); // esperar parte del segundo
+
+    // Re-capturar y verificar que el rostro sigue presente
+    if (!camera.capture().isOk() || !detection.run().isOk() ||
+        detection.notFound()) {
+      rostroMantenido = false;
+      Serial.println(">> Rostro perdido durante countdown, cancelando");
+      mostrarMensaje("Cancelado", "Rostro perdido", 1500);
+      break;
+    }
+    delay(300); // completar ~1s
+  }
+
+  if (!rostroMantenido) {
+    mostrarMensaje("Escaneando...", "Ponte enfrente");
+    return; // volver al loop sin capturar ni enviar
   }
 
   // ── Paso 4: Capturar la foto real (después del countdown) ───────
@@ -258,10 +294,26 @@ void loop() {
     return;
   }
 
-  // ── Paso 6: Construir JSON y enviar ─────────────────────────────
+  // ── Paso 6: Construir JSON con fecha/hora reales (NTP) ──────────
+  struct tm timeinfo;
+  char fechaStr[12] = "1970-01-01";
+  char horaStr[10] = "00:00:00";
+  if (getLocalTime(&timeinfo)) {
+    snprintf(fechaStr, sizeof(fechaStr), "%04d-%02d-%02d",
+             timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday);
+    snprintf(horaStr, sizeof(horaStr), "%02d:%02d:%02d", timeinfo.tm_hour,
+             timeinfo.tm_min, timeinfo.tm_sec);
+  } else {
+    Serial.println("WARN: Sin hora NTP, usando valores por defecto");
+  }
+  Serial.printf("Fecha: %s | Hora: %s\n", fechaStr, horaStr);
+
   const char *prefix = "{\"foto_base64\":\"";
-  const char *suffix =
-      "\",\"grupo_id\":5,\"fecha\":\"2026-03-22\",\"hora\":\"12:00:00\"}";
+  char suffix[140];
+  snprintf(suffix, sizeof(suffix),
+           "\",\"aula\":\"%s\",\"fecha\":\"%s\",\"hora\":\"%s\"}", AULA_ID,
+           fechaStr, horaStr);
+
   size_t prefixLen = strlen(prefix);
   size_t suffixLen = strlen(suffix);
   size_t totalLen = prefixLen + b64Size + suffixLen;

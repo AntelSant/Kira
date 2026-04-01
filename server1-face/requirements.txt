@@ -5,14 +5,9 @@ uvicorn
 torch
 torchvision
 facenet-pytorch
-insightface
 httpx
-sqlalchemy
-alembic
-psycopg2-binary
 pydantic
 python-dotenv
 opencv-python
 Pillow
-requests
 numpy
