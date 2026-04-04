@@ -2,9 +2,128 @@
    KIRA UAS — Dashboard Application (Vanilla JS)
    ============================================================ */
 
-// ── Configuration ─────────────────────────────────────────
+// ── Configuration ───────────────────────────────────────────
 const API_BASE = window.location.origin;  // Server3
 const SERVER1_URL = localStorage.getItem('server1_url') || 'http://127.0.0.1:8001';
+
+// ── Auth (session token) ────────────────────────────────────
+// Token stored in sessionStorage — cleared automatically on tab/browser close
+function getToken() {
+    return sessionStorage.getItem('kira_token');
+}
+
+function setToken(token) {
+    sessionStorage.setItem('kira_token', token);
+}
+
+function clearToken() {
+    sessionStorage.removeItem('kira_token');
+}
+
+/**
+ * Auth-aware fetch — auth guard for every protected request.
+ * Automatically injects Authorization: Bearer header.
+ * If the server returns 401, throws the user back to the login screen.
+ */
+async function authFetch(path, options = {}) {
+    const token = getToken();
+    const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers,
+    };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const resp = await fetch(`${API_BASE}${path}`, { ...options, headers });
+
+    if (resp.status === 401) {
+        // Token expired or invalid — force re-login
+        clearToken();
+        showLoginScreen();
+        throw new Error('Sesión expirada. Por favor vuelve a iniciar sesión.');
+    }
+    return resp;
+}
+
+// ── Auth Guard — init on page load ──────────────────────────
+async function init() {
+    const token = getToken();
+    if (!token) {
+        showLoginScreen();
+        return;
+    }
+    // Validate token with the server
+    try {
+        const resp = await fetch(`${API_BASE}/api/auth/me`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!resp.ok) throw new Error('Token inválido');
+        const admin = await resp.json();
+        showDashboard(admin);
+    } catch {
+        clearToken();
+        showLoginScreen();
+    }
+}
+
+function showLoginScreen() {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('app-layout').style.display = 'none';
+    document.getElementById('login-email').focus();
+}
+
+function showDashboard(admin) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-layout').style.display = 'flex';
+    document.getElementById('admin-name').textContent = admin.nombre;
+    cargarInicio();
+}
+
+// ── Login form handler ───────────────────────────────────
+async function handleLogin(event) {
+    event.preventDefault();
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    const errorEl = document.getElementById('login-error');
+    const btn = document.getElementById('login-btn');
+
+    errorEl.style.display = 'none';
+    btn.disabled = true;
+    btn.textContent = 'Verificando...';
+
+    try {
+        const resp = await fetch(`${API_BASE}/api/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+        });
+        const data = await resp.json();
+
+        if (resp.ok) {
+            setToken(data.access_token);
+            showDashboard({ nombre: data.nombre });
+        } else {
+            errorEl.textContent = data.detail || 'Credenciales incorrectas';
+            errorEl.style.display = 'block';
+        }
+    } catch {
+        errorEl.textContent = 'Error de conexión con el servidor';
+        errorEl.style.display = 'block';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Iniciar sesión';
+    }
+}
+
+function logout() {
+    if (!confirm('¿Cerrar sesión?')) return;
+    clearToken();
+    showLoginScreen();
+}
+
+function togglePassword() {
+    const input = document.getElementById('login-password');
+    input.type = input.type === 'password' ? 'text' : 'password';
+}
 
 // ── State ─────────────────────────────────────────────────
 let chartAsistencia = null;
@@ -12,7 +131,7 @@ let chartEmociones = null;
 let chartTendencia = null;
 let currentPage = 'inicio';
 
-// ── Navigation ────────────────────────────────────────────
+// ── Navigation ───────────────────────────────────────────
 document.querySelectorAll('.nav-item[data-page]').forEach(item => {
     item.addEventListener('click', () => {
         const page = item.dataset.page;
@@ -41,6 +160,7 @@ function navigateTo(page) {
         inscripciones: () => { cargarGruposSelect('inscripcion-grupo-select'); cargarAlumnosDisponibles(); },
         asistencia: () => { cargarGruposSelect('asistencia-grupo-select'); },
         emociones: cargarEmocionesGrafica,
+        admins: cargarAdmins,
     };
     if (loaders[page]) loaders[page]();
 }
@@ -919,7 +1039,108 @@ async function cargarEmocionesGrafica() {
     });
 }
 
-// ── Init ──────────────────────────────────────────────────
+// ── Init (Auth Guard) ─────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-    cargarInicio();
+    init();  // Checks session token → shows login or dashboard
 });
+
+// ============================================================
+//  ADMINISTRADORES
+// ============================================================
+
+async function cargarAdmins() {
+    const tbody = document.getElementById('tabla-admins');
+    try {
+        const resp = await authFetch('/api/admins');
+        const admins = await resp.json();
+
+        if (!admins || admins.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="empty-state"><p>No hay administradores registrados</p></td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = admins.map(a => `
+            <tr>
+                <td>${a.id}</td>
+                <td>${a.nombre}</td>
+                <td>${a.email}</td>
+                <td>${a.fecha_registro || '—'}</td>
+                <td>
+                    <button class="btn btn-sm btn-danger" onclick="eliminarAdmin(${a.id})">🗑️</button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="5" class="empty-state"><p>Error al cargar: ${e.message}</p></td></tr>`;
+    }
+}
+
+function abrirModalAdmin() {
+    const body = `
+        <div id="modal-alert-zone"></div>
+        <div class="form-group">
+            <label>Nombre completo</label>
+            <input type="text" class="form-control" id="adm-nombre" placeholder="Ana García">
+        </div>
+        <div class="form-group">
+            <label>Correo electrónico</label>
+            <input type="email" class="form-control" id="adm-email" placeholder="ana@uas.edu.mx">
+        </div>
+        <div class="form-group">
+            <label>Contraseña</label>
+            <input type="password" class="form-control" id="adm-password" placeholder="Mínimo 8 caracteres">
+        </div>
+    `;
+    const footer = `
+        <button class="btn btn-outline" onclick="cerrarModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="guardarAdmin()">💾 Registrar</button>
+    `;
+    abrirModal('🛡️ Nuevo Administrador', body, footer);
+}
+
+async function guardarAdmin() {
+    const nombre = document.getElementById('adm-nombre').value.trim();
+    const email = document.getElementById('adm-email').value.trim();
+    const password = document.getElementById('adm-password').value;
+
+    if (!nombre || !email || !password) {
+        showAlert('modal-alert-zone', 'danger', 'Todos los campos son obligatorios');
+        return;
+    }
+    if (password.length < 8) {
+        showAlert('modal-alert-zone', 'danger', 'La contraseña debe tener al menos 8 caracteres');
+        return;
+    }
+
+    try {
+        const resp = await authFetch('/api/admins/registrar', {
+            method: 'POST',
+            body: JSON.stringify({ nombre, email, password }),
+        });
+        const data = await resp.json();
+
+        if (resp.ok) {
+            cerrarModal();
+            cargarAdmins();
+        } else {
+            showAlert('modal-alert-zone', 'danger', data.detail || 'Error al registrar');
+        }
+    } catch (e) {
+        showAlert('modal-alert-zone', 'danger', e.message);
+    }
+}
+
+async function eliminarAdmin(id) {
+    if (!confirm('¿Estás seguro de eliminar este administrador?')) return;
+    try {
+        const resp = await authFetch(`/api/admins/${id}`, { method: 'DELETE' });
+        const data = await resp.json();
+        if (resp.ok) {
+            cargarAdmins();
+        } else {
+            alert(data.detail || 'Error al eliminar');
+        }
+    } catch (e) {
+        alert(e.message);
+    }
+}

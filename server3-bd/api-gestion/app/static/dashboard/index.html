@@ -9,7 +9,35 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
 <body>
-<div class="app-layout">
+
+<!-- ═══ LOGIN SCREEN ═══ -->
+<div id="login-screen" class="login-screen">
+    <div class="login-card">
+        <div class="login-brand">
+            <div class="login-logo">🤖</div>
+            <h1>Kira UAS</h1>
+            <p>Sistema de Asistencia Inteligente</p>
+        </div>
+        <form id="login-form" onsubmit="handleLogin(event)">
+            <div class="login-field">
+                <label for="login-email">Correo electrónico</label>
+                <input type="email" id="login-email" placeholder="admin@uas.edu.mx" required autocomplete="username">
+            </div>
+            <div class="login-field">
+                <label for="login-password">Contraseña</label>
+                <div class="password-wrapper">
+                    <input type="password" id="login-password" placeholder="••••••••" required autocomplete="current-password">
+                    <button type="button" class="toggle-pass" onclick="togglePassword()" title="Mostrar/ocultar">👁</button>
+                </div>
+            </div>
+            <div id="login-error" class="login-error" style="display:none"></div>
+            <button type="submit" class="btn btn-primary btn-full" id="login-btn">Iniciar sesión</button>
+        </form>
+        <p class="login-hint">Solo administradores autorizados pueden acceder</p>
+    </div>
+</div>
+
+<div class="app-layout" id="app-layout" style="display:none">
 
     <!-- ═══ SIDEBAR ═══ -->
     <aside class="sidebar" id="sidebar">
@@ -47,7 +75,19 @@
             <div class="nav-item" data-page="emociones">
                 <span class="icon">😊</span> Emociones
             </div>
+
+            <div class="nav-section-label">Sistema</div>
+            <div class="nav-item" data-page="admins">
+                <span class="icon">🛡️</span> Administradores
+            </div>
         </nav>
+        <div class="sidebar-footer">
+            <div class="admin-info" id="admin-info">
+                <span class="admin-avatar">👤</span>
+                <span class="admin-name" id="admin-name">—</span>
+            </div>
+            <button class="btn-logout" onclick="logout()" title="Cerrar sesión">🚪 Cerrar sesión</button>
+        </div>
     </aside>
 
     <!-- ═══ MAIN CONTENT ═══ -->
@@ -307,6 +347,29 @@
                     <div class="chart-canvas-container" style="height: 340px;">
                         <canvas id="chart-emociones-tendencia"></canvas>
                     </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══ PAGE: ADMINS ═══ -->
+        <section class="page-section" id="page-admins">
+            <div class="page-header">
+                <h2>🛡️ Administradores</h2>
+                <p>Gestión de acceso al dashboard</p>
+            </div>
+
+            <div class="toolbar">
+                <button class="btn btn-primary" onclick="abrirModalAdmin()">➕ Nuevo Administrador</button>
+            </div>
+
+            <div class="table-card">
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>ID</th><th>Nombre</th><th>Email</th><th>Desde</th><th>Acciones</th></tr>
+                        </thead>
+                        <tbody id="tabla-admins"></tbody>
+                    </table>
                 </div>
             </div>
         </section>

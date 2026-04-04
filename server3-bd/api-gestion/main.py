@@ -1,6 +1,7 @@
 import os
 import shutil
-from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException, Query
+from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException, Query, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,10 +11,13 @@ from sqlalchemy import func as sql_func
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime, date, timedelta
+from passlib.context import CryptContext
+from jose import jwt, JWTError, ExpiredSignatureError
 
 from models import (
     Base, Usuario, TipoUsuario, Materia, Grupo, Horario, Inscripcion,
-    Asistencia, Emocion, EstadoAsistencia, TipoRegistro, CategoriaEmocion
+    Asistencia, Emocion, EstadoAsistencia, TipoRegistro, CategoriaEmocion,
+    Administrador
 )
 from database import get_db, engine
 
@@ -25,6 +29,63 @@ print("✅ ¡Tablas listas y creadas!")
 # --- Crear carpetas necesarias ---
 os.makedirs("app/static/perfiles", exist_ok=True)
 os.makedirs("app/static/dashboard", exist_ok=True)
+
+# ============================================================
+#  CONFIGURACIÓN JWT & BCRYPT
+# ============================================================
+
+JWT_SECRET = os.getenv("JWT_SECRET", "kira_secret_2026_cambiar_en_produccion")
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRE_HOURS = 8
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+http_bearer = HTTPBearer()
+
+
+def crear_token(data: dict) -> str:
+    payload = data.copy()
+    payload["exp"] = datetime.utcnow() + timedelta(hours=JWT_EXPIRE_HOURS)
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
+def verificar_token(token: str) -> dict:
+    try:
+        return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="La sesión ha expirado. Vuelve a iniciar sesión.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except JWTError as e:
+        print(f"❌ JWT inválido: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token inválido",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+def get_current_admin(
+    credentials: HTTPAuthorizationCredentials = Depends(http_bearer),
+    db: Session = Depends(get_db)
+) -> Administrador:
+    """Auth guard — protege cualquier endpoint que lo use como dependencia"""
+    payload = verificar_token(credentials.credentials)
+    admin_id = payload.get("sub")
+    try:
+        admin_id = int(admin_id)
+    except (TypeError, ValueError):
+        admin_id = None
+    if admin_id is None:
+        raise HTTPException(status_code=401, detail="Token sin identidad")
+    admin = db.query(Administrador).filter(
+        Administrador.id == admin_id,
+        Administrador.activo == True
+    ).first()
+    if not admin:
+        raise HTTPException(status_code=401, detail="Administrador no encontrado o inactivo")
+    return admin
 
 # --- App ---
 app = FastAPI(
@@ -108,6 +169,15 @@ class InscripcionCreate(BaseModel):
     alumno_id: int
     grupo_id: int
 
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+class AdminCreate(BaseModel):
+    nombre: str
+    email: str
+    password: str
+
 
 # ============================================================
 #  FUNCIONES AUXILIARES
@@ -151,6 +221,108 @@ def serializar_usuario(u: Usuario) -> dict:
         "tiene_embedding": u.embedding_facial is not None,
         "fecha_registro": str(u.fecha_registro) if u.fecha_registro else None,
     }
+
+
+# ============================================================
+#  AUTH — LOGIN, ME
+# ============================================================
+
+@app.post("/api/auth/login")
+def login(data: LoginRequest, db: Session = Depends(get_db)):
+    """Autentica un administrador y devuelve un JWT de sesión (8h)"""
+    admin = db.query(Administrador).filter(
+        Administrador.email == data.email,
+        Administrador.activo == True
+    ).first()
+    if not admin or not pwd_context.verify(data.password, admin.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Credenciales incorrectas"
+        )
+    token = crear_token({"sub": str(admin.id), "nombre": admin.nombre, "email": admin.email})
+    return {"access_token": token, "token_type": "bearer", "nombre": admin.nombre}
+
+
+@app.get("/api/auth/me")
+def me(admin: Administrador = Depends(get_current_admin)):
+    """Devuelve los datos del administrador autenticado (auth guard)"""
+    return {"id": admin.id, "nombre": admin.nombre, "email": admin.email, "activo": admin.activo}
+
+
+# ============================================================
+#  ADMINISTRADORES — CRUD (protegido por auth guard)
+# ============================================================
+
+@app.post("/api/admins/primer-admin", status_code=201)
+def crear_primer_admin(data: AdminCreate, db: Session = Depends(get_db)):
+    """Crea el primer administrador SOLO si la tabla está vacía. No requiere auth."""
+    if db.query(Administrador).count() > 0:
+        raise HTTPException(
+            status_code=403,
+            detail="Ya existen administradores. Use el endpoint protegido para crear más."
+        )
+    nuevo = Administrador(
+        nombre=data.nombre,
+        email=data.email,
+        password_hash=pwd_context.hash(data.password)
+    )
+    db.add(nuevo)
+    db.commit()
+    db.refresh(nuevo)
+    return {"mensaje": "Primer administrador creado", "admin_id": nuevo.id}
+
+
+@app.get("/api/admins")
+def listar_admins(
+    admin: Administrador = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Lista todos los administradores (requiere sesión activa)"""
+    admins = db.query(Administrador).order_by(Administrador.id).all()
+    return [
+        {"id": a.id, "nombre": a.nombre, "email": a.email, "activo": a.activo,
+         "fecha_registro": str(a.created_at.date()) if a.created_at else None}
+        for a in admins
+    ]
+
+
+@app.post("/api/admins/registrar", status_code=201)
+def registrar_admin(
+    data: AdminCreate,
+    admin: Administrador = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Registra un nuevo administrador (requiere sesión activa)"""
+    nuevo = Administrador(
+        nombre=data.nombre,
+        email=data.email,
+        password_hash=pwd_context.hash(data.password)
+    )
+    try:
+        db.add(nuevo)
+        db.commit()
+        db.refresh(nuevo)
+        return {"mensaje": "Administrador registrado", "admin_id": nuevo.id}
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="El email ya está registrado")
+
+
+@app.delete("/api/admins/{admin_id}")
+def eliminar_admin(
+    admin_id: int,
+    admin: Administrador = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Elimina un administrador (no puede eliminarse a sí mismo)"""
+    if admin_id == admin.id:
+        raise HTTPException(status_code=400, detail="No puedes eliminarte a ti mismo")
+    objetivo = db.query(Administrador).filter(Administrador.id == admin_id).first()
+    if not objetivo:
+        raise HTTPException(status_code=404, detail="Administrador no encontrado")
+    db.delete(objetivo)
+    db.commit()
+    return {"mensaje": "Administrador eliminado"}
 
 
 # ============================================================
