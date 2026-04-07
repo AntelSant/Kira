@@ -42,6 +42,13 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 http_bearer = HTTPBearer()
 
 
+def _truncar_password(password: str) -> str:
+    """bcrypt tiene un límite duro de 72 bytes; truncamos para evitar ValueError."""
+    encoded = password.encode("utf-8")
+    truncated = encoded[:72]
+    return truncated.decode("utf-8", errors="ignore")
+
+
 def crear_token(data: dict) -> str:
     payload = data.copy()
     payload["exp"] = datetime.utcnow() + timedelta(hours=JWT_EXPIRE_HOURS)
@@ -234,7 +241,7 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
         Administrador.email == data.email,
         Administrador.activo == True
     ).first()
-    if not admin or not pwd_context.verify(data.password, admin.password_hash):
+    if not admin or not pwd_context.verify(_truncar_password(data.password), admin.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Credenciales incorrectas"
@@ -264,7 +271,7 @@ def crear_primer_admin(data: AdminCreate, db: Session = Depends(get_db)):
     nuevo = Administrador(
         nombre=data.nombre,
         email=data.email,
-        password_hash=pwd_context.hash(data.password)
+        password_hash=pwd_context.hash(_truncar_password(data.password))
     )
     db.add(nuevo)
     db.commit()
@@ -296,7 +303,7 @@ def registrar_admin(
     nuevo = Administrador(
         nombre=data.nombre,
         email=data.email,
-        password_hash=pwd_context.hash(data.password)
+        password_hash=pwd_context.hash(_truncar_password(data.password))
     )
     try:
         db.add(nuevo)
