@@ -7,5 +7,5 @@ pydantic
 python-multipart
 python-dotenv
 pgvector
-passlib[bcrypt]
+bcrypt
 python-jose[cryptography]

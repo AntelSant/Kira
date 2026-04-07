@@ -1,0 +1,61 @@
+#!/bin/bash
+
+# Colores para la terminal
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m' # Sin color
+
+echo -e "${CYAN}🗄️ Iniciando Servidor 3 (Base de Datos/Gestión)...${NC}"
+
+# 1. Obtener la ruta absoluta del script automáticamente
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if ! cd "$DIR"; then
+    echo -e "${RED}Error: No se pudo acceder a $DIR${NC}"
+    exit 1
+fi
+
+echo -e "Directorio de trabajo establecido en: ${YELLOW}$DIR${NC}"
+
+cd ..
+cd ..
+
+echo -e "Entrando a la carpeta del servidor..."
+# El || exit asegura que no se intente crear el entorno en una ruta equivocada si esta falla
+cd server3-bd/api-gestion || exit
+
+# 2. Comprobar el módulo venv de Python específico para Ubuntu
+if ! dpkg -s python3-venv &> /dev/null; then
+    echo -e "${YELLOW}El paquete python3-venv no se encontró. Instalando con APT (pedirá contraseña)...${NC}"
+    sudo apt update
+    sudo apt install -y python3-venv
+fi
+
+# 3. Gestión inteligente del entorno virtual
+if [ ! -d "venv" ]; then
+    echo -e "${YELLOW}Creando entorno virtual por primera vez...${NC}"
+    python3 -m venv venv
+    source venv/bin/activate
+    
+    echo -e "${YELLOW}Instalando dependencias...${NC}"
+    pip install --upgrade pip setuptools wheel
+    pip install -r requirements.txt
+else
+    # Arranque instantáneo si el entorno ya existe
+    source venv/bin/activate
+fi
+
+# 4. Forzar actualización manual (Uso: ./start.sh --update)
+if [[ "$1" == "--update" ]]; then
+    echo -e "${YELLOW}Actualizando dependencias (flag --update detectado)...${NC}"
+    pip install -r requirements.txt
+fi
+
+# 5. Leer el puerto desde .env (default 8003)
+PORT=$(grep -oP '^SERVER3_PORT=\K.*' .env 2>/dev/null || echo "8003")
+
+# 6. Levantar Uvicorn de forma limpia
+echo -e "${GREEN}Servidor de BD/Gestión listo en el puerto $PORT. Levantando Uvicorn...${NC}"
+exec uvicorn main:app --host 0.0.0.0 --port "$PORT" --reload
