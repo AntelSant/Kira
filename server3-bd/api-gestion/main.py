@@ -11,7 +11,7 @@ from sqlalchemy import func as sql_func
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime, date, timedelta
-from passlib.context import CryptContext
+import bcrypt
 from jose import jwt, JWTError, ExpiredSignatureError
 
 from models import (
@@ -38,15 +38,17 @@ JWT_SECRET = os.getenv("JWT_SECRET", "kira_secret_2026_cambiar_en_produccion")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_HOURS = 8
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 http_bearer = HTTPBearer()
 
 
-def _truncar_password(password: str) -> str:
-    """bcrypt tiene un límite duro de 72 bytes; truncamos para evitar ValueError."""
-    encoded = password.encode("utf-8")
-    truncated = encoded[:72]
-    return truncated.decode("utf-8", errors="ignore")
+def hash_password(password: str) -> str:
+    """Genera el hash bcrypt de una contraseña (usa bcrypt directo, sin passlib)."""
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def verify_password(password: str, hashed: str) -> bool:
+    """Verifica una contraseña contra su hash bcrypt."""
+    return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))
 
 
 def crear_token(data: dict) -> str:
@@ -241,7 +243,7 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
         Administrador.email == data.email,
         Administrador.activo == True
     ).first()
-    if not admin or not pwd_context.verify(_truncar_password(data.password), admin.password_hash):
+    if not admin or not verify_password(data.password, admin.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Credenciales incorrectas"
@@ -271,7 +273,7 @@ def crear_primer_admin(data: AdminCreate, db: Session = Depends(get_db)):
     nuevo = Administrador(
         nombre=data.nombre,
         email=data.email,
-        password_hash=pwd_context.hash(_truncar_password(data.password))
+        password_hash=hash_password(data.password)
     )
     db.add(nuevo)
     db.commit()
@@ -303,7 +305,7 @@ def registrar_admin(
     nuevo = Administrador(
         nombre=data.nombre,
         email=data.email,
-        password_hash=pwd_context.hash(_truncar_password(data.password))
+        password_hash=hash_password(data.password)
     )
     try:
         db.add(nuevo)
