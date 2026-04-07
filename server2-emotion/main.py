@@ -44,13 +44,18 @@ class EmocionRequest(BaseModel):
 
 # --- FUNCIÓN TRADUCTORA DE EMOCIONES ---
 def clasificar_emocion(emocion_ingles: str) -> str:
-    """Convierte las emociones de HSEmotion a tu BD (positivo, neutro, negativo)"""
-    positivas = ['Happiness', 'Surprise']
-    negativas = ['Anger', 'Contempt', 'Disgust', 'Fear', 'Sadness']
+    """Convierte las emociones de HSEmotion a tu BD (positivo, neutro, negativo).
+    Normaliza a Title Case para comparar sin importar cómo devuelva el modelo.
+    """
+    # Normalizar: 'happiness' -> 'Happiness', 'ANGER' -> 'Anger'
+    emocion_norm = str(emocion_ingles).strip().title()
     
-    if emocion_ingles in positivas:
+    positivas = {'Happiness', 'Surprise'}
+    negativas = {'Anger', 'Contempt', 'Disgust', 'Fear', 'Sadness'}
+    
+    if emocion_norm in positivas:
         return "positivo"
-    elif emocion_ingles in negativas:
+    elif emocion_norm in negativas:
         return "negativo"
     else:
         return "neutro"
@@ -80,6 +85,11 @@ async def analizar_emocion(data: EmocionRequest):
 
         # 4. Predecir la emoción
         emocion_cruda, scores = recognizer.predict_emotions(face_crop, logits=False)
+        
+        # Asegurarse de que emocion_cruda sea un string simple (algunos modelos devuelven lista)
+        if isinstance(emocion_cruda, (list, np.ndarray)):
+            emocion_cruda = emocion_cruda[0]
+        emocion_cruda = str(emocion_cruda)
         
         # 5. Clasificar para tu Base de Datos
         emocion_final = clasificar_emocion(emocion_cruda)
