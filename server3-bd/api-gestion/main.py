@@ -177,6 +177,7 @@ class HorarioCreate(BaseModel):
 class InscripcionCreate(BaseModel):
     alumno_id: int
     grupo_id: int
+    horario_id: int
 
 class LoginRequest(BaseModel):
     email: str
@@ -726,25 +727,39 @@ def listar_grupos_con_horarios(
     db: Session = Depends(get_db)
 ):
     """Devuelve todos los grupos con sus horarios embebidos.
-    Si se provee alumno_id, incluye si el alumno ya está inscrito y el id de inscripción."""
+    Si se provee alumno_id, incluye si el alumno ya está inscrito y el id de inscripción por cada horario."""
     grupos = db.query(Grupo).order_by(Grupo.id).all()
     resultado = []
+    
+    # Pre-fetch inscripciones for the student to optimize queries
+    inscripciones_alumno = {}
+    if alumno_id:
+        ins = db.query(Inscripcion).filter(Inscripcion.alumno_id == alumno_id).all()
+        for i in ins:
+            inscripciones_alumno[i.horario_id] = i.id
+
     for g in grupos:
         materia = db.query(Materia).filter(Materia.id == g.materia_id).first()
         profesor = db.query(Usuario).filter(Usuario.id == g.profesor_id).first()
-        horarios = db.query(Horario).filter(Horario.grupo_id == g.id).order_by(Horario.dia_semana).all()
+        horarios_db = db.query(Horario).filter(Horario.grupo_id == g.id).order_by(Horario.dia_semana).all()
 
-        # Estado de inscripción del alumno
-        alumno_inscrito = False
-        inscripcion_id = None
-        if alumno_id:
-            ins = db.query(Inscripcion).filter(
-                Inscripcion.alumno_id == alumno_id,
-                Inscripcion.grupo_id == g.id
-            ).first()
-            if ins:
+        horarios_list = []
+        for h in horarios_db:
+            alumno_inscrito = False
+            inscripcion_id = None
+            if alumno_id and h.id in inscripciones_alumno:
                 alumno_inscrito = True
-                inscripcion_id = ins.id
+                inscripcion_id = inscripciones_alumno[h.id]
+
+            horarios_list.append({
+                "id": h.id,
+                "dia_nombre": DIAS_SEMANA.get(h.dia_semana, "?"),
+                "dia_semana": h.dia_semana,
+                "hora_inicio": str(h.hora_inicio),
+                "hora_fin": str(h.hora_fin),
+                "alumno_inscrito": alumno_inscrito,
+                "inscripcion_id": inscripcion_id,
+            })
 
         resultado.append({
             "id": g.id,
@@ -754,18 +769,8 @@ def listar_grupos_con_horarios(
             "aula": g.aula,
             "semestre": g.semestre,
             "periodo": g.periodo,
-            "num_alumnos": db.query(Inscripcion).filter(Inscripcion.grupo_id == g.id).count(),
-            "horarios": [
-                {
-                    "dia_nombre": DIAS_SEMANA.get(h.dia_semana, "?"),
-                    "dia_semana": h.dia_semana,
-                    "hora_inicio": str(h.hora_inicio),
-                    "hora_fin": str(h.hora_fin),
-                }
-                for h in horarios
-            ],
-            "alumno_inscrito": alumno_inscrito,
-            "inscripcion_id": inscripcion_id,
+            "num_alumnos": db.query(Inscripcion).filter(Inscripcion.grupo_id == g.id).with_entities(Inscripcion.alumno_id).distinct().count(),
+            "horarios": horarios_list,
         })
     return resultado
 
@@ -870,8 +875,8 @@ def listar_inscripciones(grupo_id: int, db: Session = Depends(get_db)):
 
 @app.post("/api/inscripciones/registrar")
 def registrar_inscripcion(data: InscripcionCreate, db: Session = Depends(get_db)):
-    """Inscribe un alumno en un grupo"""
-    nueva = Inscripcion(alumno_id=data.alumno_id, grupo_id=data.grupo_id)
+    """Inscribe un alumno en un horario de grupo específico"""
+    nueva = Inscripcion(alumno_id=data.alumno_id, grupo_id=data.grupo_id, horario_id=data.horario_id)
     try:
         db.add(nueva)
         db.commit()
@@ -879,7 +884,7 @@ def registrar_inscripcion(data: InscripcionCreate, db: Session = Depends(get_db)
         return {"mensaje": "Inscripción registrada", "inscripcion_id": nueva.id}
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=400, detail="El alumno ya está inscrito en este grupo")
+        raise HTTPException(status_code=400, detail="El alumno ya está inscrito en este horario")
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Error: {str(e)}")

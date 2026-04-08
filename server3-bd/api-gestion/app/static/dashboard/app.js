@@ -883,32 +883,95 @@ async function cargarClasesAlumno() {
 }
 
 function renderClaseCard(g, alumnoId) {
-    const inscrito = g.alumno_inscrito;
+    const cardId = `clase-card-${g.id}`;
+    const hasHorarios = g.horarios && g.horarios.length > 0;
 
-    const horariosHTML = g.horarios.length > 0
-        ? g.horarios.map(h => {
+    // Find first unenrolled schedule to auto-select
+    let firstUnenrolledIdx = -1;
+    if (hasHorarios) {
+        firstUnenrolledIdx = g.horarios.findIndex(h => !h.alumno_inscrito);
+    }
+    const autoSelectIdx = (g.horarios.length === 1 && firstUnenrolledIdx === 0) ? 0 : -1;
+
+    let horariosHTML = '';
+    if (!hasHorarios) {
+        horariosHTML = `
+            <div class="horario-empty-notice">⚠️ Sin horario asignado — no se puede inscribir</div>
+        `;
+    } else {
+        horariosHTML = g.horarios.map((h, idx) => {
             const inicio = h.hora_inicio.substring(0, 5);
             const fin = h.hora_fin.substring(0, 5);
-            return `<span class="horario-chip">📅 ${h.dia_nombre} ${inicio}–${fin}</span>`;
-        }).join('')
-        : '<span class="horario-chip horario-chip--empty">Sin horario asignado</span>';
 
-    const btnInscribir = inscrito
-        ? `<button class="btn btn-sm btn-danger" onclick="desinscribirAlumno(${g.inscripcion_id}, ${alumnoId})">
-               🗑️ Dar de baja
-           </button>`
-        : `<button class="btn btn-sm btn-primary" onclick="inscribirAlumno(${g.id}, ${alumnoId})">
-               ➕ Inscribir
-           </button>`;
+            if (h.alumno_inscrito) {
+                // Enrolled
+                return `
+                    <div class="horario-option horario-option--enrolled" style="display:flex; justify-content:space-between;">
+                        <div style="display:flex; align-items:center; gap: 10px;">
+                            <span class="horario-radio" title="Inscrito">✅</span>
+                            <span class="horario-dia">${h.dia_nombre}</span>
+                            <span class="horario-tiempo horario-tiempo--enrolled">${inicio} – ${fin}</span>
+                        </div>
+                        <button class="btn btn-sm btn-danger py-0 px-2" style="font-size:0.75rem;" onclick="desinscribirAlumno(${h.inscripcion_id}, ${alumnoId})" title="Dar de baja de este horario">
+                            🗑️
+                        </button>
+                    </div>
+                `;
+            } else {
+                // Not enrolled: interactive radio selection
+                const selected = idx === autoSelectIdx;
+                return `
+                    <div class="horario-option ${selected ? 'horario-option--selected' : ''}"
+                         onclick="seleccionarHorario('${cardId}', ${idx}, ${g.id}, ${h.id}, ${alumnoId})"
+                         data-horario-idx="${idx}"
+                         title="Selecciona este horario">
+                        <span class="horario-radio">${selected ? '🔵' : '⚪'}</span>
+                        <span class="horario-dia">${h.dia_nombre}</span>
+                        <span class="horario-tiempo">${inicio} – ${fin}</span>
+                    </div>
+                `;
+            }
+        }).join('');
+    }
+
+    const hasUnenrolled = hasHorarios && firstUnenrolledIdx !== -1;
+    const isFullyEnrolled = hasHorarios && firstUnenrolledIdx === -1;
+    const isPartiallyEnrolled = hasHorarios && g.horarios.some(h => h.alumno_inscrito);
+
+    let btnInscribir = '';
+    if (hasHorarios) {
+        if (isFullyEnrolled) {
+            btnInscribir = `<button class="btn btn-sm btn-success" disabled>✅ Inscrito en todos los horarios</button>`;
+        } else {
+            const defaultH = autoSelectIdx >= 0 ? g.horarios[autoSelectIdx] : null;
+            const btnLabel = defaultH
+                ? `➕ Inscribir — ${defaultH.dia_nombre} ${defaultH.hora_inicio.substring(0, 5)}`
+                : `➕ Selecciona un horario`;
+
+            const btnDisabled = autoSelectIdx >= 0 ? '' : 'disabled';
+            const onclickParam = defaultH ? `onclick="inscribirAlumno(${g.id}, ${defaultH.id}, ${alumnoId})"` : '';
+
+            btnInscribir = `<button class="btn btn-sm btn-primary btn-inscribir-grupo"
+                   id="btn-inscribir-${g.id}"
+                   ${btnDisabled}
+                   ${onclickParam}>
+                   ${btnLabel}
+               </button>`;
+        }
+    }
+
+    const horariosTituloHTML = isPartiallyEnrolled
+        ? `<div class="clase-horarios-title enrolled-title">📌 Selecciona horarios adicionales</div>`
+        : `<div class="clase-horarios-title">🗓️ Selecciona el horario</div>`;
 
     return `
-        <div class="clase-card ${inscrito ? 'clase-card--inscrito' : ''}" id="clase-card-${g.id}">
+        <div class="clase-card ${isPartiallyEnrolled ? 'clase-card--inscrito' : ''}" id="${cardId}">
             <div class="clase-card-header">
                 <div>
                     <div class="clase-materia">${g.materia_nombre}</div>
                     <code class="clase-clave">${g.materia_clave}</code>
                 </div>
-                ${inscrito ? '<span class="badge badge-success">✅ Inscrito</span>' : ''}
+                ${isFullyEnrolled ? '<span class="badge badge-success">✅ Completamente inscrito</span>' : isPartiallyEnrolled ? '<span class="badge badge-success">✅ Inscrito</span>' : ''}
             </div>
             <div class="clase-info">
                 <span>👨‍🏫 ${g.profesor_nombre}</span>
@@ -916,16 +979,49 @@ function renderClaseCard(g, alumnoId) {
                 <span>📚 ${g.semestre} — ${g.periodo}</span>
                 <span class="badge badge-info">👥 ${g.num_alumnos} alumno(s)</span>
             </div>
-            <div class="clase-horarios">${horariosHTML}</div>
+            <div class="clase-horarios-lista">
+                ${horariosTituloHTML}
+                ${horariosHTML}
+            </div>
             <div class="clase-card-footer">${btnInscribir}</div>
         </div>
     `;
 }
 
-async function inscribirAlumno(grupoId, alumnoId) {
+
+function seleccionarHorario(cardId, idx, grupoId, horarioId, alumnoId) {
+    const card = document.getElementById(cardId);
+    if (!card) return;
+
+    // Deselect all options in this card
+    card.querySelectorAll('.horario-option:not(.horario-option--enrolled)').forEach(el => {
+        el.classList.remove('horario-option--selected');
+        el.querySelector('.horario-radio').textContent = '⚪';
+    });
+
+    // Select the clicked option
+    const selected = card.querySelector(`.horario-option[data-horario-idx="${idx}"]`);
+    if (selected) {
+        selected.classList.add('horario-option--selected');
+        selected.querySelector('.horario-radio').textContent = '🔵';
+    }
+
+    // Update the Inscribir button
+    const btn = document.getElementById(`btn-inscribir-${grupoId}`);
+    if (btn) {
+        const dia = selected?.querySelector('.horario-dia')?.textContent || '';
+        const tiempo = selected?.querySelector('.horario-tiempo')?.textContent || '';
+        btn.textContent = `➕ Inscribir — ${dia} ${tiempo.split(' –')[0]}`;
+        btn.disabled = false;
+        btn.onclick = () => inscribirAlumno(grupoId, horarioId, alumnoId);
+    }
+}
+
+
+async function inscribirAlumno(grupoId, horarioId, alumnoId) {
     const result = await api('/api/inscripciones/registrar', {
         method: 'POST',
-        body: JSON.stringify({ alumno_id: parseInt(alumnoId), grupo_id: parseInt(grupoId) }),
+        body: JSON.stringify({ alumno_id: parseInt(alumnoId), grupo_id: parseInt(grupoId), horario_id: parseInt(horarioId) }),
     });
     if (result && result.inscripcion_id) {
         cargarClasesAlumno();

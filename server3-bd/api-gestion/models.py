@@ -109,17 +109,20 @@ class Horario(Base, TimestampMixin):
     tolerancia_minutos = Column(Integer, default=10)
 
     grupo = relationship("Grupo", back_populates="horarios")
+    inscripciones = relationship("Inscripcion", back_populates="horario", cascade="all, delete-orphan")
 
 class Inscripcion(Base, TimestampMixin):
     __tablename__ = 'inscripciones'
-    __table_args__ = (UniqueConstraint('alumno_id', 'grupo_id', name='_alumno_grupo_uc'),)
+    __table_args__ = (UniqueConstraint('alumno_id', 'horario_id', name='_alumno_horario_uc'),)
     
     id = Column(Integer, primary_key=True, index=True)
     alumno_id = Column(Integer, ForeignKey('usuarios.id', ondelete='CASCADE'), index=True)
     grupo_id = Column(Integer, ForeignKey('grupos.id', ondelete='CASCADE'), index=True)
+    horario_id = Column(Integer, ForeignKey('horarios.id', ondelete='CASCADE'), index=True, nullable=False)
 
     alumno = relationship("Usuario", back_populates="inscripciones")
     grupo = relationship("Grupo", back_populates="inscripciones")
+    horario = relationship("Horario", back_populates="inscripciones")
 
 class Asistencia(Base, TimestampMixin):
     __tablename__ = 'asistencia'

@@ -1080,30 +1080,100 @@ select.form-control {
     color: var(--text-secondary);
 }
 
-.clase-horarios {
+/* ── Horario selectable rows ────────────────────────────── */
+.clase-horarios-lista {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 6px;
 }
 
-.horario-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    background: rgba(99, 102, 241, 0.12);
-    color: var(--accent-hover);
-    border: 1px solid rgba(99, 102, 241, 0.2);
-    border-radius: 20px;
-    padding: 4px 12px;
-    font-size: 0.78rem;
+.clase-horarios-title {
+    font-size: 0.75rem;
     font-weight: 600;
-    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 2px;
 }
 
-.horario-chip--empty {
+.horario-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 13px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-secondary);
+    border: 1.5px solid var(--border-subtle);
+    cursor: pointer;
+    transition: all var(--transition);
+    user-select: none;
+}
+
+.horario-option:hover {
+    border-color: var(--accent);
+    background: rgba(99, 102, 241, 0.06);
+}
+
+.horario-option--selected {
+    border-color: var(--accent);
+    background: rgba(99, 102, 241, 0.12);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+/* Enrolled (already inscribed) — green state, non-interactive */
+.horario-option--enrolled {
+    border-color: rgba(16, 185, 129, 0.4);
+    background: rgba(16, 185, 129, 0.08);
+    cursor: default;
+}
+
+.horario-option--enrolled:hover {
+    border-color: rgba(16, 185, 129, 0.4);
+    background: rgba(16, 185, 129, 0.08);
+}
+
+.enrolled-title {
+    color: var(--success) !important;
+}
+
+.horario-radio {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.horario-dia {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    flex: 1;
+}
+
+.horario-tiempo {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--accent-hover);
+    white-space: nowrap;
+    background: rgba(99, 102, 241, 0.1);
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.horario-option--selected .horario-tiempo {
+    background: rgba(99, 102, 241, 0.25);
+}
+
+.horario-tiempo--enrolled {
+    background: rgba(16, 185, 129, 0.18);
+    color: var(--success);
+}
+
+.horario-empty-notice {
+    padding: 10px 13px;
+    border-radius: var(--radius-sm);
     background: var(--warning-bg);
     color: var(--warning);
-    border-color: rgba(245, 158, 11, 0.2);
+    font-size: 0.82rem;
+    font-weight: 500;
 }
 
 .clase-card-footer {
@@ -1111,6 +1181,16 @@ select.form-control {
     justify-content: flex-end;
     padding-top: 6px;
     border-top: 1px solid var(--border-subtle);
+}
+
+.btn-inscribir-grupo:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.btn-inscribir-grupo:disabled:hover {
+    background: var(--accent);
+    box-shadow: none;
 }
 
 .clase-card-loading {
