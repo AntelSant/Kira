@@ -97,11 +97,78 @@ def get_current_admin(
     return admin
 
 # --- App ---
+import asyncio
+from datetime import date, time, datetime, timedelta
+from typing import List, Optional
+from passlib.context import CryptContext
+from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from sqlalchemy.orm import Session
+from sqlalchemy import func as sql_func
+from sqlalchemy.exc import IntegrityError
+
+from models import Base, Usuario, Materia, Grupo, Horario, Inscripcion, Asistencia, Emocion
+from models import TipoUsuario, EstadoAsistencia, CategoriaEmocion, TipoRegistro
+from database import engine, get_db
+
+Base.metadata.create_all(bind=engine)
+
 app = FastAPI(
     title="API de Gestión y Asistencia - UAS (Kira)",
     description="Backend central para dashboard, usuarios, asistencia y reportes",
     version="2.0.0"
 )
+
+# --- TAREAS EN SEGUNDO PLANO ---
+async def check_ausencias_bg():
+    while True:
+        await asyncio.sleep(300) # Every 5 minutes
+        print("🔄 [Background] Verificando inasistencias en clases terminadas...")
+        try:
+            with Session(bind=engine) as db:
+                hoy = date.today()
+                dia_semana = hoy.weekday()
+                ahora = datetime.now().time()
+                
+                # Horarios de hoy que YA terminaron
+                horarios_terminados = db.query(Horario).filter(
+                    Horario.dia_semana == dia_semana,
+                    Horario.hora_fin < ahora
+                ).all()
+                
+                for h in horarios_terminados:
+                    # Todos los alumnos inscritos
+                    inscritos = db.query(Inscripcion).filter(Inscripcion.horario_id == h.id).all()
+                    for ins in inscritos:
+                        # revisar si ya hay asistencia
+                        asis = db.query(Asistencia).filter(
+                            Asistencia.usuario_id == ins.alumno_id,
+                            Asistencia.grupo_id == h.grupo_id,
+                            Asistencia.fecha == hoy
+                        ).first()
+                        
+                        if not asis:
+                            # Marcar falta
+                            nueva_falta = Asistencia(
+                                usuario_id=ins.alumno_id,
+                                grupo_id=h.grupo_id,
+                                fecha=hoy,
+                                hora_registro=h.hora_fin, # Justo al terminar
+                                tipo_registro=TipoRegistro.entrada,
+                                tipo_usuario=TipoUsuario.alumno,
+                                estado=EstadoAsistencia.ausente,
+                                emocion_detectada=None
+                            )
+                            db.add(nueva_falta)
+                db.commit()
+        except Exception as e:
+            print(f"Error en tarea de fondo (ausencias): {e}")
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(check_ausencias_bg())
+
 
 # --- CORS ---
 app.add_middleware(
@@ -193,14 +260,8 @@ class AdminCreate(BaseModel):
 #  FUNCIONES AUXILIARES
 # ============================================================
 
-def calcular_estado(grupo_id: int, fecha_obj: date, hora_registro, db: Session) -> EstadoAsistencia:
-    """Calcula si es a_tiempo, retardo o fuera_de_horario según el Horario del grupo"""
-    dia_semana = fecha_obj.weekday()  # 0=Lunes ... 6=Domingo
-    horario = db.query(Horario).filter(
-        Horario.grupo_id == grupo_id,
-        Horario.dia_semana == dia_semana
-    ).first()
-
+def calcular_estado(horario: Horario, fecha_obj: date, hora_registro: time) -> EstadoAsistencia:
+    """Calcula si es a_tiempo, retardo o fuera_de_horario según el Horario ESPÉCIFICO del grupo"""
     if not horario:
         return EstadoAsistencia.fuera_de_horario
 
@@ -214,6 +275,7 @@ def calcular_estado(grupo_id: int, fecha_obj: date, hora_registro, db: Session) 
     elif hora_registro <= horario.hora_fin:
         return EstadoAsistencia.retardo
     else:
+        # Se pasó del tiempo final de la clase
         return EstadoAsistencia.fuera_de_horario
 
 
@@ -559,7 +621,8 @@ def registrar_asistencia(data: RegistroAsistenciaRequest, db: Session = Depends(
             return {"status": "ya_registrado", "mensaje": "Asistencia ya registrada hoy para esta clase"}
 
         # --- CALCULAR ESTADO SEGÚN HORARIO ---
-        estado = calcular_estado(grupo_id_activo, fecha_obj, hora_obj, db)
+        # --- CALCULAR ESTADO SEGÚN HORARIO ACTIVO ---
+        estado = calcular_estado(horario_activo, fecha_obj, hora_obj)
 
         # Buscar usuario
         usuario = db.query(Usuario).filter(Usuario.id == data.usuario_id).first()

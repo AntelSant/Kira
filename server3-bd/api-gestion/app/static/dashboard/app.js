@@ -1070,11 +1070,13 @@ async function cargarAsistencia() {
             a_tiempo: 'badge-success',
             retardo: 'badge-warning',
             fuera_de_horario: 'badge-danger',
+            ausente: 'badge-danger',
         };
         const labels = {
             a_tiempo: 'A tiempo',
             retardo: 'Retardo',
             fuera_de_horario: 'Fuera de horario',
+            ausente: 'Ausente',
         };
         return `<span class="badge ${map[estado] || 'badge-info'}">${labels[estado] || estado}</span>`;
     };

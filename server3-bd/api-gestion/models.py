@@ -21,6 +21,7 @@ class EstadoAsistencia(enum.Enum):
     a_tiempo = "a_tiempo"
     retardo = "retardo"
     fuera_de_horario = "fuera_de_horario"
+    ausente = "ausente"
 
 class CategoriaEmocion(enum.Enum):
     positivo = "positivo"
