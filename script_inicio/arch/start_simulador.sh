@@ -7,7 +7,7 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # Sin color
 
-echo -e "${MAGENTA}📷 Iniciando Simulador ESP32 (Interfaz Web)...${NC}"
+echo -e "${MAGENTA} Iniciando Simulador ESP32 (Interfaz Web)...${NC}"
 
 # 1. Obtener la ruta absoluta del script automáticamente
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -46,5 +46,5 @@ if [[ "$1" == "--update" ]]; then
 fi
 
 # 4. Levantar Uvicorn de forma limpia
-echo -e "${GREEN}🌍 Servidor de simulación listo. Abre tu navegador en: http://localhost:8080${NC}"
+echo -e "${GREEN} Servidor de simulación listo. Abre tu navegador en: http://localhost:8080${NC}"
 exec uvicorn simular_esp32_web:app --host 0.0.0.0 --port 8080 --reload

@@ -22,9 +22,9 @@ from models import (
 from database import get_db, engine
 
 # --- Crear tablas al iniciar ---
-print("⏳ Verificando y construyendo tablas en la base de datos...")
+print("--Espere-- Verificando y construyendo tablas en la base de datos...")
 Base.metadata.create_all(bind=engine)
-print("✅ ¡Tablas listas y creadas!")
+print("-- ¡Tablas listas y creadas!")
 
 # --- Crear carpetas necesarias ---
 os.makedirs("app/static/perfiles", exist_ok=True)
@@ -67,7 +67,7 @@ def verificar_token(token: str) -> dict:
             headers={"WWW-Authenticate": "Bearer"},
         )
     except JWTError as e:
-        print(f"❌ JWT inválido: {e}")
+        print(f"!! -- JWT inválido: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token inválido",
@@ -154,7 +154,7 @@ app = FastAPI(
 async def check_ausencias_bg():
     while True:
         await asyncio.sleep(300) # Every 5 minutes
-        print("🔄 [Background] Verificando inasistencias en clases terminadas...")
+        print("--Proceso Automatico-- [Background] Verificando inasistencias en clases terminadas...")
         try:
             with Session(bind=engine) as db:
                 hoy = date.today()
@@ -193,7 +193,7 @@ async def check_ausencias_bg():
                             db.add(nueva_falta)
                 db.commit()
         except Exception as e:
-            print(f"Error en tarea de fondo (ausencias): {e}")
+            print(f"!! -- Error en tarea de fondo (ausencias): {e}")
 
 @app.on_event("startup")
 async def startup_event():
@@ -637,14 +637,14 @@ def reconocer_usuario(data: ReconocerRequest, db: Session = Depends(get_db)):
 @app.post("/api/asistencia/registrar")
 def registrar_asistencia(data: RegistroAsistenciaRequest, db: Session = Depends(get_db)):
     """Guarda la asistencia y la emoción detectada. Encuentra el grupo por aula y calcula estado según horario."""
-    print(f"📥 Registrando asistencia — Usuario {data.usuario_id}, Aula: {data.aula}")
+    print(f"-- Registrando asistencia — Usuario {data.usuario_id}, Aula: {data.aula}")
 
     # Normalizar emoción
     emocion_limpia = data.emocion.lower().strip()
     try:
         emocion_enum = CategoriaEmocion(emocion_limpia)
     except ValueError:
-        print(f"⚠️ Emoción '{emocion_limpia}' no válida, usando neutro")
+        print(f"!! -- Emoción '{emocion_limpia}' no válida, usando neutro")
         emocion_enum = CategoriaEmocion.neutro
 
     try:
@@ -670,11 +670,11 @@ def registrar_asistencia(data: RegistroAsistenciaRequest, db: Session = Depends(
                 break
                 
         if not horario_activo:
-            print(f"⚠️ No hay clase programada en '{data.aula}' para el día {dia_semana} a las {hora_obj}")
+            print(f"!! -- No hay clase programada en '{data.aula}' para el día {dia_semana} a las {hora_obj}")
             return {"status": "error", "mensaje": f"No hay clase activa en aula '{data.aula}'"}
             
         grupo_id_activo = horario_activo.grupo_id
-        print(f"✅ Clase activa encontrada: Grupo ID {grupo_id_activo}")
+        print(f"-- Clase activa encontrada: Grupo ID {grupo_id_activo}")
 
         # --- ANTI-DUPLICADOS ---
         existente = db.query(Asistencia).filter(
@@ -684,7 +684,7 @@ def registrar_asistencia(data: RegistroAsistenciaRequest, db: Session = Depends(
         ).first()
 
         if existente:
-            print("⚠️ Asistencia ya registrada para hoy")
+            print("!! -- Asistencia ya registrada para hoy")
             return {"status": "ya_registrado", "mensaje": "Asistencia ya registrada hoy para esta clase"}
 
         # --- CALCULAR ESTADO SEGÚN HORARIO ---
@@ -724,7 +724,7 @@ def registrar_asistencia(data: RegistroAsistenciaRequest, db: Session = Depends(
 
         db.add(nueva_emocion)
         db.commit()
-        print(f"✅ Asistencia registrada: {estado.value}")
+        print(f"-- Asistencia registrada: {estado.value}")
         return {
             "status": "success",
             "mensaje": "Asistencia registrada",
@@ -733,7 +733,7 @@ def registrar_asistencia(data: RegistroAsistenciaRequest, db: Session = Depends(
 
     except Exception as e:
         db.rollback()
-        print(f"\n❌ ERROR CRÍTICO EN SERVIDOR 3:\n{str(e)}\n")
+        print(f"\n!! -- ERROR CRÍTICO EN SERVIDOR 3:\n{str(e)}\n")
         raise HTTPException(status_code=500, detail=str(e))
 
 
