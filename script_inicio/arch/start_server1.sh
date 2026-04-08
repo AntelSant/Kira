@@ -35,7 +35,7 @@ fi
 if [ ! -d "venv" ]; then
     echo -e "${YELLOW}Creando entorno virtual por primera vez...${NC}"
     python3.11 -m venv venv
-    source venv/bin/activate
+    source venv/bin/activate.fish
     
     echo -e "${YELLOW}Instalando dependencias pesadas...${NC}"
     pip install --upgrade pip setuptools wheel
