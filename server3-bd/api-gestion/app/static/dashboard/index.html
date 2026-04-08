@@ -1,394 +1,451 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kira UAS — Dashboard de Gestión</title>
-    <meta name="description" content="Sistema distribuido de IA para reconocimiento facial y análisis emocional — Universidad Autónoma de Sinaloa">
-    <link rel="stylesheet" href="/static/dashboard/styles.css">
+    <meta name="description"
+        content="Sistema distribuido de IA para reconocimiento facial y análisis emocional — Universidad Autónoma de Sinaloa">
+    <link rel="stylesheet" href="/static/dashboard/styles.css?v=4">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
+
 <body>
 
-<!-- ═══ LOGIN SCREEN ═══ -->
-<div id="login-screen" class="login-screen">
-    <div class="login-card">
-        <div class="login-brand">
-            <div class="login-logo">🤖</div>
-            <h1>Kira UAS</h1>
-            <p>Sistema de Asistencia Inteligente</p>
-        </div>
-        <form id="login-form" onsubmit="handleLogin(event)">
-            <div class="login-field">
-                <label for="login-email">Correo electrónico</label>
-                <input type="email" id="login-email" placeholder="admin@uas.edu.mx" required autocomplete="username">
+    <!-- ═══ LOGIN SCREEN ═══ -->
+    <div id="login-screen" class="login-screen">
+        <div class="login-card">
+            <div class="login-brand">
+                <div class="login-logo">🤖</div>
+                <h1>Kira UAS</h1>
+                <p>Sistema de Asistencia Inteligente</p>
             </div>
-            <div class="login-field">
-                <label for="login-password">Contraseña</label>
-                <div class="password-wrapper">
-                    <input type="password" id="login-password" placeholder="••••••••" required autocomplete="current-password">
-                    <button type="button" class="toggle-pass" onclick="togglePassword()" title="Mostrar/ocultar">👁</button>
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="login-field">
+                    <label for="login-email">Correo electrónico</label>
+                    <input type="email" id="login-email" placeholder="admin@uas.edu.mx" required
+                        autocomplete="username">
                 </div>
-            </div>
-            <div id="login-error" class="login-error" style="display:none"></div>
-            <button type="submit" class="btn btn-primary btn-full" id="login-btn">Iniciar sesión</button>
-        </form>
-        <p class="login-hint">Solo administradores autorizados pueden acceder</p>
+                <div class="login-field">
+                    <label for="login-password">Contraseña</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="login-password" placeholder="••••••••" required
+                            autocomplete="current-password">
+                        <button type="button" class="toggle-pass" onclick="togglePassword()"
+                            title="Mostrar/ocultar">👁</button>
+                    </div>
+                </div>
+                <div id="login-error" class="login-error" style="display:none"></div>
+                <button type="submit" class="btn btn-primary btn-full" id="login-btn">Iniciar sesión</button>
+            </form>
+            <p class="login-hint">Solo administradores autorizados pueden acceder</p>
+        </div>
     </div>
-</div>
 
-<div class="app-layout" id="app-layout" style="display:none">
+    <div class="app-layout" id="app-layout" style="display:none">
 
-    <!-- ═══ SIDEBAR ═══ -->
-    <aside class="sidebar" id="sidebar">
-        <div class="sidebar-brand">
-            <h1>🤖 Kira</h1>
-            <p>UAS — Asistencia IA</p>
-        </div>
-        <nav class="sidebar-nav">
-            <div class="nav-section-label">Principal</div>
-            <div class="nav-item active" data-page="inicio">
-                <span class="icon">🏠</span> Inicio
+        <!-- ═══ SIDEBAR ═══ -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <h1>🤖 Kira</h1>
+                <p>UAS — Asistencia IA</p>
             </div>
-            <div class="nav-item" data-page="usuarios">
-                <span class="icon">👥</span> Usuarios
-            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-section-label">Principal</div>
+                <div class="nav-item active" data-page="inicio">
+                    <span class="icon">🏠</span> Inicio
+                </div>
+                <div class="nav-item" data-page="usuarios">
+                    <span class="icon">👥</span> Usuarios
+                </div>
 
-            <div class="nav-section-label">Académico</div>
-            <div class="nav-item" data-page="materias">
-                <span class="icon">📚</span> Materias
-            </div>
-            <div class="nav-item" data-page="grupos">
-                <span class="icon">🏫</span> Grupos
-            </div>
-            <div class="nav-item" data-page="horarios">
-                <span class="icon">🕐</span> Horarios
-            </div>
-            <div class="nav-item" data-page="inscripciones">
-                <span class="icon">📋</span> Inscripciones
-            </div>
+                <div class="nav-section-label">Académico</div>
+                <div class="nav-item" data-page="materias">
+                    <span class="icon">📚</span> Materias
+                </div>
+                <div class="nav-item" data-page="grupos">
+                    <span class="icon">🏫</span> Grupos
+                </div>
+                <div class="nav-item" data-page="horarios">
+                    <span class="icon">🕐</span> Horarios
+                </div>
+                <div class="nav-item" data-page="inscripciones">
+                    <span class="icon">📋</span> Inscripciones
+                </div>
 
-            <div class="nav-section-label">Reportes</div>
-            <div class="nav-item" data-page="asistencia">
-                <span class="icon">✅</span> Asistencia
-            </div>
-            <div class="nav-item" data-page="emociones">
-                <span class="icon">😊</span> Emociones
-            </div>
+                <div class="nav-section-label">Reportes</div>
+                <div class="nav-item" data-page="asistencia">
+                    <span class="icon">✅</span> Registros Asistencia
+                </div>
+                <div class="nav-item" data-page="lista-asistencia">
+                    <span class="icon">📋</span> Lista Asistencia
+                </div>
+                <div class="nav-item" data-page="emociones">
+                    <span class="icon">😊</span> Emociones
+                </div>
 
-            <div class="nav-section-label">Sistema</div>
-            <div class="nav-item" data-page="admins">
-                <span class="icon">🛡️</span> Administradores
+                <div class="nav-section-label">Sistema</div>
+                <div class="nav-item" data-page="admins">
+                    <span class="icon">🛡️</span> Administradores
+                </div>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="admin-info" id="admin-info">
+                    <span class="admin-avatar">👤</span>
+                    <span class="admin-name" id="admin-name">—</span>
+                </div>
+                <button class="btn-logout" onclick="logout()" title="Cerrar sesión">🚪 Cerrar sesión</button>
             </div>
-        </nav>
-        <div class="sidebar-footer">
-            <div class="admin-info" id="admin-info">
-                <span class="admin-avatar">👤</span>
-                <span class="admin-name" id="admin-name">—</span>
-            </div>
-            <button class="btn-logout" onclick="logout()" title="Cerrar sesión">🚪 Cerrar sesión</button>
-        </div>
-    </aside>
+        </aside>
 
-    <!-- ═══ MAIN CONTENT ═══ -->
-    <main class="main-content">
+        <!-- ═══ MAIN CONTENT ═══ -->
+        <main class="main-content">
 
-        <!-- ═══ PAGE: INICIO ═══ -->
-        <section class="page-section active" id="page-inicio">
-            <div class="page-header">
-                <h2>📊 Panel de Control</h2>
-                <p>Resumen del sistema Kira UAS</p>
-            </div>
+            <!-- ═══ PAGE: INICIO ═══ -->
+            <section class="page-section active" id="page-inicio">
+                <div class="page-header">
+                    <h2>📊 Panel de Control</h2>
+                    <p>Resumen del sistema Kira UAS</p>
+                </div>
 
-            <div class="stats-grid" id="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon blue">🎓</div>
-                    <div class="stat-info">
-                        <h3 id="stat-alumnos">—</h3>
-                        <p>Alumnos</p>
+                <div class="stats-grid" id="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">🎓</div>
+                        <div class="stat-info">
+                            <h3 id="stat-alumnos">—</h3>
+                            <p>Alumnos</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green">👨‍🏫</div>
+                        <div class="stat-info">
+                            <h3 id="stat-profesores">—</h3>
+                            <p>Profesores</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange">🏫</div>
+                        <div class="stat-info">
+                            <h3 id="stat-grupos">—</h3>
+                            <p>Grupos</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon purple">📸</div>
+                        <div class="stat-info">
+                            <h3 id="stat-embeddings">—</h3>
+                            <p>Caras Registradas</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green">✅</div>
+                        <div class="stat-info">
+                            <h3 id="stat-asistencias-hoy">—</h3>
+                            <p>Asistencias Hoy</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon blue">📚</div>
+                        <div class="stat-info">
+                            <h3 id="stat-materias">—</h3>
+                            <p>Materias</p>
+                        </div>
                     </div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-icon green">👨‍🏫</div>
-                    <div class="stat-info">
-                        <h3 id="stat-profesores">—</h3>
-                        <p>Profesores</p>
+
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3>📈 Asistencias — Última semana</h3>
+                        <div class="chart-canvas-container">
+                            <canvas id="chart-asistencia-semanal"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>🎭 Distribución Emocional — Últimos 7 días</h3>
+                        <div class="chart-canvas-container">
+                            <canvas id="chart-emociones"></canvas>
+                        </div>
                     </div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-icon orange">🏫</div>
-                    <div class="stat-info">
-                        <h3 id="stat-grupos">—</h3>
-                        <p>Grupos</p>
+            </section>
+
+            <!-- ═══ PAGE: USUARIOS ═══ -->
+            <section class="page-section" id="page-usuarios">
+                <div class="page-header">
+                    <h2>👥 Gestión de Usuarios</h2>
+                    <p>Administra alumnos y profesores</p>
+                </div>
+
+                <div class="toolbar">
+                    <button class="btn btn-primary" onclick="abrirModalUsuario()">➕ Nuevo Usuario</button>
+                    <select class="form-control" id="filtro-tipo-usuario" onchange="cargarUsuarios()">
+                        <option value="">Todos</option>
+                        <option value="alumno">Alumnos</option>
+                        <option value="profesor">Profesores</option>
+                    </select>
+                </div>
+
+                <div class="table-card">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nombre</th>
+                                    <th>Matrícula</th>
+                                    <th>Tipo</th>
+                                    <th>Cara IA</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-usuarios"></tbody>
+                        </table>
                     </div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-icon purple">📸</div>
-                    <div class="stat-info">
-                        <h3 id="stat-embeddings">—</h3>
-                        <p>Caras Registradas</p>
+            </section>
+
+            <!-- ═══ PAGE: MATERIAS ═══ -->
+            <section class="page-section" id="page-materias">
+                <div class="page-header">
+                    <h2>📚 Materias</h2>
+                    <p>Gestión de materias del programa académico</p>
+                </div>
+
+                <div class="toolbar">
+                    <button class="btn btn-primary" onclick="abrirModalMateria()">➕ Nueva Materia</button>
+                </div>
+
+                <div class="table-card">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nombre</th>
+                                    <th>Clave</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-materias"></tbody>
+                        </table>
                     </div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-icon green">✅</div>
-                    <div class="stat-info">
-                        <h3 id="stat-asistencias-hoy">—</h3>
-                        <p>Asistencias Hoy</p>
+            </section>
+
+            <!-- ═══ PAGE: GRUPOS ═══ -->
+            <section class="page-section" id="page-grupos">
+                <div class="page-header">
+                    <h2>🏫 Grupos</h2>
+                    <p>Gestión de grupos académicos</p>
+                </div>
+
+                <div class="toolbar">
+                    <button class="btn btn-primary" onclick="abrirModalGrupo()">➕ Nuevo Grupo</button>
+                </div>
+
+                <div class="table-card">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Materia</th>
+                                    <th>Profesor</th>
+                                    <th>Aula</th>
+                                    <th>Semestre</th>
+                                    <th>Periodo</th>
+                                    <th>Alumnos</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-grupos"></tbody>
+                        </table>
                     </div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-icon blue">📚</div>
-                    <div class="stat-info">
-                        <h3 id="stat-materias">—</h3>
-                        <p>Materias</p>
+            </section>
+
+            <!-- ═══ PAGE: HORARIOS ═══ -->
+            <section class="page-section" id="page-horarios">
+                <div class="page-header">
+                    <h2>🕐 Horarios</h2>
+                    <p>Gestión de horarios por grupo</p>
+                </div>
+
+                <div class="toolbar">
+                    <select class="form-control" id="horario-grupo-select" onchange="cargarHorarios()">
+                        <option value="">-- Selecciona un grupo --</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="abrirModalHorario()">➕ Nuevo Horario</button>
+                </div>
+
+                <div class="table-card">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Día</th>
+                                    <th>Hora Inicio</th>
+                                    <th>Hora Fin</th>
+                                    <th>Tolerancia</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-horarios"></tbody>
+                        </table>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <div class="charts-grid">
-                <div class="chart-card">
-                    <h3>📈 Asistencias — Última semana</h3>
-                    <div class="chart-canvas-container">
-                        <canvas id="chart-asistencia-semanal"></canvas>
+            <!-- ═══ PAGE: INSCRIPCIONES ═══ -->
+            <section class="page-section" id="page-inscripciones">
+                <div class="page-header">
+                    <h2>📋 Inscripciones</h2>
+                    <p>Selecciona un alumno para ver e inscribirlo en sus clases</p>
+                </div>
+
+                <div class="toolbar">
+                    <select class="form-control" id="inscripcion-alumno-select" onchange="cargarClasesAlumno()"
+                        style="max-width:380px;">
+                        <option value="">— Selecciona un alumno —</option>
+                    </select>
+                </div>
+
+                <!-- Estado vacío -->
+                <div id="inscripciones-empty" class="empty-state" style="margin-top:32px;">
+                    <p>Selecciona un alumno para ver las clases disponibles</p>
+                </div>
+
+                <!-- Grid de tarjetas de clases -->
+                <div id="clases-grid" class="clases-grid" style="display:none;"></div>
+            </section>
+
+
+            <!-- ═══ PAGE: ASISTENCIA ═══ -->
+            <section class="page-section" id="page-asistencia">
+                <div class="page-header">
+                    <h2>✅ Registros de Asistencia</h2>
+                    <p>Consulta detallada de asistencia por grupo</p>
+                </div>
+
+                <div class="toolbar">
+                    <select class="form-control" id="asistencia-grupo-select" onchange="cargarAsistencia()">
+                        <option value="">-- Selecciona un grupo --</option>
+                    </select>
+                    <input type="date" class="form-control" id="asistencia-fecha" onchange="cargarAsistencia()">
+                </div>
+
+                <div class="table-card">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Matrícula</th>
+                                    <th>Fecha</th>
+                                    <th>Hora</th>
+                                    <th>Estado</th>
+                                    <th>Emoción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-asistencia"></tbody>
+                        </table>
                     </div>
                 </div>
-                <div class="chart-card">
-                    <h3>🎭 Distribución Emocional — Últimos 7 días</h3>
-                    <div class="chart-canvas-container">
-                        <canvas id="chart-emociones"></canvas>
+            </section>
+
+            <!-- ═══ PAGE: LISTA DE ASISTENCIA ═══ -->
+            <section class="page-section" id="page-lista-asistencia">
+                <div class="page-header">
+                    <h2>📋 Listas de Asistencia</h2>
+                    <p>Tabla dinámica de asistencia general por alumno</p>
+                </div>
+
+                <div class="toolbar">
+                    <select class="form-control" id="lista-asistencia-grupo-select" onchange="cargarListaAsistencia()">
+                        <option value="">-- Selecciona un grupo --</option>
+                    </select>
+                </div>
+
+                <div class="table-card" style="padding: 16px; overflow-x: auto;">
+                    <div id="lista-asistencia-stats"
+                        style="margin-bottom: 12px; font-weight: bold; text-align: right; color: var(--color-primary);">
+                    </div>
+                    <div class="table-wrapper" id="lista-asistencia-contenedor" style="overflow-x: auto;">
+                        <div class="empty-state">Selecciona un grupo para ver la lista.</div>
                     </div>
                 </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- ═══ PAGE: USUARIOS ═══ -->
-        <section class="page-section" id="page-usuarios">
-            <div class="page-header">
-                <h2>👥 Gestión de Usuarios</h2>
-                <p>Administra alumnos y profesores</p>
-            </div>
-
-            <div class="toolbar">
-                <button class="btn btn-primary" onclick="abrirModalUsuario()">➕ Nuevo Usuario</button>
-                <select class="form-control" id="filtro-tipo-usuario" onchange="cargarUsuarios()">
-                    <option value="">Todos</option>
-                    <option value="alumno">Alumnos</option>
-                    <option value="profesor">Profesores</option>
-                </select>
-            </div>
-
-            <div class="table-card">
-                <div class="table-wrapper">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Nombre</th>
-                                <th>Matrícula</th>
-                                <th>Tipo</th>
-                                <th>Cara IA</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-usuarios"></tbody>
-                    </table>
+            <!-- ═══ PAGE: EMOCIONES ═══ -->
+            <section class="page-section" id="page-emociones">
+                <div class="page-header">
+                    <h2>😊 Análisis Emocional</h2>
+                    <p>Tendencias emocionales de la comunidad universitaria</p>
                 </div>
-            </div>
-        </section>
 
-        <!-- ═══ PAGE: MATERIAS ═══ -->
-        <section class="page-section" id="page-materias">
-            <div class="page-header">
-                <h2>📚 Materias</h2>
-                <p>Gestión de materias del programa académico</p>
-            </div>
-
-            <div class="toolbar">
-                <button class="btn btn-primary" onclick="abrirModalMateria()">➕ Nueva Materia</button>
-            </div>
-
-            <div class="table-card">
-                <div class="table-wrapper">
-                    <table>
-                        <thead>
-                            <tr><th>ID</th><th>Nombre</th><th>Clave</th></tr>
-                        </thead>
-                        <tbody id="tabla-materias"></tbody>
-                    </table>
+                <div class="toolbar">
+                    <select class="form-control" id="emociones-dias" onchange="cargarEmocionesGrafica()">
+                        <option value="7">Últimos 7 días</option>
+                        <option value="14">Últimos 14 días</option>
+                        <option value="30" selected>Últimos 30 días</option>
+                    </select>
                 </div>
-            </div>
-        </section>
 
-        <!-- ═══ PAGE: GRUPOS ═══ -->
-        <section class="page-section" id="page-grupos">
-            <div class="page-header">
-                <h2>🏫 Grupos</h2>
-                <p>Gestión de grupos académicos</p>
-            </div>
-
-            <div class="toolbar">
-                <button class="btn btn-primary" onclick="abrirModalGrupo()">➕ Nuevo Grupo</button>
-            </div>
-
-            <div class="table-card">
-                <div class="table-wrapper">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>ID</th><th>Materia</th><th>Profesor</th>
-                                <th>Aula</th><th>Semestre</th><th>Periodo</th><th>Alumnos</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-grupos"></tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <!-- ═══ PAGE: HORARIOS ═══ -->
-        <section class="page-section" id="page-horarios">
-            <div class="page-header">
-                <h2>🕐 Horarios</h2>
-                <p>Gestión de horarios por grupo</p>
-            </div>
-
-            <div class="toolbar">
-                <select class="form-control" id="horario-grupo-select" onchange="cargarHorarios()">
-                    <option value="">-- Selecciona un grupo --</option>
-                </select>
-                <button class="btn btn-primary" onclick="abrirModalHorario()">➕ Nuevo Horario</button>
-            </div>
-
-            <div class="table-card">
-                <div class="table-wrapper">
-                    <table>
-                        <thead>
-                            <tr><th>ID</th><th>Día</th><th>Hora Inicio</th><th>Hora Fin</th><th>Tolerancia</th><th>Acciones</th></tr>
-                        </thead>
-                        <tbody id="tabla-horarios"></tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <!-- ═══ PAGE: INSCRIPCIONES ═══ -->
-        <section class="page-section" id="page-inscripciones">
-            <div class="page-header">
-                <h2>📋 Inscripciones</h2>
-                <p>Asigna alumnos a grupos</p>
-            </div>
-
-            <div class="toolbar">
-                <select class="form-control" id="inscripcion-grupo-select" onchange="cargarInscripciones()">
-                    <option value="">-- Selecciona un grupo --</option>
-                </select>
-                <button class="btn btn-primary" onclick="abrirModalInscripcion()">➕ Inscribir Alumno</button>
-            </div>
-
-            <div class="table-card">
-                <div class="table-wrapper">
-                    <table>
-                        <thead>
-                            <tr><th>ID</th><th>Alumno</th><th>Matrícula</th><th>Acciones</th></tr>
-                        </thead>
-                        <tbody id="tabla-inscripciones"></tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <!-- ═══ PAGE: ASISTENCIA ═══ -->
-        <section class="page-section" id="page-asistencia">
-            <div class="page-header">
-                <h2>✅ Registros de Asistencia</h2>
-                <p>Consulta detallada de asistencia por grupo</p>
-            </div>
-
-            <div class="toolbar">
-                <select class="form-control" id="asistencia-grupo-select" onchange="cargarAsistencia()">
-                    <option value="">-- Selecciona un grupo --</option>
-                </select>
-                <input type="date" class="form-control" id="asistencia-fecha" onchange="cargarAsistencia()">
-            </div>
-
-            <div class="table-card">
-                <div class="table-wrapper">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Nombre</th><th>Matrícula</th><th>Fecha</th>
-                                <th>Hora</th><th>Estado</th><th>Emoción</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-asistencia"></tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <!-- ═══ PAGE: EMOCIONES ═══ -->
-        <section class="page-section" id="page-emociones">
-            <div class="page-header">
-                <h2>😊 Análisis Emocional</h2>
-                <p>Tendencias emocionales de la comunidad universitaria</p>
-            </div>
-
-            <div class="toolbar">
-                <select class="form-control" id="emociones-dias" onchange="cargarEmocionesGrafica()">
-                    <option value="7">Últimos 7 días</option>
-                    <option value="14">Últimos 14 días</option>
-                    <option value="30" selected>Últimos 30 días</option>
-                </select>
-            </div>
-
-            <div class="charts-grid">
-                <div class="chart-card" style="grid-column: 1 / -1;">
-                    <h3>📈 Tendencia Emocional</h3>
-                    <div class="chart-canvas-container" style="height: 340px;">
-                        <canvas id="chart-emociones-tendencia"></canvas>
+                <div class="charts-grid">
+                    <div class="chart-card" style="grid-column: 1 / -1;">
+                        <h3>📈 Tendencia Emocional</h3>
+                        <div class="chart-canvas-container" style="height: 340px;">
+                            <canvas id="chart-emociones-tendencia"></canvas>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- ═══ PAGE: ADMINS ═══ -->
-        <section class="page-section" id="page-admins">
-            <div class="page-header">
-                <h2>🛡️ Administradores</h2>
-                <p>Gestión de acceso al dashboard</p>
-            </div>
-
-            <div class="toolbar">
-                <button class="btn btn-primary" onclick="abrirModalAdmin()">➕ Nuevo Administrador</button>
-            </div>
-
-            <div class="table-card">
-                <div class="table-wrapper">
-                    <table>
-                        <thead>
-                            <tr><th>ID</th><th>Nombre</th><th>Email</th><th>Desde</th><th>Acciones</th></tr>
-                        </thead>
-                        <tbody id="tabla-admins"></tbody>
-                    </table>
+            <!-- ═══ PAGE: ADMINS ═══ -->
+            <section class="page-section" id="page-admins">
+                <div class="page-header">
+                    <h2>🛡️ Administradores</h2>
+                    <p>Gestión de acceso al dashboard</p>
                 </div>
-            </div>
-        </section>
 
-    </main>
-</div>
+                <div class="toolbar">
+                    <button class="btn btn-primary" onclick="abrirModalAdmin()">➕ Nuevo Administrador</button>
+                </div>
 
-<!-- ═══ MODAL GENÉRICO ═══ -->
-<div class="modal-overlay" id="modal-overlay">
-    <div class="modal">
-        <div class="modal-header">
-            <h3 id="modal-title">Modal</h3>
-            <button class="modal-close" onclick="cerrarModal()">&times;</button>
-        </div>
-        <div class="modal-body" id="modal-body"></div>
-        <div class="modal-footer" id="modal-footer"></div>
+                <div class="table-card">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nombre</th>
+                                    <th>Email</th>
+                                    <th>Desde</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-admins"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </main>
     </div>
-</div>
 
-<script src="/static/dashboard/app.js"></script>
+    <!-- ═══ MODAL GENÉRICO ═══ -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modal-title">Modal</h3>
+                <button class="modal-close" onclick="cerrarModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-body"></div>
+            <div class="modal-footer" id="modal-footer"></div>
+        </div>
+    </div>
+
+    <script src="/static/dashboard/app.js?v=6"></script>
 </body>
+
 </html>

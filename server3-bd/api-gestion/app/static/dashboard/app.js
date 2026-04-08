@@ -157,8 +157,9 @@ function navigateTo(page) {
         materias: cargarMaterias,
         grupos: cargarGrupos,
         horarios: () => { cargarGruposSelect('horario-grupo-select'); },
-        inscripciones: () => { cargarGruposSelect('inscripcion-grupo-select'); cargarAlumnosDisponibles(); },
+        inscripciones: () => { cargarAlumnosSelectInscripciones(); },
         asistencia: () => { cargarGruposSelect('asistencia-grupo-select'); },
+        'lista-asistencia': () => { cargarGruposSelect('lista-asistencia-grupo-select'); },
         emociones: cargarEmocionesGrafica,
         admins: cargarAdmins,
     };
@@ -837,87 +838,210 @@ async function eliminarHorario(id) {
 }
 
 // ============================================================
-//  INSCRIPCIONES
+//  INSCRIPCIONES — Nuevo flujo: Alumno → Catálogo de clases
 // ============================================================
 
-let alumnosDisponibles = [];
-
-async function cargarAlumnosDisponibles() {
-    alumnosDisponibles = await api('/api/usuarios?tipo=alumno') || [];
+async function cargarAlumnosSelectInscripciones() {
+    const alumnos = await api('/api/usuarios?tipo=alumno') || [];
+    const select = document.getElementById('inscripcion-alumno-select');
+    if (!select) return;
+    const prev = select.value;
+    select.innerHTML = '<option value="">— Selecciona un alumno —</option>' +
+        alumnos.map(a =>
+            `<option value="${a.id}">${a.nombre} ${a.apellido} — ${a.matricula}</option>`
+        ).join('');
+    if (prev) select.value = prev;
 }
 
-async function cargarInscripciones() {
-    const grupoId = document.getElementById('inscripcion-grupo-select').value;
-    const tbody = document.getElementById('tabla-inscripciones');
-    if (!grupoId) {
-        tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><p>Selecciona un grupo</p></td></tr>';
+async function cargarClasesAlumno() {
+    const alumnoId = document.getElementById('inscripcion-alumno-select').value;
+    const grid = document.getElementById('clases-grid');
+    const empty = document.getElementById('inscripciones-empty');
+
+    if (!alumnoId) {
+        grid.style.display = 'none';
+        empty.style.display = 'block';
+        empty.innerHTML = '<p>Selecciona un alumno para ver las clases disponibles</p>';
         return;
     }
 
-    const inscripciones = await api(`/api/inscripciones/${grupoId}`);
-    if (!inscripciones || inscripciones.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><p>Sin alumnos inscritos</p></td></tr>';
+    empty.style.display = 'none';
+    grid.style.display = 'none';
+    grid.innerHTML = '<div class="clase-card-loading">⏳ Cargando clases...</div>';
+    grid.style.display = 'grid';
+
+    const grupos = await api(`/api/grupos/con-horarios?alumno_id=${alumnoId}`);
+
+    if (!grupos || grupos.length === 0) {
+        grid.innerHTML = '';
+        empty.innerHTML = '<p>No hay grupos registrados en el sistema</p>';
+        empty.style.display = 'block';
+        grid.style.display = 'none';
         return;
     }
 
-    tbody.innerHTML = inscripciones.map(i => `
-        <tr>
-            <td>${i.inscripcion_id}</td>
-            <td>${i.nombre}</td>
-            <td><code>${i.matricula}</code></td>
-            <td><button class="btn btn-sm btn-danger" onclick="eliminarInscripcion(${i.inscripcion_id})">🗑️</button></td>
-        </tr>
-    `).join('');
+    grid.innerHTML = grupos.map(g => renderClaseCard(g, alumnoId)).join('');
 }
 
-function abrirModalInscripcion() {
-    const grupoId = document.getElementById('inscripcion-grupo-select').value;
-    if (!grupoId) {
-        alert('Primero selecciona un grupo');
-        return;
+function renderClaseCard(g, alumnoId) {
+    const cardId = `clase-card-${g.id}`;
+    const hasHorarios = g.horarios && g.horarios.length > 0;
+
+    // Find first unenrolled schedule to auto-select
+    let firstUnenrolledIdx = -1;
+    if (hasHorarios) {
+        firstUnenrolledIdx = g.horarios.findIndex(h => !h.alumno_inscrito);
+    }
+    const autoSelectIdx = (g.horarios.length === 1 && firstUnenrolledIdx === 0) ? 0 : -1;
+
+    let horariosHTML = '';
+    if (!hasHorarios) {
+        horariosHTML = `
+            <div class="horario-empty-notice">⚠️ Sin horario asignado — no se puede inscribir</div>
+        `;
+    } else {
+        horariosHTML = g.horarios.map((h, idx) => {
+            const inicio = h.hora_inicio.substring(0, 5);
+            const fin = h.hora_fin.substring(0, 5);
+
+            if (h.alumno_inscrito) {
+                // Enrolled
+                return `
+                    <div class="horario-option horario-option--enrolled" style="display:flex; justify-content:space-between;">
+                        <div style="display:flex; align-items:center; gap: 10px;">
+                            <span class="horario-radio" title="Inscrito">✅</span>
+                            <span class="horario-dia">${h.dia_nombre}</span>
+                            <span class="horario-tiempo horario-tiempo--enrolled">${inicio} – ${fin}</span>
+                        </div>
+                        <button class="btn btn-sm btn-danger py-0 px-2" style="font-size:0.75rem;" onclick="desinscribirAlumno(${h.inscripcion_id}, ${alumnoId})" title="Dar de baja de este horario">
+                            🗑️
+                        </button>
+                    </div>
+                `;
+            } else {
+                // Not enrolled: interactive radio selection
+                const selected = idx === autoSelectIdx;
+                return `
+                    <div class="horario-option ${selected ? 'horario-option--selected' : ''}"
+                         onclick="seleccionarHorario('${cardId}', ${idx}, ${g.id}, ${h.id}, ${alumnoId})"
+                         data-horario-idx="${idx}"
+                         title="Selecciona este horario">
+                        <span class="horario-radio">${selected ? '🔵' : '⚪'}</span>
+                        <span class="horario-dia">${h.dia_nombre}</span>
+                        <span class="horario-tiempo">${inicio} – ${fin}</span>
+                    </div>
+                `;
+            }
+        }).join('');
     }
 
-    const alumnosOptions = alumnosDisponibles.map(a =>
-        `<option value="${a.id}">${a.nombre} ${a.apellido} — ${a.matricula}</option>`
-    ).join('');
+    const hasUnenrolled = hasHorarios && firstUnenrolledIdx !== -1;
+    const isFullyEnrolled = hasHorarios && firstUnenrolledIdx === -1;
+    const isPartiallyEnrolled = hasHorarios && g.horarios.some(h => h.alumno_inscrito);
 
-    const body = `
-        <div id="modal-alert-zone"></div>
-        <input type="hidden" id="ins-grupo" value="${grupoId}">
-        <div class="form-group">
-            <label>Alumno</label>
-            <select class="form-control" id="ins-alumno">${alumnosOptions || '<option>No hay alumnos</option>'}</select>
+    let btnInscribir = '';
+    if (hasHorarios) {
+        if (isFullyEnrolled) {
+            btnInscribir = `<button class="btn btn-sm btn-success" disabled>✅ Inscrito en todos los horarios</button>`;
+        } else {
+            const defaultH = autoSelectIdx >= 0 ? g.horarios[autoSelectIdx] : null;
+            const btnLabel = defaultH
+                ? `➕ Inscribir — ${defaultH.dia_nombre} ${defaultH.hora_inicio.substring(0, 5)}`
+                : `➕ Selecciona un horario`;
+
+            const btnDisabled = autoSelectIdx >= 0 ? '' : 'disabled';
+            const onclickParam = defaultH ? `onclick="inscribirAlumno(${g.id}, ${defaultH.id}, ${alumnoId})"` : '';
+
+            btnInscribir = `<button class="btn btn-sm btn-primary btn-inscribir-grupo"
+                   id="btn-inscribir-${g.id}"
+                   ${btnDisabled}
+                   ${onclickParam}>
+                   ${btnLabel}
+               </button>`;
+        }
+    }
+
+    const horariosTituloHTML = isPartiallyEnrolled
+        ? `<div class="clase-horarios-title enrolled-title">📌 Selecciona horarios adicionales</div>`
+        : `<div class="clase-horarios-title">🗓️ Selecciona el horario</div>`;
+
+    return `
+        <div class="clase-card ${isPartiallyEnrolled ? 'clase-card--inscrito' : ''}" id="${cardId}">
+            <div class="clase-card-header">
+                <div>
+                    <div class="clase-materia">${g.materia_nombre}</div>
+                    <code class="clase-clave">${g.materia_clave}</code>
+                </div>
+                ${isFullyEnrolled ? '<span class="badge badge-success">✅ Completamente inscrito</span>' : isPartiallyEnrolled ? '<span class="badge badge-success">✅ Inscrito</span>' : ''}
+            </div>
+            <div class="clase-info">
+                <span>👨‍🏫 ${g.profesor_nombre}</span>
+                <span>🏫 Aula ${g.aula}</span>
+                <span>📚 ${g.semestre} — ${g.periodo}</span>
+                <span class="badge badge-info">👥 ${g.num_alumnos} alumno(s)</span>
+            </div>
+            <div class="clase-horarios-lista">
+                ${horariosTituloHTML}
+                ${horariosHTML}
+            </div>
+            <div class="clase-card-footer">${btnInscribir}</div>
         </div>
     `;
-    const footer = `
-        <button class="btn btn-outline" onclick="cerrarModal()">Cancelar</button>
-        <button class="btn btn-primary" onclick="guardarInscripcion()">💾 Inscribir</button>
-    `;
-    abrirModal('➕ Inscribir Alumno', body, footer);
 }
 
-async function guardarInscripcion() {
-    const payload = {
-        alumno_id: parseInt(document.getElementById('ins-alumno').value),
-        grupo_id: parseInt(document.getElementById('ins-grupo').value),
-    };
-    const result = await api('/api/inscripciones/registrar', {
-        method: 'POST',
-        body: JSON.stringify(payload),
+
+function seleccionarHorario(cardId, idx, grupoId, horarioId, alumnoId) {
+    const card = document.getElementById(cardId);
+    if (!card) return;
+
+    // Deselect all options in this card
+    card.querySelectorAll('.horario-option:not(.horario-option--enrolled)').forEach(el => {
+        el.classList.remove('horario-option--selected');
+        el.querySelector('.horario-radio').textContent = '⚪';
     });
-    if (result && result.inscripcion_id) {
-        cerrarModal();
-        cargarInscripciones();
-    } else {
-        showAlert('modal-alert-zone', 'danger', result?.detail || 'Error al inscribir');
+
+    // Select the clicked option
+    const selected = card.querySelector(`.horario-option[data-horario-idx="${idx}"]`);
+    if (selected) {
+        selected.classList.add('horario-option--selected');
+        selected.querySelector('.horario-radio').textContent = '🔵';
+    }
+
+    // Update the Inscribir button
+    const btn = document.getElementById(`btn-inscribir-${grupoId}`);
+    if (btn) {
+        const dia = selected?.querySelector('.horario-dia')?.textContent || '';
+        const tiempo = selected?.querySelector('.horario-tiempo')?.textContent || '';
+        btn.textContent = `➕ Inscribir — ${dia} ${tiempo.split(' –')[0]}`;
+        btn.disabled = false;
+        btn.onclick = () => inscribirAlumno(grupoId, horarioId, alumnoId);
     }
 }
 
-async function eliminarInscripcion(id) {
-    if (!confirm('¿Eliminar esta inscripción?')) return;
-    await api(`/api/inscripciones/${id}`, { method: 'DELETE' });
-    cargarInscripciones();
+
+async function inscribirAlumno(grupoId, horarioId, alumnoId) {
+    const result = await api('/api/inscripciones/registrar', {
+        method: 'POST',
+        body: JSON.stringify({ alumno_id: parseInt(alumnoId), grupo_id: parseInt(grupoId), horario_id: parseInt(horarioId) }),
+    });
+    if (result && result.inscripcion_id) {
+        cargarClasesAlumno();
+    } else {
+        alert(result?.detail || 'Error al inscribir al alumno');
+    }
 }
+
+async function desinscribirAlumno(inscripcionId, alumnoId) {
+    if (!confirm('¿Dar de baja al alumno de esta clase?')) return;
+    const result = await api(`/api/inscripciones/${inscripcionId}`, { method: 'DELETE' });
+    if (result) {
+        cargarClasesAlumno();
+    } else {
+        alert('Error al eliminar la inscripción');
+    }
+}
+
+
 
 // ============================================================
 //  ASISTENCIA
@@ -947,11 +1071,13 @@ async function cargarAsistencia() {
             a_tiempo: 'badge-success',
             retardo: 'badge-warning',
             fuera_de_horario: 'badge-danger',
+            ausente: 'badge-danger',
         };
         const labels = {
             a_tiempo: 'A tiempo',
             retardo: 'Retardo',
             fuera_de_horario: 'Fuera de horario',
+            ausente: 'Ausente',
         };
         return `<span class="badge ${map[estado] || 'badge-info'}">${labels[estado] || estado}</span>`;
     };
@@ -972,6 +1098,128 @@ async function cargarAsistencia() {
         </tr>
     `).join('');
 }
+
+
+// ============================================================
+//  LISTA DE ASISTENCIA
+// ============================================================
+
+async function cargarListaAsistencia() {
+    const grupoId = document.getElementById('lista-asistencia-grupo-select').value;
+    const cont = document.getElementById('lista-asistencia-contenedor');
+    const stats = document.getElementById('lista-asistencia-stats');
+
+    if (!grupoId) {
+        cont.innerHTML = '<div class="empty-state">Selecciona un grupo para ver la lista.</div>';
+        stats.innerHTML = '';
+        return;
+    }
+
+    // We could show a loading state
+    cont.innerHTML = '<div class="empty-state">Cargando datos...</div>';
+    stats.innerHTML = '';
+
+    const data = await api(`/api/asistencia/grupo/${grupoId}/tabla`);
+    if (!data || !data.dates) {
+        cont.innerHTML = '<div class="empty-state">Error al cargar o sin registros</div>';
+        return;
+    }
+
+    stats.innerHTML = `Total de días de clase (módulo impartido): ${data.total_class_days}`;
+
+    const clsAsistencia = (estado) => {
+        if (estado === 'ausente') return 'badge-danger';
+        if (estado === 'fuera_de_horario') return 'badge-warning';
+        if (estado === 'a_tiempo' || estado === 'justificado') return 'badge-success';
+        if (estado === 'retardo') return 'badge-warning';
+        return 'badge-info';
+    };
+
+    const mapLabels = {
+        'a_tiempo': 'A tiempo',
+        'retardo': 'Retardo',
+        'ausente': 'Ausente',
+        'fuera_de_horario': 'Fuera',
+        'justificado': 'Justificado'
+    };
+
+    const isExcluido = (f) => data.excluded_dates.includes(f);
+
+    let html = '<table><thead><tr>';
+    html += '<th>Participante</th><th>Rol</th><th>Asistencias</th><th>Faltas</th>';
+
+    for (const f of data.dates) {
+        const excluido = isExcluido(f);
+        const titleText = excluido ? `Día ${f} (Excluido)` : `Día ${f}`;
+        const opacity = excluido ? 'opacity:0.6; text-decoration:line-through' : '';
+        html += `<th>
+            <div style="${opacity}" title="${titleText}">${f}</div>
+            <button class="btn btn-sm btn-outline" style="font-size:10px; margin-top:4px;" onclick="excluirDia(${grupoId}, '${f}')">
+                ${excluido ? 'Restaurar' : 'Pasar'}
+            </button>
+        </th>`;
+    }
+    html += '</tr></thead><tbody>';
+
+    const drawRow = (u, tipo) => {
+        if (!u) return '';
+        let rowHtml = `<tr>
+            <td style="white-space:nowrap;font-weight:500;">${u.nombre} ${u.apellido}</td>
+            <td><span class="badge ${tipo === 'Profesor' ? 'badge-purple' : 'badge-info'}">${tipo}</span></td>
+            <td><b>${u.total_asistencias}</b></td>
+            <td><b>${u.total_faltas}</b></td>
+        `;
+
+        for (const f of data.dates) {
+            const estado = u.asistencia_por_fecha[f] || 'ausente';
+            const excluido = isExcluido(f);
+
+            let btnJustificar = '';
+            if ((estado === 'ausente' || estado === 'fuera_de_horario') && !excluido && tipo === 'Alumno') {
+                btnJustificar = `<br><button class="btn btn-sm btn-primary" style="font-size:10px; margin-top:4px; padding:2px 4px;" onclick="justificarFalta(${u.id}, ${grupoId}, '${f}', '${u.nombre.replace(/'/g, "\\'")}')">Justificar</button>`;
+            }
+
+            const cellOpacity = excluido ? '0.4' : '1';
+            rowHtml += `<td style="opacity: ${cellOpacity}">
+                <span class="badge ${clsAsistencia(estado)}">${mapLabels[estado] || estado}</span>
+                ${btnJustificar}
+            </td>`;
+        }
+        rowHtml += '</tr>';
+        return rowHtml;
+    };
+
+    html += drawRow(data.teacher, 'Profesor');
+    for (const s of data.students) {
+        html += drawRow(s, 'Alumno');
+    }
+
+    html += '</tbody></table>';
+    cont.innerHTML = html;
+}
+
+async function excluirDia(grupoId, fecha) {
+    if (!confirm(`¿Deseas excluir o restaurar el día ${fecha}? Un día excluido no cuenta para las asistencias de nadie.`)) return;
+    const resp = await api(`/api/asistencia/grupo/${grupoId}/excluir_dia`, {
+        method: 'POST',
+        body: JSON.stringify({ fecha })
+    });
+    if (resp) {
+        cargarListaAsistencia();
+    }
+}
+
+async function justificarFalta(usuarioId, grupoId, fecha, nombre) {
+    if (!confirm(`¿Justificar falta de ${nombre} el día ${fecha}?`)) return;
+    const resp = await api(`/api/asistencia/justificar`, {
+        method: 'POST',
+        body: JSON.stringify({ usuario_id: usuarioId, grupo_id: grupoId, fecha })
+    });
+    if (resp) {
+        cargarListaAsistencia();
+    }
+}
+
 
 // ============================================================
 //  EMOCIONES (GRÁFICAS)

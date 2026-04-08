@@ -97,11 +97,78 @@ def get_current_admin(
     return admin
 
 # --- App ---
+import asyncio
+from datetime import date, time, datetime, timedelta
+from typing import List, Optional
+from passlib.context import CryptContext
+from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from sqlalchemy.orm import Session
+from sqlalchemy import func as sql_func
+from sqlalchemy.exc import IntegrityError
+
+from models import Base, Usuario, Materia, Grupo, Horario, Inscripcion, Asistencia, Emocion, DiaExcluido
+from models import TipoUsuario, EstadoAsistencia, CategoriaEmocion, TipoRegistro
+from database import engine, get_db
+
+Base.metadata.create_all(bind=engine)
+
 app = FastAPI(
     title="API de Gestión y Asistencia - UAS (Kira)",
     description="Backend central para dashboard, usuarios, asistencia y reportes",
     version="2.0.0"
 )
+
+# --- TAREAS EN SEGUNDO PLANO ---
+async def check_ausencias_bg():
+    while True:
+        await asyncio.sleep(300) # Every 5 minutes
+        print("🔄 [Background] Verificando inasistencias en clases terminadas...")
+        try:
+            with Session(bind=engine) as db:
+                hoy = date.today()
+                dia_semana = hoy.weekday()
+                ahora = datetime.now().time()
+                
+                # Horarios de hoy que YA terminaron
+                horarios_terminados = db.query(Horario).filter(
+                    Horario.dia_semana == dia_semana,
+                    Horario.hora_fin < ahora
+                ).all()
+                
+                for h in horarios_terminados:
+                    # Todos los alumnos inscritos
+                    inscritos = db.query(Inscripcion).filter(Inscripcion.horario_id == h.id).all()
+                    for ins in inscritos:
+                        # revisar si ya hay asistencia
+                        asis = db.query(Asistencia).filter(
+                            Asistencia.usuario_id == ins.alumno_id,
+                            Asistencia.grupo_id == h.grupo_id,
+                            Asistencia.fecha == hoy
+                        ).first()
+                        
+                        if not asis:
+                            # Marcar falta
+                            nueva_falta = Asistencia(
+                                usuario_id=ins.alumno_id,
+                                grupo_id=h.grupo_id,
+                                fecha=hoy,
+                                hora_registro=h.hora_fin, # Justo al terminar
+                                tipo_registro=TipoRegistro.entrada,
+                                tipo_usuario=TipoUsuario.alumno,
+                                estado=EstadoAsistencia.ausente,
+                                emocion_detectada=None
+                            )
+                            db.add(nueva_falta)
+                db.commit()
+        except Exception as e:
+            print(f"Error en tarea de fondo (ausencias): {e}")
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(check_ausencias_bg())
+
 
 # --- CORS ---
 app.add_middleware(
@@ -177,6 +244,7 @@ class HorarioCreate(BaseModel):
 class InscripcionCreate(BaseModel):
     alumno_id: int
     grupo_id: int
+    horario_id: int
 
 class LoginRequest(BaseModel):
     email: str
@@ -187,19 +255,21 @@ class AdminCreate(BaseModel):
     email: str
     password: str
 
+class ExcluirDiaRequest(BaseModel):
+    fecha: str
+
+class JustificarRequest(BaseModel):
+    usuario_id: int
+    grupo_id: int
+    fecha: str
+
 
 # ============================================================
 #  FUNCIONES AUXILIARES
 # ============================================================
 
-def calcular_estado(grupo_id: int, fecha_obj: date, hora_registro, db: Session) -> EstadoAsistencia:
-    """Calcula si es a_tiempo, retardo o fuera_de_horario según el Horario del grupo"""
-    dia_semana = fecha_obj.weekday()  # 0=Lunes ... 6=Domingo
-    horario = db.query(Horario).filter(
-        Horario.grupo_id == grupo_id,
-        Horario.dia_semana == dia_semana
-    ).first()
-
+def calcular_estado(horario: Horario, fecha_obj: date, hora_registro: time) -> EstadoAsistencia:
+    """Calcula si es a_tiempo, retardo o fuera_de_horario según el Horario ESPÉCIFICO del grupo"""
     if not horario:
         return EstadoAsistencia.fuera_de_horario
 
@@ -213,6 +283,7 @@ def calcular_estado(grupo_id: int, fecha_obj: date, hora_registro, db: Session) 
     elif hora_registro <= horario.hora_fin:
         return EstadoAsistencia.retardo
     else:
+        # Se pasó del tiempo final de la clase
         return EstadoAsistencia.fuera_de_horario
 
 
@@ -558,7 +629,8 @@ def registrar_asistencia(data: RegistroAsistenciaRequest, db: Session = Depends(
             return {"status": "ya_registrado", "mensaje": "Asistencia ya registrada hoy para esta clase"}
 
         # --- CALCULAR ESTADO SEGÚN HORARIO ---
-        estado = calcular_estado(grupo_id_activo, fecha_obj, hora_obj, db)
+        # --- CALCULAR ESTADO SEGÚN HORARIO ACTIVO ---
+        estado = calcular_estado(horario_activo, fecha_obj, hora_obj)
 
         # Buscar usuario
         usuario = db.query(Usuario).filter(Usuario.id == data.usuario_id).first()
@@ -640,6 +712,118 @@ def listar_asistencia(
 
     return resultado
 
+@app.get("/api/asistencia/grupo/{grupo_id}/tabla")
+def obtener_tabla_asistencia(grupo_id: int, db: Session = Depends(get_db)):
+    """Devuelve la tabla completa de asistencias para el grupo, con fechas como columnas."""
+    grupo = db.query(Grupo).filter(Grupo.id == grupo_id).first()
+    if not grupo:
+        raise HTTPException(status_code=404, detail="Grupo no encontrado")
+        
+    profesor = db.query(Usuario).filter(Usuario.id == grupo.profesor_id).first()
+    
+    inscripciones = db.query(Inscripcion).filter(Inscripcion.grupo_id == grupo_id).all()
+    alumnos_ids = [ins.alumno_id for ins in inscripciones]
+    alumnos = db.query(Usuario).filter(Usuario.id.in_(alumnos_ids)).all()
+    
+    asistencias = db.query(Asistencia).filter(Asistencia.grupo_id == grupo_id).all()
+    dias_excluidos_db = db.query(DiaExcluido).filter(DiaExcluido.grupo_id == grupo_id).all()
+    dias_excluidos = [str(d.fecha) for d in dias_excluidos_db]
+    
+    fechas_set = set(str(a.fecha) for a in asistencias)
+    fechas_ordenadas = sorted(list(fechas_set))
+    
+    dias_totales_clase = len([f for f in fechas_ordenadas if f not in dias_excluidos])
+
+    def estructurar_usuario(u):
+        if not u:
+            return None
+        asis_usuario = [a for a in asistencias if a.usuario_id == u.id]
+        por_fecha = {}
+        total_asis = 0
+        total_faltas = 0
+        for f in fechas_ordenadas:
+            registros = [a for a in asis_usuario if str(a.fecha) == f]
+            if not registros:
+                estado = "ausente"
+            else:
+                estado = registros[0].estado.value if registros[0].estado else "ausente"
+                # If there are multiple entries for the same day, take the earliest or most relevant. The first one is fine.
+            por_fecha[f] = estado
+            
+            if f not in dias_excluidos:
+                if estado in ["a_tiempo", "retardo", "justificado"]:
+                    total_asis += 1
+                elif estado in ["ausente", "fuera_de_horario"]:
+                    total_faltas += 1
+                    
+        return {
+            "id": u.id,
+            "nombre": u.nombre,
+            "apellido": u.apellido,
+            "matricula": u.matricula_o_num_empleado,
+            "asistencia_por_fecha": por_fecha,
+            "total_asistencias": total_asis,
+            "total_faltas": total_faltas
+        }
+
+    return {
+        "teacher": estructurar_usuario(profesor),
+        "students": [estructurar_usuario(a) for a in sorted(alumnos, key=lambda x: x.apellido)],
+        "dates": fechas_ordenadas,
+        "excluded_dates": dias_excluidos,
+        "total_class_days": dias_totales_clase
+    }
+
+@app.post("/api/asistencia/grupo/{grupo_id}/excluir_dia")
+def excluir_dia(grupo_id: int, request: ExcluirDiaRequest, db: Session = Depends(get_db)):
+    fecha_obj = datetime.strptime(request.fecha, "%Y-%m-%d").date()
+    existente = db.query(DiaExcluido).filter(
+        DiaExcluido.grupo_id == grupo_id,
+        DiaExcluido.fecha == fecha_obj
+    ).first()
+    
+    if existente:
+        db.delete(existente)
+        db.commit()
+        return {"mensaje": "Día restaurado (habil), ya cuenta como día de clase"}
+    else:
+        nuevo = DiaExcluido(grupo_id=grupo_id, fecha=fecha_obj)
+        db.add(nuevo)
+        db.commit()
+        return {"mensaje": "Día pasado de largo (excluido)"}
+
+@app.post("/api/asistencia/justificar")
+def justificar_ausencia(request: JustificarRequest, db: Session = Depends(get_db)):
+    fecha_obj = datetime.strptime(request.fecha, "%Y-%m-%d").date()
+    asistencia = db.query(Asistencia).filter(
+        Asistencia.usuario_id == request.usuario_id,
+        Asistencia.grupo_id == request.grupo_id,
+        Asistencia.fecha == fecha_obj
+    ).first()
+    
+    if asistencia:
+        asistencia.estado = EstadoAsistencia.justificado
+        db.commit()
+        return {"mensaje": "Falta justificada"}
+    else:
+        # Se asume que el tipo de usuario lo podemos buscar
+        usuario = db.query(Usuario).filter(Usuario.id == request.usuario_id).first()
+        tipo_usr = usuario.tipo if usuario else TipoUsuario.alumno
+        
+        nueva = Asistencia(
+            usuario_id=request.usuario_id,
+            grupo_id=request.grupo_id,
+            fecha=fecha_obj,
+            hora_registro=datetime.now().time(),
+            tipo_registro=TipoRegistro.entrada,
+            tipo_usuario=tipo_usr,
+            estado=EstadoAsistencia.justificado,
+            emocion_detectada=None
+        )
+        db.add(nueva)
+        db.commit()
+        return {"mensaje": "Falta justificada (registro creado)"}
+
 
 # ============================================================
 #  MATERIAS — CRUD
@@ -718,6 +902,60 @@ def registrar_grupo(data: GrupoCreate, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Error al crear grupo: {str(e)}")
+
+
+@app.get("/api/grupos/con-horarios")
+def listar_grupos_con_horarios(
+    alumno_id: Optional[int] = None,
+    db: Session = Depends(get_db)
+):
+    """Devuelve todos los grupos con sus horarios embebidos.
+    Si se provee alumno_id, incluye si el alumno ya está inscrito y el id de inscripción por cada horario."""
+    grupos = db.query(Grupo).order_by(Grupo.id).all()
+    resultado = []
+    
+    # Pre-fetch inscripciones for the student to optimize queries
+    inscripciones_alumno = {}
+    if alumno_id:
+        ins = db.query(Inscripcion).filter(Inscripcion.alumno_id == alumno_id).all()
+        for i in ins:
+            inscripciones_alumno[i.horario_id] = i.id
+
+    for g in grupos:
+        materia = db.query(Materia).filter(Materia.id == g.materia_id).first()
+        profesor = db.query(Usuario).filter(Usuario.id == g.profesor_id).first()
+        horarios_db = db.query(Horario).filter(Horario.grupo_id == g.id).order_by(Horario.dia_semana).all()
+
+        horarios_list = []
+        for h in horarios_db:
+            alumno_inscrito = False
+            inscripcion_id = None
+            if alumno_id and h.id in inscripciones_alumno:
+                alumno_inscrito = True
+                inscripcion_id = inscripciones_alumno[h.id]
+
+            horarios_list.append({
+                "id": h.id,
+                "dia_nombre": DIAS_SEMANA.get(h.dia_semana, "?"),
+                "dia_semana": h.dia_semana,
+                "hora_inicio": str(h.hora_inicio),
+                "hora_fin": str(h.hora_fin),
+                "alumno_inscrito": alumno_inscrito,
+                "inscripcion_id": inscripcion_id,
+            })
+
+        resultado.append({
+            "id": g.id,
+            "materia_nombre": materia.nombre if materia else "Sin materia",
+            "materia_clave": materia.clave if materia else "",
+            "profesor_nombre": f"{profesor.nombre} {profesor.apellido}" if profesor else "Sin profesor",
+            "aula": g.aula,
+            "semestre": g.semestre,
+            "periodo": g.periodo,
+            "num_alumnos": db.query(Inscripcion).filter(Inscripcion.grupo_id == g.id).with_entities(Inscripcion.alumno_id).distinct().count(),
+            "horarios": horarios_list,
+        })
+    return resultado
 
 
 @app.get("/api/grupos/{grupo_id}/alumnos")
@@ -820,8 +1058,8 @@ def listar_inscripciones(grupo_id: int, db: Session = Depends(get_db)):
 
 @app.post("/api/inscripciones/registrar")
 def registrar_inscripcion(data: InscripcionCreate, db: Session = Depends(get_db)):
-    """Inscribe un alumno en un grupo"""
-    nueva = Inscripcion(alumno_id=data.alumno_id, grupo_id=data.grupo_id)
+    """Inscribe un alumno en un horario de grupo específico"""
+    nueva = Inscripcion(alumno_id=data.alumno_id, grupo_id=data.grupo_id, horario_id=data.horario_id)
     try:
         db.add(nueva)
         db.commit()
@@ -829,7 +1067,7 @@ def registrar_inscripcion(data: InscripcionCreate, db: Session = Depends(get_db)
         return {"mensaje": "Inscripción registrada", "inscripcion_id": nueva.id}
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=400, detail="El alumno ya está inscrito en este grupo")
+        raise HTTPException(status_code=400, detail="El alumno ya está inscrito en este horario")
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Error: {str(e)}")

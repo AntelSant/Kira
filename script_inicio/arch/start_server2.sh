@@ -29,7 +29,7 @@ cd server2-emotion
 if [ ! -d "venv" ]; then
     echo -e "${YELLOW}Creando entorno virtual por primera vez...${NC}"
     python3 -m venv venv
-    source venv/bin/activate
+    source venv/bin/activate.fish
     
     echo -e "${YELLOW}Instalando dependencias...${NC}"
     pip install --upgrade pip setuptools wheel

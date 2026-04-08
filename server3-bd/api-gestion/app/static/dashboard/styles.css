@@ -46,7 +46,9 @@
 }
 
 /* ── Reset ──────────────────────────────────────────────── */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
@@ -225,10 +227,21 @@ body {
     flex-shrink: 0;
 }
 
-.stat-icon.blue { background: var(--info-bg); }
-.stat-icon.green { background: var(--success-bg); }
-.stat-icon.orange { background: var(--warning-bg); }
-.stat-icon.purple { background: rgba(99, 102, 241, 0.12); }
+.stat-icon.blue {
+    background: var(--info-bg);
+}
+
+.stat-icon.green {
+    background: var(--success-bg);
+}
+
+.stat-icon.orange {
+    background: var(--warning-bg);
+}
+
+.stat-icon.purple {
+    background: rgba(99, 102, 241, 0.12);
+}
 
 .stat-info h3 {
     font-size: 1.6rem;
@@ -344,11 +357,30 @@ tr:last-child td {
     white-space: nowrap;
 }
 
-.badge-success { background: var(--success-bg); color: var(--success); }
-.badge-warning { background: var(--warning-bg); color: var(--warning); }
-.badge-danger { background: var(--danger-bg); color: var(--danger); }
-.badge-info { background: var(--info-bg); color: var(--info); }
-.badge-purple { background: rgba(99, 102, 241, 0.12); color: var(--accent); }
+.badge-success {
+    background: var(--success-bg);
+    color: var(--success);
+}
+
+.badge-warning {
+    background: var(--warning-bg);
+    color: var(--warning);
+}
+
+.badge-danger {
+    background: var(--danger-bg);
+    color: var(--danger);
+}
+
+.badge-info {
+    background: var(--info-bg);
+    color: var(--info);
+}
+
+.badge-purple {
+    background: rgba(99, 102, 241, 0.12);
+    color: var(--accent);
+}
 
 /* ── Buttons ────────────────────────────────────────────── */
 .btn {
@@ -587,9 +619,23 @@ select.form-control {
     gap: 8px;
 }
 
-.alert-success { background: var(--success-bg); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); }
-.alert-danger { background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
-.alert-info { background: var(--info-bg); color: var(--info); border: 1px solid rgba(59, 130, 246, 0.2); }
+.alert-success {
+    background: var(--success-bg);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.alert-danger {
+    background: var(--danger-bg);
+    color: var(--danger);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.alert-info {
+    background: var(--info-bg);
+    color: var(--info);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
 
 /* ── Empty State ────────────────────────────────────────── */
 .empty-state {
@@ -627,7 +673,9 @@ select.form-control {
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* ── Toolbar ────────────────────────────────────────────── */
@@ -644,14 +692,37 @@ select.form-control {
 }
 
 /* ── Utility ────────────────────────────────────────────── */
-.hidden { display: none !important; }
-.text-right { text-align: right; }
-.mt-16 { margin-top: 16px; }
-.mb-20 { margin-bottom: 20px; }
-.gap-10 { gap: 10px; }
-.flex { display: flex; }
-.flex-wrap { flex-wrap: wrap; }
-.items-center { align-items: center; }
+.hidden {
+    display: none !important;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.mt-16 {
+    margin-top: 16px;
+}
+
+.mb-20 {
+    margin-bottom: 20px;
+}
+
+.gap-10 {
+    gap: 10px;
+}
+
+.flex {
+    display: flex;
+}
+
+.flex-wrap {
+    flex-wrap: wrap;
+}
+
+.items-center {
+    align-items: center;
+}
 
 /* ── Page sections (SPA) ────────────────────────────────── */
 .page-section {
@@ -664,8 +735,15 @@ select.form-control {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* ── Responsive ─────────────────────────────────────────── */
@@ -673,16 +751,20 @@ select.form-control {
     .sidebar {
         transform: translateX(-100%);
     }
+
     .sidebar.open {
         transform: translateX(0);
     }
+
     .main-content {
         margin-left: 0;
         padding: 20px 16px;
     }
+
     .form-row {
         grid-template-columns: 1fr;
     }
+
     .charts-grid {
         grid-template-columns: 1fr;
     }
@@ -698,14 +780,19 @@ select.form-control {
     justify-content: center;
     z-index: 9999;
     background-image:
-        radial-gradient(ellipse at 20% 50%, rgba(99,102,241,0.15) 0%, transparent 60%),
-        radial-gradient(ellipse at 80% 20%, rgba(167,139,250,0.10) 0%, transparent 60%);
+        radial-gradient(ellipse at 20% 50%, rgba(99, 102, 241, 0.15) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(167, 139, 250, 0.10) 0%, transparent 60%);
     animation: loginFadeIn 0.4s ease;
 }
 
 @keyframes loginFadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 .login-card {
@@ -715,14 +802,21 @@ select.form-control {
     padding: 48px 40px;
     width: 100%;
     max-width: 420px;
-    box-shadow: 0 8px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(99,102,241,0.1);
+    box-shadow: 0 8px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(99, 102, 241, 0.1);
     backdrop-filter: blur(20px);
     animation: loginSlideUp 0.4s ease;
 }
 
 @keyframes loginSlideUp {
-    from { opacity: 0; transform: translateY(24px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(24px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .login-brand {
@@ -734,13 +828,20 @@ select.form-control {
     font-size: 3rem;
     line-height: 1;
     margin-bottom: 12px;
-    filter: drop-shadow(0 0 20px rgba(99,102,241,0.6));
+    filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.6));
     animation: pulse 2.5s ease-in-out infinite;
 }
 
 @keyframes pulse {
-    0%, 100% { filter: drop-shadow(0 0 20px rgba(99,102,241,0.5)); }
-    50%       { filter: drop-shadow(0 0 32px rgba(99,102,241,0.9)); }
+
+    0%,
+    100% {
+        filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.5));
+    }
+
+    50% {
+        filter: drop-shadow(0 0 32px rgba(99, 102, 241, 0.9));
+    }
 }
 
 .login-brand h1 {
@@ -810,12 +911,14 @@ select.form-control {
     padding: 4px;
 }
 
-.toggle-pass:hover { opacity: 1; }
+.toggle-pass:hover {
+    opacity: 1;
+}
 
 .login-error {
     background: var(--danger-bg);
     color: var(--danger);
-    border: 1px solid rgba(239,68,68,0.2);
+    border: 1px solid rgba(239, 68, 68, 0.2);
     border-radius: var(--radius-sm);
     padding: 10px 14px;
     font-size: 0.84rem;
@@ -825,9 +928,19 @@ select.form-control {
 }
 
 @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25%       { transform: translateX(-6px); }
-    75%       { transform: translateX(6px); }
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-6px);
+    }
+
+    75% {
+        transform: translateX(6px);
+    }
 }
 
 .btn-full {
@@ -889,7 +1002,7 @@ select.form-control {
     padding: 9px 14px;
     background: var(--danger-bg);
     color: var(--danger);
-    border: 1px solid rgba(239,68,68,0.15);
+    border: 1px solid rgba(239, 68, 68, 0.15);
     border-radius: var(--radius-sm);
     font-family: inherit;
     font-size: 0.85rem;
@@ -903,4 +1016,187 @@ select.form-control {
     background: var(--danger);
     color: #fff;
     border-color: var(--danger);
+}
+
+/* ── Inscripciones — Class Card Grid ─────────────────────── */
+.clases-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 18px;
+    margin-top: 4px;
+}
+
+.clase-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    transition: all var(--transition);
+}
+
+.clase-card:hover {
+    border-color: var(--border);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.clase-card--inscrito {
+    border-color: rgba(16, 185, 129, 0.35);
+    background: linear-gradient(135deg, var(--bg-card), rgba(16, 185, 129, 0.04));
+}
+
+.clase-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.clase-materia {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.3;
+}
+
+.clase-clave {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: var(--bg-secondary);
+    padding: 2px 7px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-top: 4px;
+}
+
+.clase-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+/* ── Horario selectable rows ────────────────────────────── */
+.clase-horarios-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.clase-horarios-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+}
+
+.horario-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 13px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-secondary);
+    border: 1.5px solid var(--border-subtle);
+    cursor: pointer;
+    transition: all var(--transition);
+    user-select: none;
+}
+
+.horario-option:hover {
+    border-color: var(--accent);
+    background: rgba(99, 102, 241, 0.06);
+}
+
+.horario-option--selected {
+    border-color: var(--accent);
+    background: rgba(99, 102, 241, 0.12);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+/* Enrolled (already inscribed) — green state, non-interactive */
+.horario-option--enrolled {
+    border-color: rgba(16, 185, 129, 0.4);
+    background: rgba(16, 185, 129, 0.08);
+    cursor: default;
+}
+
+.horario-option--enrolled:hover {
+    border-color: rgba(16, 185, 129, 0.4);
+    background: rgba(16, 185, 129, 0.08);
+}
+
+.enrolled-title {
+    color: var(--success) !important;
+}
+
+.horario-radio {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.horario-dia {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    flex: 1;
+}
+
+.horario-tiempo {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--accent-hover);
+    white-space: nowrap;
+    background: rgba(99, 102, 241, 0.1);
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.horario-option--selected .horario-tiempo {
+    background: rgba(99, 102, 241, 0.25);
+}
+
+.horario-tiempo--enrolled {
+    background: rgba(16, 185, 129, 0.18);
+    color: var(--success);
+}
+
+.horario-empty-notice {
+    padding: 10px 13px;
+    border-radius: var(--radius-sm);
+    background: var(--warning-bg);
+    color: var(--warning);
+    font-size: 0.82rem;
+    font-weight: 500;
+}
+
+.clase-card-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 6px;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.btn-inscribir-grupo:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.btn-inscribir-grupo:disabled:hover {
+    background: var(--accent);
+    box-shadow: none;
+}
+
+.clase-card-loading {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 48px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
 }
