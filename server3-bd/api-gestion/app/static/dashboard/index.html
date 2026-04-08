@@ -7,7 +7,7 @@
     <title>Kira UAS — Dashboard de Gestión</title>
     <meta name="description"
         content="Sistema distribuido de IA para reconocimiento facial y análisis emocional — Universidad Autónoma de Sinaloa">
-    <link rel="stylesheet" href="/static/dashboard/styles.css?v=4">
+    <link rel="stylesheet" href="/static/dashboard/styles.css?v=9">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
 
@@ -47,9 +47,12 @@
 
         <!-- ═══ SIDEBAR ═══ -->
         <aside class="sidebar" id="sidebar">
-            <div class="sidebar-brand">
-                <h1>🤖 Kira</h1>
-                <p>UAS — Asistencia IA</p>
+            <div class="sidebar-brand" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>🤖 Kira</h1>
+                    <p>UAS — Asistencia IA</p>
+                </div>
+                <button class="sidebar-close-btn" onclick="toggleSidebar()" aria-label="Close Menu">✕</button>
             </div>
             <nav class="sidebar-nav">
                 <div class="nav-section-label">Principal</div>
@@ -100,7 +103,12 @@
         </aside>
 
         <!-- ═══ MAIN CONTENT ═══ -->
-        <main class="main-content">
+        <main class="main-content" id="main-content">
+            <div class="top-bar">
+                <button class="sidebar-toggle" onclick="toggleSidebar()">
+                    <span>☰</span> Menú
+                </button>
+            </div>
 
             <!-- ═══ PAGE: INICIO ═══ -->
             <section class="page-section active" id="page-inicio">
@@ -445,7 +453,7 @@
         </div>
     </div>
 
-    <script src="/static/dashboard/app.js?v=6"></script>
+    <script src="/static/dashboard/app.js?v=8"></script>
 </body>
 
 </html>
