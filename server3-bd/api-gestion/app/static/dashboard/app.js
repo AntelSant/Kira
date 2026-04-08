@@ -157,7 +157,7 @@ function navigateTo(page) {
         materias: cargarMaterias,
         grupos: cargarGrupos,
         horarios: () => { cargarGruposSelect('horario-grupo-select'); },
-        inscripciones: () => { cargarGruposSelect('inscripcion-grupo-select'); cargarAlumnosDisponibles(); },
+        inscripciones: () => { cargarAlumnosSelectInscripciones(); },
         asistencia: () => { cargarGruposSelect('asistencia-grupo-select'); },
         emociones: cargarEmocionesGrafica,
         admins: cargarAdmins,
@@ -837,87 +837,114 @@ async function eliminarHorario(id) {
 }
 
 // ============================================================
-//  INSCRIPCIONES
+//  INSCRIPCIONES — Nuevo flujo: Alumno → Catálogo de clases
 // ============================================================
 
-let alumnosDisponibles = [];
-
-async function cargarAlumnosDisponibles() {
-    alumnosDisponibles = await api('/api/usuarios?tipo=alumno') || [];
+async function cargarAlumnosSelectInscripciones() {
+    const alumnos = await api('/api/usuarios?tipo=alumno') || [];
+    const select = document.getElementById('inscripcion-alumno-select');
+    if (!select) return;
+    const prev = select.value;
+    select.innerHTML = '<option value="">— Selecciona un alumno —</option>' +
+        alumnos.map(a =>
+            `<option value="${a.id}">${a.nombre} ${a.apellido} — ${a.matricula}</option>`
+        ).join('');
+    if (prev) select.value = prev;
 }
 
-async function cargarInscripciones() {
-    const grupoId = document.getElementById('inscripcion-grupo-select').value;
-    const tbody = document.getElementById('tabla-inscripciones');
-    if (!grupoId) {
-        tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><p>Selecciona un grupo</p></td></tr>';
+async function cargarClasesAlumno() {
+    const alumnoId = document.getElementById('inscripcion-alumno-select').value;
+    const grid = document.getElementById('clases-grid');
+    const empty = document.getElementById('inscripciones-empty');
+
+    if (!alumnoId) {
+        grid.style.display = 'none';
+        empty.style.display = 'block';
+        empty.innerHTML = '<p>Selecciona un alumno para ver las clases disponibles</p>';
         return;
     }
 
-    const inscripciones = await api(`/api/inscripciones/${grupoId}`);
-    if (!inscripciones || inscripciones.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><p>Sin alumnos inscritos</p></td></tr>';
+    empty.style.display = 'none';
+    grid.style.display = 'none';
+    grid.innerHTML = '<div class="clase-card-loading">⏳ Cargando clases...</div>';
+    grid.style.display = 'grid';
+
+    const grupos = await api(`/api/grupos/con-horarios?alumno_id=${alumnoId}`);
+
+    if (!grupos || grupos.length === 0) {
+        grid.innerHTML = '';
+        empty.innerHTML = '<p>No hay grupos registrados en el sistema</p>';
+        empty.style.display = 'block';
+        grid.style.display = 'none';
         return;
     }
 
-    tbody.innerHTML = inscripciones.map(i => `
-        <tr>
-            <td>${i.inscripcion_id}</td>
-            <td>${i.nombre}</td>
-            <td><code>${i.matricula}</code></td>
-            <td><button class="btn btn-sm btn-danger" onclick="eliminarInscripcion(${i.inscripcion_id})">🗑️</button></td>
-        </tr>
-    `).join('');
+    grid.innerHTML = grupos.map(g => renderClaseCard(g, alumnoId)).join('');
 }
 
-function abrirModalInscripcion() {
-    const grupoId = document.getElementById('inscripcion-grupo-select').value;
-    if (!grupoId) {
-        alert('Primero selecciona un grupo');
-        return;
-    }
+function renderClaseCard(g, alumnoId) {
+    const inscrito = g.alumno_inscrito;
 
-    const alumnosOptions = alumnosDisponibles.map(a =>
-        `<option value="${a.id}">${a.nombre} ${a.apellido} — ${a.matricula}</option>`
-    ).join('');
+    const horariosHTML = g.horarios.length > 0
+        ? g.horarios.map(h => {
+            const inicio = h.hora_inicio.substring(0, 5);
+            const fin = h.hora_fin.substring(0, 5);
+            return `<span class="horario-chip">📅 ${h.dia_nombre} ${inicio}–${fin}</span>`;
+        }).join('')
+        : '<span class="horario-chip horario-chip--empty">Sin horario asignado</span>';
 
-    const body = `
-        <div id="modal-alert-zone"></div>
-        <input type="hidden" id="ins-grupo" value="${grupoId}">
-        <div class="form-group">
-            <label>Alumno</label>
-            <select class="form-control" id="ins-alumno">${alumnosOptions || '<option>No hay alumnos</option>'}</select>
+    const btnInscribir = inscrito
+        ? `<button class="btn btn-sm btn-danger" onclick="desinscribirAlumno(${g.inscripcion_id}, ${alumnoId})">
+               🗑️ Dar de baja
+           </button>`
+        : `<button class="btn btn-sm btn-primary" onclick="inscribirAlumno(${g.id}, ${alumnoId})">
+               ➕ Inscribir
+           </button>`;
+
+    return `
+        <div class="clase-card ${inscrito ? 'clase-card--inscrito' : ''}" id="clase-card-${g.id}">
+            <div class="clase-card-header">
+                <div>
+                    <div class="clase-materia">${g.materia_nombre}</div>
+                    <code class="clase-clave">${g.materia_clave}</code>
+                </div>
+                ${inscrito ? '<span class="badge badge-success">✅ Inscrito</span>' : ''}
+            </div>
+            <div class="clase-info">
+                <span>👨‍🏫 ${g.profesor_nombre}</span>
+                <span>🏫 Aula ${g.aula}</span>
+                <span>📚 ${g.semestre} — ${g.periodo}</span>
+                <span class="badge badge-info">👥 ${g.num_alumnos} alumno(s)</span>
+            </div>
+            <div class="clase-horarios">${horariosHTML}</div>
+            <div class="clase-card-footer">${btnInscribir}</div>
         </div>
     `;
-    const footer = `
-        <button class="btn btn-outline" onclick="cerrarModal()">Cancelar</button>
-        <button class="btn btn-primary" onclick="guardarInscripcion()">💾 Inscribir</button>
-    `;
-    abrirModal('➕ Inscribir Alumno', body, footer);
 }
 
-async function guardarInscripcion() {
-    const payload = {
-        alumno_id: parseInt(document.getElementById('ins-alumno').value),
-        grupo_id: parseInt(document.getElementById('ins-grupo').value),
-    };
+async function inscribirAlumno(grupoId, alumnoId) {
     const result = await api('/api/inscripciones/registrar', {
         method: 'POST',
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ alumno_id: parseInt(alumnoId), grupo_id: parseInt(grupoId) }),
     });
     if (result && result.inscripcion_id) {
-        cerrarModal();
-        cargarInscripciones();
+        cargarClasesAlumno();
     } else {
-        showAlert('modal-alert-zone', 'danger', result?.detail || 'Error al inscribir');
+        alert(result?.detail || 'Error al inscribir al alumno');
     }
 }
 
-async function eliminarInscripcion(id) {
-    if (!confirm('¿Eliminar esta inscripción?')) return;
-    await api(`/api/inscripciones/${id}`, { method: 'DELETE' });
-    cargarInscripciones();
+async function desinscribirAlumno(inscripcionId, alumnoId) {
+    if (!confirm('¿Dar de baja al alumno de esta clase?')) return;
+    const result = await api(`/api/inscripciones/${inscripcionId}`, { method: 'DELETE' });
+    if (result) {
+        cargarClasesAlumno();
+    } else {
+        alert('Error al eliminar la inscripción');
+    }
 }
+
+
 
 // ============================================================
 //  ASISTENCIA

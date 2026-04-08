@@ -720,6 +720,56 @@ def registrar_grupo(data: GrupoCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=f"Error al crear grupo: {str(e)}")
 
 
+@app.get("/api/grupos/con-horarios")
+def listar_grupos_con_horarios(
+    alumno_id: Optional[int] = None,
+    db: Session = Depends(get_db)
+):
+    """Devuelve todos los grupos con sus horarios embebidos.
+    Si se provee alumno_id, incluye si el alumno ya está inscrito y el id de inscripción."""
+    grupos = db.query(Grupo).order_by(Grupo.id).all()
+    resultado = []
+    for g in grupos:
+        materia = db.query(Materia).filter(Materia.id == g.materia_id).first()
+        profesor = db.query(Usuario).filter(Usuario.id == g.profesor_id).first()
+        horarios = db.query(Horario).filter(Horario.grupo_id == g.id).order_by(Horario.dia_semana).all()
+
+        # Estado de inscripción del alumno
+        alumno_inscrito = False
+        inscripcion_id = None
+        if alumno_id:
+            ins = db.query(Inscripcion).filter(
+                Inscripcion.alumno_id == alumno_id,
+                Inscripcion.grupo_id == g.id
+            ).first()
+            if ins:
+                alumno_inscrito = True
+                inscripcion_id = ins.id
+
+        resultado.append({
+            "id": g.id,
+            "materia_nombre": materia.nombre if materia else "Sin materia",
+            "materia_clave": materia.clave if materia else "",
+            "profesor_nombre": f"{profesor.nombre} {profesor.apellido}" if profesor else "Sin profesor",
+            "aula": g.aula,
+            "semestre": g.semestre,
+            "periodo": g.periodo,
+            "num_alumnos": db.query(Inscripcion).filter(Inscripcion.grupo_id == g.id).count(),
+            "horarios": [
+                {
+                    "dia_nombre": DIAS_SEMANA.get(h.dia_semana, "?"),
+                    "dia_semana": h.dia_semana,
+                    "hora_inicio": str(h.hora_inicio),
+                    "hora_fin": str(h.hora_fin),
+                }
+                for h in horarios
+            ],
+            "alumno_inscrito": alumno_inscrito,
+            "inscripcion_id": inscripcion_id,
+        })
+    return resultado
+
+
 @app.get("/api/grupos/{grupo_id}/alumnos")
 def listar_alumnos_grupo(grupo_id: int, db: Session = Depends(get_db)):
     """Lista los alumnos inscritos en un grupo"""
