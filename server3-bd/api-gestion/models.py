@@ -59,6 +59,7 @@ class Usuario(Base, TimestampMixin):
     matricula_o_num_empleado = Column(String(50), unique=True, index=True, nullable=False)
     tipo = Column(Enum(TipoUsuario), nullable=False)
     email = Column(String(100), unique=True)
+    password_hash = Column(String(255), nullable=True)
     
     # pgvector: 512 dimensiones para el modelo InceptionResnetV1
     embedding_facial = Column(Vector(512))

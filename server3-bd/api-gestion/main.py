@@ -82,6 +82,9 @@ def get_current_admin(
     """Auth guard — protege cualquier endpoint que lo use como dependencia"""
     payload = verificar_token(credentials.credentials)
     admin_id = payload.get("sub")
+    role = payload.get("role", "admin")
+    if role != "admin":
+        raise HTTPException(status_code=403, detail="Solo administradores pueden acceder")
     try:
         admin_id = int(admin_id)
     except (TypeError, ValueError):
@@ -95,6 +98,33 @@ def get_current_admin(
     if not admin:
         raise HTTPException(status_code=401, detail="Administrador no encontrado o inactivo")
     return admin
+
+
+def get_current_user_any(
+    credentials: HTTPAuthorizationCredentials = Depends(http_bearer),
+    db: Session = Depends(get_db)
+) -> dict:
+    """Auth guard universal — devuelve {role, user, id} para admin, profesor o alumno"""
+    payload = verificar_token(credentials.credentials)
+    role = payload.get("role", "admin")
+    user_id = payload.get("sub")
+    try:
+        user_id = int(user_id)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=401, detail="Token sin identidad")
+
+    if role == "admin":
+        obj = db.query(Administrador).filter(
+            Administrador.id == user_id, Administrador.activo == True
+        ).first()
+    else:
+        obj = db.query(Usuario).filter(
+            Usuario.id == user_id, Usuario.activo == True
+        ).first()
+
+    if not obj:
+        raise HTTPException(status_code=401, detail="Usuario no encontrado o inactivo")
+    return {"role": role, "user": obj, "id": user_id}
 
 # --- App ---
 import asyncio
@@ -263,6 +293,9 @@ class JustificarRequest(BaseModel):
     grupo_id: int
     fecha: str
 
+class SetPasswordRequest(BaseModel):
+    password: str
+
 
 # ============================================================
 #  FUNCIONES AUXILIARES
@@ -309,24 +342,50 @@ def serializar_usuario(u: Usuario) -> dict:
 
 @app.post("/api/auth/login")
 def login(data: LoginRequest, db: Session = Depends(get_db)):
-    """Autentica un administrador y devuelve un JWT de sesión (8h)"""
+    """Autentica admin, profesor o alumno y devuelve un JWT de sesión (8h)"""
+    # 1. Intentar como Administrador
     admin = db.query(Administrador).filter(
         Administrador.email == data.email,
         Administrador.activo == True
     ).first()
-    if not admin or not verify_password(data.password, admin.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciales incorrectas"
-        )
-    token = crear_token({"sub": str(admin.id), "nombre": admin.nombre, "email": admin.email})
-    return {"access_token": token, "token_type": "bearer", "nombre": admin.nombre}
+    if admin and verify_password(data.password, admin.password_hash):
+        token = crear_token({"sub": str(admin.id), "role": "admin", "nombre": admin.nombre, "email": admin.email})
+        return {"access_token": token, "token_type": "bearer", "role": "admin", "nombre": admin.nombre}
+
+    # 2. Intentar como Usuario (profesor o alumno)
+    usuario = db.query(Usuario).filter(
+        Usuario.email == data.email,
+        Usuario.activo == True
+    ).first()
+    if usuario and usuario.password_hash and verify_password(data.password, usuario.password_hash):
+        role = usuario.tipo.value  # "profesor" o "alumno"
+        nombre_completo = f"{usuario.nombre} {usuario.apellido}"
+        token = crear_token({"sub": str(usuario.id), "role": role, "nombre": nombre_completo, "email": usuario.email})
+        return {"access_token": token, "token_type": "bearer", "role": role, "nombre": nombre_completo}
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Credenciales incorrectas"
+    )
 
 
 @app.get("/api/auth/me")
-def me(admin: Administrador = Depends(get_current_admin)):
-    """Devuelve los datos del administrador autenticado (auth guard)"""
-    return {"id": admin.id, "nombre": admin.nombre, "email": admin.email, "activo": admin.activo}
+def me(current: dict = Depends(get_current_user_any)):
+    """Devuelve los datos del usuario autenticado (cualquier rol)"""
+    role = current["role"]
+    user = current["user"]
+    if role == "admin":
+        return {"id": user.id, "nombre": user.nombre, "email": user.email, "activo": user.activo, "role": "admin"}
+    else:
+        return {
+            "id": user.id,
+            "nombre": f"{user.nombre} {user.apellido}",
+            "email": user.email,
+            "activo": user.activo,
+            "role": role,
+            "tipo": user.tipo.value,
+            "matricula": user.matricula_o_num_empleado,
+        }
 
 
 # ============================================================
@@ -1190,3 +1249,296 @@ def dashboard_emociones_tendencia(
             por_fecha[key][emocion.value] = cantidad
 
     return list(por_fecha.values())
+
+
+# ============================================================
+#  SET PASSWORD — Admin asigna contraseña a un usuario
+# ============================================================
+
+@app.put("/api/usuarios/{usuario_id}/set-password")
+def set_user_password(
+    usuario_id: int,
+    data: SetPasswordRequest,
+    admin: Administrador = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Permite a un admin asignar o cambiar la contraseña de un usuario (profesor/alumno)"""
+    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if not usuario.email:
+        raise HTTPException(status_code=400, detail="El usuario necesita un email antes de asignarle contraseña")
+    usuario.password_hash = hash_password(data.password)
+    db.commit()
+    return {"mensaje": f"Contraseña asignada a {usuario.nombre} {usuario.apellido}"}
+
+
+class SetEmailRequest(BaseModel):
+    email: str
+
+@app.put("/api/usuarios/{usuario_id}/set-email")
+def set_user_email(
+    usuario_id: int,
+    data: SetEmailRequest,
+    admin: Administrador = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Permite a un admin asignar o cambiar el correo de un usuario"""
+    if not data.email or "@" not in data.email:
+        raise HTTPException(status_code=400, detail="Correo electrónico inválido")
+    # Verificar que el email no esté ya en uso
+    existente = db.query(Usuario).filter(Usuario.email == data.email, Usuario.id != usuario_id).first()
+    if existente:
+        raise HTTPException(status_code=400, detail="Ese correo ya está registrado en otro usuario")
+    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    usuario.email = data.email
+    db.commit()
+    return {"mensaje": f"Correo actualizado para {usuario.nombre} {usuario.apellido}"}
+
+
+# ============================================================
+#  PROFESOR — Endpoints exclusivos
+# ============================================================
+
+@app.get("/api/profesor/mis-grupos")
+def profesor_mis_grupos(
+    current: dict = Depends(get_current_user_any),
+    db: Session = Depends(get_db)
+):
+    """Lista los grupos que imparte el profesor autenticado"""
+    if current["role"] != "profesor":
+        raise HTTPException(status_code=403, detail="Solo profesores pueden acceder")
+    profesor_id = current["id"]
+
+    grupos = db.query(Grupo).filter(Grupo.profesor_id == profesor_id).order_by(Grupo.id).all()
+    resultado = []
+    for g in grupos:
+        materia = db.query(Materia).filter(Materia.id == g.materia_id).first()
+        num_alumnos = db.query(Inscripcion).filter(Inscripcion.grupo_id == g.id).with_entities(Inscripcion.alumno_id).distinct().count()
+        resultado.append({
+            "id": g.id,
+            "materia_id": g.materia_id,
+            "materia_nombre": materia.nombre if materia else "Sin materia",
+            "materia_clave": materia.clave if materia else "",
+            "aula": g.aula,
+            "semestre": g.semestre,
+            "periodo": g.periodo,
+            "num_alumnos": num_alumnos,
+        })
+    return resultado
+
+
+@app.get("/api/profesor/grupo/{grupo_id}/tabla")
+def profesor_tabla_asistencia(
+    grupo_id: int,
+    current: dict = Depends(get_current_user_any),
+    db: Session = Depends(get_db)
+):
+    """Tabla de asistencia de un grupo — solo si el grupo pertenece al profesor"""
+    if current["role"] != "profesor":
+        raise HTTPException(status_code=403, detail="Solo profesores pueden acceder")
+
+    grupo = db.query(Grupo).filter(Grupo.id == grupo_id, Grupo.profesor_id == current["id"]).first()
+    if not grupo:
+        raise HTTPException(status_code=403, detail="Este grupo no te pertenece")
+
+    # Reutilizamos la lógica existente
+    return obtener_tabla_asistencia(grupo_id, db)
+
+
+@app.get("/api/profesor/resumen")
+def profesor_resumen(
+    current: dict = Depends(get_current_user_any),
+    db: Session = Depends(get_db)
+):
+    """Resumen del profesor: sus grupos, total alumnos, asistencias de hoy en sus clases"""
+    if current["role"] != "profesor":
+        raise HTTPException(status_code=403, detail="Solo profesores pueden acceder")
+    profesor_id = current["id"]
+
+    mis_grupos = db.query(Grupo).filter(Grupo.profesor_id == profesor_id).all()
+    grupo_ids = [g.id for g in mis_grupos]
+
+    total_alumnos = 0
+    if grupo_ids:
+        total_alumnos = db.query(Inscripcion).filter(
+            Inscripcion.grupo_id.in_(grupo_ids)
+        ).with_entities(Inscripcion.alumno_id).distinct().count()
+
+    hoy = date.today()
+    asistencias_hoy = 0
+    if grupo_ids:
+        asistencias_hoy = db.query(Asistencia).filter(
+            Asistencia.grupo_id.in_(grupo_ids),
+            Asistencia.fecha == hoy
+        ).count()
+
+    # Emociones  de los últimos 7 días en sus grupos
+    desde = hoy - timedelta(days=7)
+    emociones = []
+    if grupo_ids:
+        registros = db.query(
+            Asistencia.emocion_detectada,
+            sql_func.count(Asistencia.id)
+        ).filter(
+            Asistencia.fecha >= desde,
+            Asistencia.grupo_id.in_(grupo_ids),
+            Asistencia.emocion_detectada.isnot(None)
+        ).group_by(Asistencia.emocion_detectada).all()
+        emociones = [{"emocion": r[0].value if r[0] else "desconocido", "cantidad": r[1]} for r in registros]
+
+    return {
+        "total_grupos": len(mis_grupos),
+        "total_alumnos": total_alumnos,
+        "asistencias_hoy": asistencias_hoy,
+        "emociones_semana": emociones,
+    }
+
+
+@app.get("/api/profesor/emociones-tendencia")
+def profesor_emociones_tendencia(
+    dias: int = 30,
+    current: dict = Depends(get_current_user_any),
+    db: Session = Depends(get_db)
+):
+    """Tendencia de emociones para los grupos del profesor"""
+    if current["role"] != "profesor":
+        raise HTTPException(status_code=403, detail="Solo profesores pueden acceder")
+
+    grupo_ids = [g.id for g in db.query(Grupo).filter(Grupo.profesor_id == current["id"]).all()]
+    if not grupo_ids:
+        return []
+
+    desde = date.today() - timedelta(days=dias)
+    registros = db.query(
+        Asistencia.fecha,
+        Asistencia.emocion_detectada,
+        sql_func.count(Asistencia.id)
+    ).filter(
+        Asistencia.fecha >= desde,
+        Asistencia.grupo_id.in_(grupo_ids),
+        Asistencia.emocion_detectada.isnot(None)
+    ).group_by(Asistencia.fecha, Asistencia.emocion_detectada).order_by(Asistencia.fecha).all()
+
+    por_fecha = {}
+    for fecha, emocion, cantidad in registros:
+        key = str(fecha)
+        if key not in por_fecha:
+            por_fecha[key] = {"fecha": key, "positivo": 0, "neutro": 0, "negativo": 0}
+        if emocion:
+            por_fecha[key][emocion.value] = cantidad
+    return list(por_fecha.values())
+
+
+# ============================================================
+#  ALUMNO — Endpoints exclusivos
+# ============================================================
+
+@app.get("/api/alumno/mis-clases")
+def alumno_mis_clases(
+    current: dict = Depends(get_current_user_any),
+    db: Session = Depends(get_db)
+):
+    """Lista las clases donde el alumno está inscrito"""
+    if current["role"] != "alumno":
+        raise HTTPException(status_code=403, detail="Solo alumnos pueden acceder")
+    alumno_id = current["id"]
+
+    inscripciones = db.query(Inscripcion).filter(Inscripcion.alumno_id == alumno_id).all()
+    grupo_ids = list(set(ins.grupo_id for ins in inscripciones))
+
+    resultado = []
+    for gid in grupo_ids:
+        grupo = db.query(Grupo).filter(Grupo.id == gid).first()
+        if not grupo:
+            continue
+        materia = db.query(Materia).filter(Materia.id == grupo.materia_id).first()
+        profesor = db.query(Usuario).filter(Usuario.id == grupo.profesor_id).first()
+        resultado.append({
+            "grupo_id": grupo.id,
+            "materia_nombre": materia.nombre if materia else "Sin materia",
+            "profesor_nombre": f"{profesor.nombre} {profesor.apellido}" if profesor else "Sin profesor",
+            "aula": grupo.aula,
+            "semestre": grupo.semestre,
+        })
+    return resultado
+
+
+@app.get("/api/alumno/mi-asistencia")
+def alumno_mi_asistencia(
+    grupo_id: Optional[int] = None,
+    current: dict = Depends(get_current_user_any),
+    db: Session = Depends(get_db)
+):
+    """Devuelve los registros de asistencia del alumno autenticado"""
+    if current["role"] != "alumno":
+        raise HTTPException(status_code=403, detail="Solo alumnos pueden acceder")
+    alumno_id = current["id"]
+
+    query = db.query(Asistencia).filter(Asistencia.usuario_id == alumno_id)
+    if grupo_id:
+        query = query.filter(Asistencia.grupo_id == grupo_id)
+
+    registros = query.order_by(Asistencia.fecha.desc(), Asistencia.hora_registro).all()
+
+    resultado = []
+    for r in registros:
+        grupo = db.query(Grupo).filter(Grupo.id == r.grupo_id).first()
+        materia = db.query(Materia).filter(Materia.id == grupo.materia_id).first() if grupo else None
+        resultado.append({
+            "id": r.id,
+            "grupo_id": r.grupo_id,
+            "materia_nombre": materia.nombre if materia else "—",
+            "fecha": str(r.fecha),
+            "hora_registro": str(r.hora_registro),
+            "estado": r.estado.value if r.estado else None,
+            "emocion": r.emocion_detectada.value if r.emocion_detectada else None,
+        })
+    return resultado
+
+
+@app.get("/api/alumno/resumen")
+def alumno_resumen(
+    current: dict = Depends(get_current_user_any),
+    db: Session = Depends(get_db)
+):
+    """Resumen personal del alumno: asistencias, faltas, emociones"""
+    if current["role"] != "alumno":
+        raise HTTPException(status_code=403, detail="Solo alumnos pueden acceder")
+    alumno_id = current["id"]
+
+    total_asistencias = db.query(Asistencia).filter(
+        Asistencia.usuario_id == alumno_id,
+        Asistencia.estado.in_([EstadoAsistencia.a_tiempo, EstadoAsistencia.retardo, EstadoAsistencia.justificado])
+    ).count()
+
+    total_faltas = db.query(Asistencia).filter(
+        Asistencia.usuario_id == alumno_id,
+        Asistencia.estado.in_([EstadoAsistencia.ausente, EstadoAsistencia.fuera_de_horario])
+    ).count()
+
+    total_clases = db.query(Inscripcion).filter(Inscripcion.alumno_id == alumno_id).with_entities(Inscripcion.grupo_id).distinct().count()
+
+    # Emociones últimos 7 días
+    hoy = date.today()
+    desde = hoy - timedelta(days=7)
+    emociones = db.query(
+        Asistencia.emocion_detectada,
+        sql_func.count(Asistencia.id)
+    ).filter(
+        Asistencia.usuario_id == alumno_id,
+        Asistencia.fecha >= desde,
+        Asistencia.emocion_detectada.isnot(None)
+    ).group_by(Asistencia.emocion_detectada).all()
+
+    return {
+        "total_clases_inscritas": total_clases,
+        "total_asistencias": total_asistencias,
+        "total_faltas": total_faltas,
+        "emociones_semana": [
+            {"emocion": r[0].value if r[0] else "desconocido", "cantidad": r[1]}
+            for r in emociones
+        ],
+    }
