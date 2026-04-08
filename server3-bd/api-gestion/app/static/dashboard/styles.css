@@ -54,6 +54,25 @@
     padding: 0;
 }
 
+/* ── Scrollbars ─────────────────────────────────────────── */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
 html {
     font-size: 14px;
     scroll-behavior: smooth;
@@ -102,6 +121,25 @@ body {
     letter-spacing: -0.02em;
 }
 
+.sidebar-close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.4rem;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    transition: color var(--transition), background var(--transition);
+}
+
+.sidebar-close-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
 .sidebar-brand p {
     font-size: 0.75rem;
     color: var(--text-muted);
@@ -112,6 +150,14 @@ body {
     flex: 1;
     padding: 12px 10px;
     overflow-y: auto;
+    direction: rtl;
+    /* Mueve el scrollbar hacia la izquierda */
+}
+
+/* Reseteamos la dirección del contenido hijo a normal (LTR) */
+.nav-item,
+.nav-section-label {
+    direction: ltr;
 }
 
 .nav-item {
@@ -161,6 +207,43 @@ body {
     margin-left: var(--sidebar-width);
     padding: 28px 32px;
     min-height: 100vh;
+    transition: margin-left var(--transition), padding var(--transition);
+}
+
+.main-content.expanded {
+    margin-left: 0;
+}
+
+/* ── Top Bar (Toggle) ───────────────────────────────────── */
+.top-bar {
+    display: flex;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.sidebar-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 8px 14px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: background 0.2s, border-color 0.2s;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.sidebar-toggle:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-subtle);
+}
+
+.sidebar.collapsed {
+    transform: translateX(-100%);
 }
 
 .page-header {
@@ -750,14 +833,17 @@ select.form-control {
 @media (max-width: 900px) {
     .sidebar {
         transform: translateX(-100%);
+        box-shadow: none;
     }
 
     .sidebar.open {
         transform: translateX(0);
+        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.7);
     }
 
     .main-content {
-        margin-left: 0;
+        margin-left: 0 !important;
+        /* Force margin 0 on mobile */
         padding: 20px 16px;
     }
 
@@ -766,6 +852,31 @@ select.form-control {
     }
 
     .charts-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .toolbar .form-control,
+    .toolbar button {
+        max-width: 100% !important;
+        width: 100%;
+    }
+
+    .page-header h2 {
+        font-size: 1.45rem;
+    }
+}
+
+@media (max-width: 500px) {
+    .stats-grid {
         grid-template-columns: 1fr;
     }
 }
