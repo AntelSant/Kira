@@ -30,13 +30,13 @@ app.add_middleware(
 )
 
 # --- CONFIGURACIÓN DE IA ---
-print("Cargando modelos de IA en GPU... 🚀")
+print("-- Cargando modelos de IA en GPU...")
 device = torch.device(CUDA_DEVICE if torch.cuda.is_available() else 'cpu')
-print(f"Dispositivo de procesamiento: {device}")
+print(f"[] Dispositivo de procesamiento: {device}")
 
 mtcnn = MTCNN(keep_all=False, device=device)
 resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
-print("✅ Modelos de IA listos.")
+print("-- Modelos de IA listos.")
 
 # --- CARPETAS ---
 os.makedirs("capturas_temp", exist_ok=True)
@@ -105,9 +105,9 @@ async def analizar_y_guardar_emocion(
                     datos_emocion = resp_emocion.json()
                     emocion_detectada = datos_emocion.get("emocion", "neutro")
                     confianza = datos_emocion.get("confianza", 0.0)
-                    print(f"✨ Emoción detectada: {emocion_detectada} ({confianza*100:.1f}%)")
+                    print(f"-- Emoción detectada: {emocion_detectada} ({confianza*100:.1f}%)")
             except httpx.RequestError:
-                print("⚠️ Server2 no disponible, usando emoción neutro")
+                print("!! -- Server2 no disponible, usando emoción neutro")
 
             # Paso 2: Registrar asistencia con emoción en Server3
             payload = {
@@ -125,10 +125,10 @@ async def analizar_y_guardar_emocion(
             if resp_asistencia.status_code == 200:
                 print("💾 Asistencia registrada en Server3")
             else:
-                print(f"⚠️ Error registrando asistencia: {resp_asistencia.text}")
+                print(f"!! -- Error registrando asistencia: {resp_asistencia.text}")
 
     except Exception as e:
-        print(f"❌ Error en tarea de background: {e}")
+        print(f"!! -- Error en tarea de background: {e}")
 
 
 # ============================================================
@@ -146,10 +146,10 @@ async def procesar_asistencia(data: CapturaRequest, background_tasks: Background
         vector_facial, face_img = extraer_embedding(image)
 
         if vector_facial is None:
-            print("❌ No se detectó ningún rostro en la imagen.")
+            print("!! -- No se detectó ningún rostro en la imagen.")
             return {"status": "error", "mensaje": "No se detectó rostro"}
 
-        print("👤 ¡Rostro detectado por MTCNN!")
+        print("-- ¡Rostro detectado por MTCNN!")
 
         # Guardar recorte (debug)
         timestamp = f"{data.fecha.replace('-', '')}_{data.hora.replace(':', '')}"
@@ -157,7 +157,7 @@ async def procesar_asistencia(data: CapturaRequest, background_tasks: Background
         Image.fromarray(face_img).save(face_save_path)
 
         # 3. Preguntar a Server3: ¿Quién es?
-        print("🔍 Buscando identidad en Server3 (PostgreSQL)...")
+        print("-?- Buscando identidad en Server3 (PostgreSQL)...")
         async with httpx.AsyncClient(timeout=10) as client:
             resp_reconocer = await client.post(
                 f"{SERVER3_URL}/api/usuarios/reconocer",
@@ -167,11 +167,11 @@ async def procesar_asistencia(data: CapturaRequest, background_tasks: Background
         datos_id = resp_reconocer.json()
 
         if not datos_id.get("encontrado"):
-            print("⚠️ Rostro desconocido. Acceso denegado.")
+            print("<\> Rostro desconocido. Acceso denegado.")
             return {"status": "error", "mensaje": "Usuario desconocido"}
 
         usuario = datos_id["usuario"]
-        print(f"✅ ¡Es {usuario['nombre']} {usuario['apellido']}!")
+        print(f"-- ¡Bienvenido {usuario['nombre']} {usuario['apellido']}!")
 
         # 4. Lanzar análisis de emoción + registro de asistencia en BACKGROUND
         # Esto NO bloquea la respuesta al ESP32
@@ -184,7 +184,7 @@ async def procesar_asistencia(data: CapturaRequest, background_tasks: Background
             data.hora
         )
 
-        print("🎉 Respondiendo al ESP32 (emoción se procesa en background)")
+        print("Devolviendo respuesta al ESP32...")
 
         # 5. Responder al ESP32 inmediatamente
         return {
@@ -195,7 +195,7 @@ async def procesar_asistencia(data: CapturaRequest, background_tasks: Background
         }
 
     except Exception as e:
-        print(f"⚠️ Error general: {e}")
+        print(f"!! -- Error general: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -225,12 +225,12 @@ async def registrar_embedding(data: RegisterRequest):
             )
 
         if resp.status_code == 200:
-            print(f"✅ Embedding guardado para matrícula {data.matricula}")
+            print(f"-- Embedding guardado para matrícula {data.matricula}")
             return {"status": "success", "mensaje": "Embedding facial guardado correctamente"}
         else:
             detail = resp.json().get("detail", "Error en Server3")
             return {"status": "error", "mensaje": detail}
 
     except Exception as e:
-        print(f"❌ Error al registrar embedding: {e}")
+        print(f"!! -- Error al registrar embedding: {e}")
         raise HTTPException(status_code=500, detail=str(e))

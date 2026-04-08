@@ -29,7 +29,7 @@ app = FastAPI(
 # --- CONFIGURACIÓN DE IA (PYTORCH) ---
 CUDA_DEVICE = os.getenv("CUDA_DEVICE", "cuda:0")
 device = CUDA_DEVICE if torch.cuda.is_available() else 'cpu'
-print(f"🚀 Iniciando IA de Emociones en: {device}...")
+print(f"-- Iniciando IA de Emociones en: {device}...")
 
 # MTCNN para buscar la cara en la foto
 mtcnn = MTCNN(keep_all=False, device=device)
@@ -37,7 +37,7 @@ mtcnn = MTCNN(keep_all=False, device=device)
 # EmotiEffLib (sucesor de hsemotion) - usa ONNX, sin dependencias de timm
 model_name = 'enet_b0_8_best_vgaf'
 recognizer = EmotiEffLibRecognizerOnnx(model_name=model_name)
-print("✅ Modelos cargados exitosamente.")
+print("-- Modelos cargados exitosamente.")
 
 class EmocionRequest(BaseModel):
     foto_base64: str
@@ -71,7 +71,7 @@ async def analizar_emocion(data: EmocionRequest):
         boxes, _ = mtcnn.detect(image)
         
         if boxes is None:
-            print("⚠️ No se encontró cara para emociones.")
+            print("!! -- No se encontró cara para emociones.")
             return {"emocion": "neutro", "emocion_cruda": "no_face", "confianza": 0.0}
             
         # 3. Recortar la cara
@@ -95,7 +95,7 @@ async def analizar_emocion(data: EmocionRequest):
         emocion_final = clasificar_emocion(emocion_cruda)
         confianza = float(np.max(scores))
 
-        print(f"🎭 Resultado: {emocion_cruda} ({confianza*100:.1f}%) -> {emocion_final.upper()}")
+        print(f"-- Resultado: {emocion_cruda} ({confianza*100:.1f}%) -> {emocion_final.upper()}")
 
         return {
             "emocion": emocion_final,
@@ -104,7 +104,7 @@ async def analizar_emocion(data: EmocionRequest):
         }
 
     except Exception as e:
-        print(f"❌ Error al analizar la emoción: {e}")
+        print(f"!! -- Error al analizar la emoción: {e}")
         return {"emocion": "neutro", "emocion_cruda": "error", "confianza": 0.0}
 
 if __name__ == "__main__":

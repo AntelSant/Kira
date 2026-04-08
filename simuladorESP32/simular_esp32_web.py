@@ -167,16 +167,16 @@ HTML_TEMPLATE = """
             resultBox.style.display = 'block';
             if (response.ok && data.status === 'success') {
                 resultBox.className = 'result-box success';
-                resultBox.innerHTML = `✅ ÉXITO:\n\n${JSON.stringify(data.server_response, null, 2)}`;
+                resultBox.innerHTML = `-- ÉXITO:\n\n${JSON.stringify(data.server_response, null, 2)}`;
             } else {
                 resultBox.className = 'result-box error';
                 const detalles = data.detail || data.server_response || data;
-                resultBox.innerHTML = `⚠️ ERROR:\n\n${JSON.stringify(detalles, null, 2)}`;
+                resultBox.innerHTML = `!! -- ERROR:\n\n${JSON.stringify(detalles, null, 2)}`;
             }
         } catch (error) {
             resultBox.style.display = 'block';
             resultBox.className = 'result-box error';
-            resultBox.innerHTML = `❌ Fallo de conexión o error interno:\n\n${error.message}`;
+            resultBox.innerHTML = `!! -- Fallo de conexión o error interno:\n\n${error.message}`;
         } finally {
             loader.style.display = 'none';
         }
