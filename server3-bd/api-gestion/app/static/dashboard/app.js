@@ -20,6 +20,18 @@ function clearToken() {
     sessionStorage.removeItem('kira_token');
 }
 
+function getRole() {
+    return sessionStorage.getItem('kira_role') || 'admin';
+}
+
+function setRole(role) {
+    sessionStorage.setItem('kira_role', role);
+}
+
+function clearRole() {
+    sessionStorage.removeItem('kira_role');
+}
+
 /**
  * Auth-aware fetch — auth guard for every protected request.
  * Automatically injects Authorization: Bearer header.
@@ -57,10 +69,12 @@ async function init() {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!resp.ok) throw new Error('Token inválido');
-        const admin = await resp.json();
-        showDashboard(admin);
+        const user = await resp.json();
+        setRole(user.role || 'admin');
+        showDashboard(user);
     } catch {
         clearToken();
+        clearRole();
         showLoginScreen();
     }
 }
@@ -71,11 +85,48 @@ function showLoginScreen() {
     document.getElementById('login-email').focus();
 }
 
-function showDashboard(admin) {
+function applySidebarRole(role) {
+    // Show/hide sidebar items based on role
+    document.querySelectorAll('[data-role]').forEach(el => {
+        const itemRole = el.dataset.role;
+        if (itemRole === role || role === 'admin') {
+            // Admin ve los items de admin; profesor ve los de profesor; alumno ve los de alumno
+            // But each role ONLY sees its own items
+            if (role === 'admin') {
+                el.style.display = itemRole === 'admin' ? '' : 'none';
+            } else {
+                el.style.display = itemRole === role ? '' : 'none';
+            }
+        } else {
+            el.style.display = 'none';
+        }
+    });
+    // Items without data-role are always visible (like Inicio)
+}
+
+function showDashboard(user) {
+    const role = user.role || getRole();
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-layout').style.display = 'flex';
-    document.getElementById('admin-name').textContent = admin.nombre;
-    cargarInicio();
+    document.getElementById('admin-name').textContent = user.nombre;
+
+    // Role badge
+    const roleBadge = document.getElementById('admin-role-badge');
+    if (roleBadge) {
+        const labels = { admin: '🛡️ Admin', profesor: '👨‍🏫 Profesor', alumno: '🎓 Alumno' };
+        roleBadge.textContent = labels[role] || role;
+    }
+
+    applySidebarRole(role);
+
+    // Navigate to initial page based on role
+    if (role === 'profesor') {
+        navigateTo('profesor-grupos');
+    } else if (role === 'alumno') {
+        navigateTo('alumno-clases');
+    } else {
+        cargarInicio();
+    }
 }
 
 // ── Login form handler ───────────────────────────────────
@@ -100,7 +151,8 @@ async function handleLogin(event) {
 
         if (resp.ok) {
             setToken(data.access_token);
-            showDashboard({ nombre: data.nombre });
+            setRole(data.role || 'admin');
+            showDashboard({ nombre: data.nombre, role: data.role || 'admin' });
         } else {
             errorEl.textContent = data.detail || 'Credenciales incorrectas';
             errorEl.style.display = 'block';
@@ -117,6 +169,7 @@ async function handleLogin(event) {
 function logout() {
     if (!confirm('¿Cerrar sesión?')) return;
     clearToken();
+    clearRole();
     showLoginScreen();
 }
 
@@ -179,6 +232,13 @@ function navigateTo(page) {
         'lista-asistencia': () => { cargarGruposSelect('lista-asistencia-grupo-select'); },
         emociones: cargarEmocionesGrafica,
         admins: cargarAdmins,
+        // PROFESOR
+        'profesor-grupos': cargarProfesorGrupos,
+        'profesor-asistencia': cargarProfesorGruposSelect,
+        'profesor-emociones': cargarProfesorEmociones,
+        // ALUMNO
+        'alumno-clases': cargarAlumnoClases,
+        'alumno-asistencia': cargarAlumnoAsistenciaInit,
     };
     if (loaders[page]) loaders[page]();
 }
@@ -359,6 +419,8 @@ async function cargarUsuarios() {
             <td>${u.tiene_embedding ? '<span class="badge badge-success">✅ Sí</span>' : '<span class="badge badge-warning">⚠️ No</span>'}</td>
             <td>
                 <button class="btn btn-sm btn-primary" onclick="abrirModalCapturaCara('${u.matricula}', '${u.nombre} ${u.apellido}')">📷 Cara</button>
+                <button class="btn btn-sm btn-outline" onclick="abrirModalSetEmail(${u.id}, '${u.nombre} ${u.apellido}', '${u.email || ''}')" title="Editar correo">📧</button>
+                <button class="btn btn-sm btn-outline" onclick="abrirModalSetPassword(${u.id}, '${u.nombre} ${u.apellido}', '${u.email || ''}')" title="Asignar contraseña">🔑</button>
                 <button class="btn btn-sm btn-danger" onclick="eliminarUsuario(${u.id})">🗑️</button>
             </td>
         </tr>
@@ -1420,4 +1482,441 @@ async function eliminarAdmin(id) {
     } catch (e) {
         alert(e.message);
     }
+}
+
+
+// ============================================================
+//  SET EMAIL MODAL
+// ============================================================
+
+function abrirModalSetEmail(userId, nombreCompleto, emailActual) {
+    const body = `
+        <div id="modal-alert-zone"></div>
+        <p style="margin-bottom:12px;color:var(--text-secondary);">Correo para <strong>${nombreCompleto}</strong></p>
+        <div class="form-group">
+            <label>Correo electrónico</label>
+            <input type="email" class="form-control" id="set-email-input" value="${emailActual}" placeholder="usuario@ejemplo.com">
+        </div>
+        <input type="hidden" id="set-email-userid" value="${userId}">
+    `;
+    const footer = `
+        <button class="btn btn-outline" onclick="cerrarModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="guardarEmail()">📧 Guardar Correo</button>
+    `;
+    abrirModal('📧 Editar Correo', body, footer);
+}
+
+async function guardarEmail() {
+    const userId = document.getElementById('set-email-userid').value;
+    const email = document.getElementById('set-email-input').value.trim();
+
+    if (!email || !email.includes('@')) {
+        showAlert('modal-alert-zone', 'danger', 'Ingresa un correo electrónico válido');
+        return;
+    }
+
+    try {
+        const resp = await authFetch(`/api/usuarios/${userId}/set-email`, {
+            method: 'PUT',
+            body: JSON.stringify({ email }),
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+            showAlert('modal-alert-zone', 'success', data.mensaje || '¡Correo actualizado!');
+            setTimeout(() => { cerrarModal(); cargarUsuarios(); }, 1500);
+        } else {
+            showAlert('modal-alert-zone', 'danger', data.detail || 'Error al actualizar correo');
+        }
+    } catch (e) {
+        showAlert('modal-alert-zone', 'danger', e.message);
+    }
+}
+
+
+// ============================================================
+//  SET PASSWORD MODAL
+// ============================================================
+
+function abrirModalSetPassword(userId, nombreCompleto, email) {
+    if (!email) {
+        alert('Este usuario necesita un email antes de asignarle contraseña. Usa primero el botón 📧 para asignarle un correo.');
+        return;
+    }
+    const body = `
+        <div id="modal-alert-zone"></div>
+        <p style="margin-bottom:12px;color:var(--text-secondary);">
+            Asignar contraseña para <strong>${nombreCompleto}</strong><br>
+            <small>Email: ${email}</small>
+        </p>
+        <div class="form-group">
+            <label>Nueva Contraseña</label>
+            <input type="password" class="form-control" id="set-pw-password" placeholder="••••••••" minlength="6">
+        </div>
+        <div class="form-group">
+            <label>Confirmar Contraseña</label>
+            <input type="password" class="form-control" id="set-pw-confirm" placeholder="••••••••">
+        </div>
+        <input type="hidden" id="set-pw-userid" value="${userId}">
+    `;
+    const footer = `
+        <button class="btn btn-outline" onclick="cerrarModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="guardarPassword()">🔑 Asignar Contraseña</button>
+    `;
+    abrirModal('🔑 Asignar Contraseña', body, footer);
+}
+
+async function guardarPassword() {
+    const userId = document.getElementById('set-pw-userid').value;
+    const password = document.getElementById('set-pw-password').value;
+    const confirm = document.getElementById('set-pw-confirm').value;
+
+    if (!password || password.length < 6) {
+        showAlert('modal-alert-zone', 'danger', 'La contraseña debe tener al menos 6 caracteres');
+        return;
+    }
+    if (password !== confirm) {
+        showAlert('modal-alert-zone', 'danger', 'Las contraseñas no coinciden');
+        return;
+    }
+
+    try {
+        const resp = await authFetch(`/api/usuarios/${userId}/set-password`, {
+            method: 'PUT',
+            body: JSON.stringify({ password }),
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+            showAlert('modal-alert-zone', 'success', data.mensaje || '¡Contraseña asignada!');
+            setTimeout(() => cerrarModal(), 1500);
+        } else {
+            showAlert('modal-alert-zone', 'danger', data.detail || 'Error al asignar contraseña');
+        }
+    } catch (e) {
+        showAlert('modal-alert-zone', 'danger', e.message);
+    }
+}
+
+
+// ============================================================
+//  PROFESOR — Page Loaders
+// ============================================================
+
+let chartProfesorTendencia = null;
+
+async function cargarProfesorGrupos() {
+    // Load summary stats
+    const resumen = await authFetch('/api/profesor/resumen').then(r => r.json()).catch(() => null);
+    const statsGrid = document.getElementById('profesor-stats-grid');
+    if (resumen && statsGrid) {
+        statsGrid.innerHTML = `
+            <div class="stat-card">
+                <div class="stat-icon blue">🏫</div>
+                <div class="stat-info"><h3>${resumen.total_grupos}</h3><p>Mis Grupos</p></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon green">🎓</div>
+                <div class="stat-info"><h3>${resumen.total_alumnos}</h3><p>Total Alumnos</p></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon orange">✅</div>
+                <div class="stat-info"><h3>${resumen.asistencias_hoy}</h3><p>Asistencias Hoy</p></div>
+            </div>
+        `;
+    }
+
+    // Load groups table
+    const grupos = await authFetch('/api/profesor/mis-grupos').then(r => r.json()).catch(() => []);
+    const tbody = document.getElementById('tabla-profesor-grupos');
+    if (!grupos || grupos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><p>No tienes grupos asignados</p></td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = grupos.map(g => `
+        <tr>
+            <td>${g.id}</td>
+            <td>${g.materia_nombre} <small style="opacity:.6;">(${g.materia_clave})</small></td>
+            <td>${g.aula}</td>
+            <td>${g.semestre}</td>
+            <td><span class="badge badge-info">${g.num_alumnos}</span></td>
+            <td>
+                <button class="btn btn-sm btn-primary" onclick="verListaAsistenciaProfesor(${g.id})">📋 Lista</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function verListaAsistenciaProfesor(grupoId) {
+    navigateTo('profesor-asistencia');
+    setTimeout(() => {
+        const sel = document.getElementById('profesor-asistencia-grupo-select');
+        if (sel) { sel.value = grupoId; cargarProfesorListaAsistencia(); }
+    }, 100);
+}
+
+async function cargarProfesorGruposSelect() {
+    const grupos = await authFetch('/api/profesor/mis-grupos').then(r => r.json()).catch(() => []);
+    const select = document.getElementById('profesor-asistencia-grupo-select');
+    if (!select) return;
+    select.innerHTML = '<option value="">-- Selecciona un grupo --</option>' +
+        (grupos || []).map(g =>
+            `<option value="${g.id}">${g.materia_nombre} (${g.aula})</option>`
+        ).join('');
+}
+
+async function cargarProfesorListaAsistencia() {
+    const grupoId = document.getElementById('profesor-asistencia-grupo-select').value;
+    const fechaFiltro = document.getElementById('profesor-asistencia-fecha')?.value || '';
+    const contenedor = document.getElementById('profesor-lista-asistencia-contenedor');
+    const stats = document.getElementById('profesor-lista-asistencia-stats');
+
+    if (!grupoId) {
+        contenedor.innerHTML = '<div class="empty-state">Selecciona un grupo para ver la lista.</div>';
+        if (stats) stats.innerHTML = '';
+        return;
+    }
+
+    contenedor.innerHTML = '<div class="empty-state">Cargando datos...</div>';
+    if (stats) stats.innerHTML = '';
+
+    const url = fechaFiltro
+        ? `/api/profesor/grupo/${grupoId}/tabla?fecha=${fechaFiltro}`
+        : `/api/profesor/grupo/${grupoId}/tabla`;
+
+    const data = await authFetch(url).then(r => r.json()).catch(() => null);
+    if (!data || !data.dates) {
+        contenedor.innerHTML = '<div class="empty-state">Error al cargar o sin registros</div>';
+        return;
+    }
+
+    if (stats) stats.textContent = `Total de días de clase: ${data.total_class_days}`;
+
+    const clsAsistencia = (estado) => {
+        if (estado === 'ausente') return 'badge-danger';
+        if (estado === 'fuera_de_horario') return 'badge-warning';
+        if (estado === 'a_tiempo' || estado === 'justificado') return 'badge-success';
+        if (estado === 'retardo') return 'badge-warning';
+        return 'badge-secondary';
+    };
+
+    const mapLabels = {
+        a_tiempo: 'A tiempo',
+        retardo: 'Retardo',
+        ausente: 'Ausente',
+        fuera_de_horario: 'Fuera',
+        justificado: 'Justificado'
+    };
+
+    const isExcluido = (f) => (data.excluded_dates || []).includes(f);
+
+    // Build header
+    let html = '<table><thead><tr>';
+    html += '<th style="white-space:nowrap;">Participante</th><th>Rol</th><th>Asis.</th><th>Faltas</th>';
+    for (const f of data.dates) {
+        const excluido = isExcluido(f);
+        html += `<th style="min-width:80px;text-align:center;${excluido ? 'opacity:0.5;' : ''}">
+            <div style="${excluido ? 'text-decoration:line-through;' : ''}" title="${excluido ? 'Día excluido' : f}">${f.slice(5)}</div>
+            <button class="btn btn-sm btn-outline" style="font-size:10px;margin-top:4px;"
+                onclick="excluirDiaProfesor(${grupoId}, '${f}')">
+                ${excluido ? 'Restaurar' : 'Pasar'}
+            </button>
+        </th>`;
+    }
+    html += '</tr></thead><tbody>';
+
+
+    // Row builder
+    const drawRow = (u, tipo) => {
+        if (!u) return '';
+        let row = `<tr>
+            <td style="white-space:nowrap;font-weight:500;">${u.nombre} ${u.apellido}</td>
+            <td><span class="badge ${tipo === 'Profesor' ? 'badge-purple' : 'badge-info'}">${tipo}</span></td>
+            <td><b>${u.total_asistencias}</b></td>
+            <td><b>${u.total_faltas}</b></td>
+        `;
+        for (const f of data.dates) {
+            const estado = (u.asistencia_por_fecha?.[f]) || 'ausente';
+            const excluido = isExcluido(f);
+            let btnJustificar = '';
+            if ((estado === 'ausente' || estado === 'fuera_de_horario') && !excluido && tipo === 'Alumno') {
+                btnJustificar = `<br><button class="btn btn-sm btn-primary"
+                    style="font-size:10px;margin-top:4px;padding:2px 6px;"
+                    onclick="justificarFaltaProfesor(${u.id}, ${grupoId}, '${f}', '${u.nombre.replace(/'/g, "\\'")}')">
+                    Justificar
+                </button>`;
+            }
+            row += `<td style="text-align:center;opacity:${excluido ? 0.4 : 1};">
+                <span class="badge ${clsAsistencia(estado)}">${mapLabels[estado] || estado}</span>
+                ${btnJustificar}
+            </td>`;
+        }
+        row += '</tr>';
+        return row;
+    };
+
+    if (data.teacher) html += drawRow(data.teacher, 'Profesor');
+    for (const s of data.students) html += drawRow(s, 'Alumno');
+    html += '</tbody></table>';
+    contenedor.innerHTML = html;
+}
+
+async function justificarFaltaProfesor(usuarioId, grupoId, fecha, nombre) {
+    if (!confirm(`¿Justificar falta de ${nombre} el día ${fecha}?`)) return;
+    const resp = await authFetch('/api/asistencia/justificar', {
+        method: 'POST',
+        body: JSON.stringify({ usuario_id: usuarioId, grupo_id: grupoId, fecha }),
+    });
+    if (resp && resp.ok) {
+        cargarProfesorListaAsistencia();
+    } else {
+        const data = await resp?.json().catch(() => null);
+        alert(data?.detail || 'Error al justificar la falta');
+    }
+}
+
+async function excluirDiaProfesor(grupoId, fecha) {
+    if (!confirm(`¿Pasar/restaurar el día ${fecha}? Un día excluido no cuenta en el conteo de asistencias.`)) return;
+    const resp = await authFetch(`/api/profesor/grupo/${grupoId}/excluir_dia`, {
+        method: 'POST',
+        body: JSON.stringify({ fecha }),
+    });
+    if (resp && resp.ok) {
+        cargarProfesorListaAsistencia();
+    } else {
+        const data = await resp?.json().catch(() => null);
+        alert(data?.detail || 'Error al cambiar estado del día');
+    }
+}
+
+
+
+async function cargarProfesorEmociones() {
+    const dias = document.getElementById('profesor-emociones-dias')?.value || 30;
+    const tendencia = await authFetch(`/api/profesor/emociones-tendencia?dias=${dias}`).then(r => r.json()).catch(() => []);
+
+    const ctx = document.getElementById('chart-profesor-emociones-tendencia')?.getContext('2d');
+    if (!ctx) return;
+    if (chartProfesorTendencia) chartProfesorTendencia.destroy();
+
+    if (!tendencia || tendencia.length === 0) {
+        chartProfesorTendencia = null;
+        return;
+    }
+
+    chartProfesorTendencia = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: tendencia.map(d => d.fecha.slice(5)),
+            datasets: [
+                { label: 'Positivo', data: tendencia.map(d => d.positivo), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.3 },
+                { label: 'Neutro', data: tendencia.map(d => d.neutro), borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.1)', fill: true, tension: 0.3 },
+                { label: 'Negativo', data: tendencia.map(d => d.negativo), borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', fill: true, tension: 0.3 },
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#94a3b8' } } },
+            scales: {
+                y: { beginAtZero: true, ticks: { color: '#64748b' }, grid: { color: '#1e2843' } },
+                x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+            }
+        }
+    });
+}
+
+
+// ============================================================
+//  ALUMNO — Page Loaders
+// ============================================================
+
+async function cargarAlumnoClases() {
+    // Load summary stats
+    const resumen = await authFetch('/api/alumno/resumen').then(r => r.json()).catch(() => null);
+    const statsGrid = document.getElementById('alumno-stats-grid');
+    if (resumen && statsGrid) {
+        statsGrid.innerHTML = `
+            <div class="stat-card">
+                <div class="stat-icon blue">📚</div>
+                <div class="stat-info"><h3>${resumen.total_clases_inscritas}</h3><p>Clases Inscritas</p></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon green">✅</div>
+                <div class="stat-info"><h3>${resumen.total_asistencias}</h3><p>Asistencias</p></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon orange">❌</div>
+                <div class="stat-info"><h3>${resumen.total_faltas}</h3><p>Faltas</p></div>
+            </div>
+        `;
+    }
+
+    // Load classes table
+    const clases = await authFetch('/api/alumno/mis-clases').then(r => r.json()).catch(() => []);
+    const tbody = document.getElementById('tabla-alumno-clases');
+    if (!clases || clases.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><p>No estás inscrito en ninguna clase</p></td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = clases.map(c => `
+        <tr>
+            <td>${c.materia_nombre}</td>
+            <td>${c.profesor_nombre}</td>
+            <td>${c.aula}</td>
+            <td>${c.semestre}</td>
+        </tr>
+    `).join('');
+}
+
+async function cargarAlumnoAsistenciaInit() {
+    // Populate filter dropdown
+    const clases = await authFetch('/api/alumno/mis-clases').then(r => r.json()).catch(() => []);
+    const select = document.getElementById('alumno-asistencia-clase-select');
+    if (select) {
+        select.innerHTML = '<option value="">— Todas las clases —</option>' +
+            (clases || []).map(c =>
+                `<option value="${c.grupo_id}">${c.materia_nombre}</option>`
+            ).join('');
+    }
+    cargarAlumnoMiAsistencia();
+}
+
+async function cargarAlumnoMiAsistencia() {
+    const grupoId = document.getElementById('alumno-asistencia-clase-select')?.value || '';
+    const url = grupoId ? `/api/alumno/mi-asistencia?grupo_id=${grupoId}` : '/api/alumno/mi-asistencia';
+    const registros = await authFetch(url).then(r => r.json()).catch(() => []);
+    const tbody = document.getElementById('tabla-alumno-asistencia');
+
+    if (!registros || registros.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-state"><p>No hay registros de asistencia</p></td></tr>';
+        return;
+    }
+
+    function estadoBadge(estado) {
+        const map = {
+            a_tiempo: ['✅ A tiempo', 'badge-success'],
+            retardo: ['⏰ Retardo', 'badge-warning'],
+            ausente: ['❌ Ausente', 'badge-danger'],
+            fuera_de_horario: ['🚫 Fuera', 'badge-danger'],
+            justificado: ['📝 Justificado', 'badge-info'],
+        };
+        const [text, cls] = map[estado] || [estado || '—', 'badge-secondary'];
+        return `<span class="badge ${cls}">${text}</span>`;
+    }
+
+    function emocionBadge(emocion) {
+        const map = { positivo: '😊', neutro: '😐', negativo: '😞' };
+        return map[emocion] || emocion || '—';
+    }
+
+    tbody.innerHTML = registros.map(r => `
+        <tr>
+            <td>${r.materia_nombre}</td>
+            <td>${r.fecha}</td>
+            <td>${r.hora_registro}</td>
+            <td>${estadoBadge(r.estado)}</td>
+            <td>${emocionBadge(r.emocion)}</td>
+        </tr>
+    `).join('');
 }

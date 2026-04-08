@@ -465,6 +465,23 @@ tr:last-child td {
     color: var(--accent);
 }
 
+.badge-secondary {
+    background: rgba(100, 116, 139, 0.12);
+    color: var(--text-muted);
+}
+
+/* ── Role Badge ────────────────────────────────────────── */
+.admin-role-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: rgba(99, 102, 241, 0.15);
+    color: var(--accent);
+    margin-left: 6px;
+}
+
 /* ── Buttons ────────────────────────────────────────────── */
 .btn {
     display: inline-flex;
