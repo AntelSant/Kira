@@ -490,20 +490,31 @@
             <section class="page-section" id="page-profesor-asistencia">
                 <div class="page-header">
                     <h2>📋 Lista de Asistencia</h2>
-                    <p>Asistencia de tus grupos</p>
+                    <p>Asistencia de tus grupos — puedes justificar faltas directamente</p>
                 </div>
+
                 <div class="toolbar">
                     <select class="form-control" id="profesor-asistencia-grupo-select"
                         onchange="cargarProfesorListaAsistencia()">
                         <option value="">-- Selecciona un grupo --</option>
                     </select>
+                    <input type="date" class="form-control" id="profesor-asistencia-fecha" style="max-width:180px;"
+                        placeholder="Filtrar por fecha" onchange="cargarProfesorListaAsistencia()">
+                    <button class="btn btn-outline"
+                        onclick="document.getElementById('profesor-asistencia-fecha').value=''; cargarProfesorListaAsistencia();">Limpiar
+                        fecha</button>
                 </div>
+
                 <div class="table-card" style="padding: 16px; overflow-x: auto;">
+                    <div id="profesor-lista-asistencia-stats"
+                        style="margin-bottom: 12px; font-weight: bold; text-align: right; color: var(--accent);">
+                    </div>
                     <div class="table-wrapper" id="profesor-lista-asistencia-contenedor" style="overflow-x: auto;">
                         <div class="empty-state">Selecciona un grupo para ver la lista.</div>
                     </div>
                 </div>
             </section>
+
 
             <!-- ═══ PAGE: PROFESOR — EMOCIONES ═══ -->
             <section class="page-section" id="page-profesor-emociones">

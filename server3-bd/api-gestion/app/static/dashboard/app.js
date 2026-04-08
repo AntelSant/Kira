@@ -1666,60 +1666,128 @@ async function cargarProfesorGruposSelect() {
 
 async function cargarProfesorListaAsistencia() {
     const grupoId = document.getElementById('profesor-asistencia-grupo-select').value;
+    const fechaFiltro = document.getElementById('profesor-asistencia-fecha')?.value || '';
     const contenedor = document.getElementById('profesor-lista-asistencia-contenedor');
+    const stats = document.getElementById('profesor-lista-asistencia-stats');
+
     if (!grupoId) {
         contenedor.innerHTML = '<div class="empty-state">Selecciona un grupo para ver la lista.</div>';
+        if (stats) stats.innerHTML = '';
         return;
     }
 
-    const data = await authFetch(`/api/profesor/grupo/${grupoId}/tabla`).then(r => r.json()).catch(() => null);
-    if (!data || !data.students || data.students.length === 0) {
-        contenedor.innerHTML = '<div class="empty-state">No hay datos de asistencia para este grupo.</div>';
+    contenedor.innerHTML = '<div class="empty-state">Cargando datos...</div>';
+    if (stats) stats.innerHTML = '';
+
+    const url = fechaFiltro
+        ? `/api/profesor/grupo/${grupoId}/tabla?fecha=${fechaFiltro}`
+        : `/api/profesor/grupo/${grupoId}/tabla`;
+
+    const data = await authFetch(url).then(r => r.json()).catch(() => null);
+    if (!data || !data.dates) {
+        contenedor.innerHTML = '<div class="empty-state">Error al cargar o sin registros</div>';
         return;
     }
 
-    const fechas = data.dates || [];
-    const excluidos = data.excluded_dates || [];
+    if (stats) stats.textContent = `Total de días de clase: ${data.total_class_days}`;
 
-    function clsAsistencia(estado) {
-        const map = {
-            a_tiempo: 'badge-success',
-            retardo: 'badge-warning',
-            ausente: 'badge-danger',
-            fuera_de_horario: 'badge-danger',
-            justificado: 'badge-info'
-        };
-        return map[estado] || 'badge-secondary';
+    const clsAsistencia = (estado) => {
+        if (estado === 'ausente') return 'badge-danger';
+        if (estado === 'fuera_de_horario') return 'badge-warning';
+        if (estado === 'a_tiempo' || estado === 'justificado') return 'badge-success';
+        if (estado === 'retardo') return 'badge-warning';
+        return 'badge-secondary';
+    };
+
+    const mapLabels = {
+        a_tiempo: 'A tiempo',
+        retardo: 'Retardo',
+        ausente: 'Ausente',
+        fuera_de_horario: 'Fuera',
+        justificado: 'Justificado'
+    };
+
+    const isExcluido = (f) => (data.excluded_dates || []).includes(f);
+
+    // Build header
+    let html = '<table><thead><tr>';
+    html += '<th style="white-space:nowrap;">Participante</th><th>Rol</th><th>Asis.</th><th>Faltas</th>';
+    for (const f of data.dates) {
+        const excluido = isExcluido(f);
+        html += `<th style="min-width:80px;text-align:center;${excluido ? 'opacity:0.5;' : ''}">
+            <div style="${excluido ? 'text-decoration:line-through;' : ''}" title="${excluido ? 'Día excluido' : f}">${f.slice(5)}</div>
+            <button class="btn btn-sm btn-outline" style="font-size:10px;margin-top:4px;"
+                onclick="excluirDiaProfesor(${grupoId}, '${f}')">
+                ${excluido ? 'Restaurar' : 'Pasar'}
+            </button>
+        </th>`;
     }
+    html += '</tr></thead><tbody>';
 
-    function iconEstado(estado) {
-        const map = { a_tiempo: '✅', retardo: '⏰', ausente: '❌', fuera_de_horario: '🚫', justificado: '📝' };
-        return map[estado] || '—';
-    }
 
-    let html = '<table style="min-width:100%;"><thead><tr>';
-    html += '<th style="position:sticky;left:0;background:var(--bg-card);z-index:2;">Alumno</th>';
-    fechas.forEach(f => {
-        const isExcl = excluidos.includes(f);
-        html += `<th style="min-width:42px;text-align:center;${isExcl ? 'opacity:0.4;text-decoration:line-through;' : ''}">${f.slice(5)}</th>`;
-    });
-    html += '<th>Asis.</th><th>Faltas</th></tr></thead><tbody>';
+    // Row builder
+    const drawRow = (u, tipo) => {
+        if (!u) return '';
+        let row = `<tr>
+            <td style="white-space:nowrap;font-weight:500;">${u.nombre} ${u.apellido}</td>
+            <td><span class="badge ${tipo === 'Profesor' ? 'badge-purple' : 'badge-info'}">${tipo}</span></td>
+            <td><b>${u.total_asistencias}</b></td>
+            <td><b>${u.total_faltas}</b></td>
+        `;
+        for (const f of data.dates) {
+            const estado = (u.asistencia_por_fecha?.[f]) || 'ausente';
+            const excluido = isExcluido(f);
+            let btnJustificar = '';
+            if ((estado === 'ausente' || estado === 'fuera_de_horario') && !excluido && tipo === 'Alumno') {
+                btnJustificar = `<br><button class="btn btn-sm btn-primary"
+                    style="font-size:10px;margin-top:4px;padding:2px 6px;"
+                    onclick="justificarFaltaProfesor(${u.id}, ${grupoId}, '${f}', '${u.nombre.replace(/'/g, "\\'")}')">
+                    Justificar
+                </button>`;
+            }
+            row += `<td style="text-align:center;opacity:${excluido ? 0.4 : 1};">
+                <span class="badge ${clsAsistencia(estado)}">${mapLabels[estado] || estado}</span>
+                ${btnJustificar}
+            </td>`;
+        }
+        row += '</tr>';
+        return row;
+    };
 
-    data.students.forEach(u => {
-        if (!u) return;
-        html += '<tr>';
-        html += `<td style="position:sticky;left:0;background:var(--bg-card);z-index:1;white-space:nowrap;">${u.nombre} ${u.apellido}</td>`;
-        fechas.forEach(f => {
-            const estado = u.asistencia_por_fecha?.[f] || '—';
-            html += `<td style="text-align:center;"><span class="badge ${clsAsistencia(estado)}" title="${estado}">${iconEstado(estado)}</span></td>`;
-        });
-        html += `<td style="text-align:center;font-weight:bold;color:#10b981;">${u.total_asistencias}</td>`;
-        html += `<td style="text-align:center;font-weight:bold;color:#ef4444;">${u.total_faltas}</td>`;
-        html += '</tr>';
-    });
+    if (data.teacher) html += drawRow(data.teacher, 'Profesor');
+    for (const s of data.students) html += drawRow(s, 'Alumno');
     html += '</tbody></table>';
     contenedor.innerHTML = html;
 }
+
+async function justificarFaltaProfesor(usuarioId, grupoId, fecha, nombre) {
+    if (!confirm(`¿Justificar falta de ${nombre} el día ${fecha}?`)) return;
+    const resp = await authFetch('/api/asistencia/justificar', {
+        method: 'POST',
+        body: JSON.stringify({ usuario_id: usuarioId, grupo_id: grupoId, fecha }),
+    });
+    if (resp && resp.ok) {
+        cargarProfesorListaAsistencia();
+    } else {
+        const data = await resp?.json().catch(() => null);
+        alert(data?.detail || 'Error al justificar la falta');
+    }
+}
+
+async function excluirDiaProfesor(grupoId, fecha) {
+    if (!confirm(`¿Pasar/restaurar el día ${fecha}? Un día excluido no cuenta en el conteo de asistencias.`)) return;
+    const resp = await authFetch(`/api/profesor/grupo/${grupoId}/excluir_dia`, {
+        method: 'POST',
+        body: JSON.stringify({ fecha }),
+    });
+    if (resp && resp.ok) {
+        cargarProfesorListaAsistencia();
+    } else {
+        const data = await resp?.json().catch(() => null);
+        alert(data?.detail || 'Error al cambiar estado del día');
+    }
+}
+
 
 
 async function cargarProfesorEmociones() {

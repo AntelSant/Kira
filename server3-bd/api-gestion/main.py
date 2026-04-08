@@ -844,12 +844,44 @@ def excluir_dia(grupo_id: int, request: ExcluirDiaRequest, db: Session = Depends
     if existente:
         db.delete(existente)
         db.commit()
-        return {"mensaje": "Día restaurado (habil), ya cuenta como día de clase"}
+        return {"mensaje": "Día restaurado (hábil), ya cuenta como día de clase"}
     else:
         nuevo = DiaExcluido(grupo_id=grupo_id, fecha=fecha_obj)
         db.add(nuevo)
         db.commit()
         return {"mensaje": "Día pasado de largo (excluido)"}
+
+
+@app.post("/api/profesor/grupo/{grupo_id}/excluir_dia")
+def profesor_excluir_dia(
+    grupo_id: int,
+    request: ExcluirDiaRequest,
+    current: dict = Depends(get_current_user_any),
+    db: Session = Depends(get_db)
+):
+    """Permite al profesor excluir o restaurar un día de su grupo del conteo de asistencias"""
+    if current["role"] != "profesor":
+        raise HTTPException(status_code=403, detail="Solo profesores pueden acceder")
+
+    grupo = db.query(Grupo).filter(Grupo.id == grupo_id, Grupo.profesor_id == current["id"]).first()
+    if not grupo:
+        raise HTTPException(status_code=403, detail="Este grupo no te pertenece")
+
+    fecha_obj = datetime.strptime(request.fecha, "%Y-%m-%d").date()
+    existente = db.query(DiaExcluido).filter(
+        DiaExcluido.grupo_id == grupo_id,
+        DiaExcluido.fecha == fecha_obj
+    ).first()
+
+    if existente:
+        db.delete(existente)
+        db.commit()
+        return {"mensaje": "Día restaurado"}
+    else:
+        db.add(DiaExcluido(grupo_id=grupo_id, fecha=fecha_obj))
+        db.commit()
+        return {"mensaje": "Día excluido del conteo"}
+
 
 @app.post("/api/asistencia/justificar")
 def justificar_ausencia(request: JustificarRequest, db: Session = Depends(get_db)):
@@ -1333,10 +1365,11 @@ def profesor_mis_grupos(
 @app.get("/api/profesor/grupo/{grupo_id}/tabla")
 def profesor_tabla_asistencia(
     grupo_id: int,
+    fecha: Optional[str] = None,
     current: dict = Depends(get_current_user_any),
     db: Session = Depends(get_db)
 ):
-    """Tabla de asistencia de un grupo — solo si el grupo pertenece al profesor"""
+    """Tabla de asistencia de un grupo — solo si el grupo pertenece al profesor. Acepta ?fecha=YYYY-MM-DD para filtrar."""
     if current["role"] != "profesor":
         raise HTTPException(status_code=403, detail="Solo profesores pueden acceder")
 
@@ -1344,8 +1377,65 @@ def profesor_tabla_asistencia(
     if not grupo:
         raise HTTPException(status_code=403, detail="Este grupo no te pertenece")
 
-    # Reutilizamos la lógica existente
-    return obtener_tabla_asistencia(grupo_id, db)
+    # Si se pasa fecha, filtrar solo a ese día; si no, devolver todo
+    if fecha:
+        try:
+            fecha_obj = date.fromisoformat(fecha)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Formato de fecha inválido, usa YYYY-MM-DD")
+        asistencias = db.query(Asistencia).filter(
+            Asistencia.grupo_id == grupo_id,
+            Asistencia.fecha == fecha_obj
+        ).all()
+    else:
+        asistencias = db.query(Asistencia).filter(Asistencia.grupo_id == grupo_id).all()
+
+    dias_excluidos_db = db.query(DiaExcluido).filter(DiaExcluido.grupo_id == grupo_id).all()
+    dias_excluidos = [str(d.fecha) for d in dias_excluidos_db]
+
+    fechas_set = set(str(a.fecha) for a in asistencias)
+    fechas_ordenadas = sorted(list(fechas_set))
+    dias_totales_clase = len([f for f in fechas_ordenadas if f not in dias_excluidos])
+
+    profesor = db.query(Usuario).filter(Usuario.id == grupo.profesor_id).first()
+    inscripciones = db.query(Inscripcion).filter(Inscripcion.grupo_id == grupo_id).all()
+    alumnos = db.query(Usuario).filter(
+        Usuario.id.in_([ins.alumno_id for ins in inscripciones])
+    ).all()
+
+    def estructurar_usuario(u):
+        if not u:
+            return None
+        asis_usuario = [a for a in asistencias if a.usuario_id == u.id]
+        por_fecha = {}
+        total_asis = 0
+        total_faltas = 0
+        for f in fechas_ordenadas:
+            registros = [a for a in asis_usuario if str(a.fecha) == f]
+            estado = (registros[0].estado.value if registros[0].estado else "ausente") if registros else "ausente"
+            por_fecha[f] = estado
+            if f not in dias_excluidos:
+                if estado in ["a_tiempo", "retardo", "justificado"]:
+                    total_asis += 1
+                elif estado in ["ausente", "fuera_de_horario"]:
+                    total_faltas += 1
+        return {
+            "id": u.id,
+            "nombre": u.nombre,
+            "apellido": u.apellido,
+            "matricula": u.matricula_o_num_empleado,
+            "asistencia_por_fecha": por_fecha,
+            "total_asistencias": total_asis,
+            "total_faltas": total_faltas,
+        }
+
+    return {
+        "teacher": estructurar_usuario(profesor),
+        "students": [estructurar_usuario(a) for a in sorted(alumnos, key=lambda x: x.apellido)],
+        "dates": fechas_ordenadas,
+        "excluded_dates": dias_excluidos,
+        "total_class_days": dias_totales_clase,
+    }
 
 
 @app.get("/api/profesor/resumen")
