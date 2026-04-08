@@ -22,6 +22,7 @@ class EstadoAsistencia(enum.Enum):
     retardo = "retardo"
     fuera_de_horario = "fuera_de_horario"
     ausente = "ausente"
+    justificado = "justificado"
 
 class CategoriaEmocion(enum.Enum):
     positivo = "positivo"
@@ -38,6 +39,16 @@ class TimestampMixin:
 # ==========================================
 # 3. TABLAS (Modelos)
 # ==========================================
+
+class DiaExcluido(Base):
+    __tablename__ = 'dias_excluidos'
+    __table_args__ = (UniqueConstraint('grupo_id', 'fecha', name='_grupo_fecha_excluido_uc'),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    grupo_id = Column(Integer, ForeignKey('grupos.id', ondelete='CASCADE'), index=True, nullable=False)
+    fecha = Column(Date, index=True, nullable=False)
+
+    grupo = relationship("Grupo")
 
 class Usuario(Base, TimestampMixin):
     __tablename__ = 'usuarios'

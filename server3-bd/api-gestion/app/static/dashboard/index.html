@@ -76,7 +76,10 @@
 
                 <div class="nav-section-label">Reportes</div>
                 <div class="nav-item" data-page="asistencia">
-                    <span class="icon">✅</span> Asistencia
+                    <span class="icon">✅</span> Registros Asistencia
+                </div>
+                <div class="nav-item" data-page="lista-asistencia">
+                    <span class="icon">📋</span> Lista Asistencia
                 </div>
                 <div class="nav-item" data-page="emociones">
                     <span class="icon">😊</span> Emociones
@@ -350,6 +353,29 @@
                 </div>
             </section>
 
+            <!-- ═══ PAGE: LISTA DE ASISTENCIA ═══ -->
+            <section class="page-section" id="page-lista-asistencia">
+                <div class="page-header">
+                    <h2>📋 Listas de Asistencia</h2>
+                    <p>Tabla dinámica de asistencia general por alumno</p>
+                </div>
+
+                <div class="toolbar">
+                    <select class="form-control" id="lista-asistencia-grupo-select" onchange="cargarListaAsistencia()">
+                        <option value="">-- Selecciona un grupo --</option>
+                    </select>
+                </div>
+
+                <div class="table-card" style="padding: 16px; overflow-x: auto;">
+                    <div id="lista-asistencia-stats"
+                        style="margin-bottom: 12px; font-weight: bold; text-align: right; color: var(--color-primary);">
+                    </div>
+                    <div class="table-wrapper" id="lista-asistencia-contenedor" style="overflow-x: auto;">
+                        <div class="empty-state">Selecciona un grupo para ver la lista.</div>
+                    </div>
+                </div>
+            </section>
+
             <!-- ═══ PAGE: EMOCIONES ═══ -->
             <section class="page-section" id="page-emociones">
                 <div class="page-header">
@@ -419,7 +445,7 @@
         </div>
     </div>
 
-    <script src="/static/dashboard/app.js?v=5"></script>
+    <script src="/static/dashboard/app.js?v=6"></script>
 </body>
 
 </html>

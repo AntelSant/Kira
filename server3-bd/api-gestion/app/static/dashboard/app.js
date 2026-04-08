@@ -159,6 +159,7 @@ function navigateTo(page) {
         horarios: () => { cargarGruposSelect('horario-grupo-select'); },
         inscripciones: () => { cargarAlumnosSelectInscripciones(); },
         asistencia: () => { cargarGruposSelect('asistencia-grupo-select'); },
+        'lista-asistencia': () => { cargarGruposSelect('lista-asistencia-grupo-select'); },
         emociones: cargarEmocionesGrafica,
         admins: cargarAdmins,
     };
@@ -1097,6 +1098,128 @@ async function cargarAsistencia() {
         </tr>
     `).join('');
 }
+
+
+// ============================================================
+//  LISTA DE ASISTENCIA
+// ============================================================
+
+async function cargarListaAsistencia() {
+    const grupoId = document.getElementById('lista-asistencia-grupo-select').value;
+    const cont = document.getElementById('lista-asistencia-contenedor');
+    const stats = document.getElementById('lista-asistencia-stats');
+
+    if (!grupoId) {
+        cont.innerHTML = '<div class="empty-state">Selecciona un grupo para ver la lista.</div>';
+        stats.innerHTML = '';
+        return;
+    }
+
+    // We could show a loading state
+    cont.innerHTML = '<div class="empty-state">Cargando datos...</div>';
+    stats.innerHTML = '';
+
+    const data = await api(`/api/asistencia/grupo/${grupoId}/tabla`);
+    if (!data || !data.dates) {
+        cont.innerHTML = '<div class="empty-state">Error al cargar o sin registros</div>';
+        return;
+    }
+
+    stats.innerHTML = `Total de días de clase (módulo impartido): ${data.total_class_days}`;
+
+    const clsAsistencia = (estado) => {
+        if (estado === 'ausente') return 'badge-danger';
+        if (estado === 'fuera_de_horario') return 'badge-warning';
+        if (estado === 'a_tiempo' || estado === 'justificado') return 'badge-success';
+        if (estado === 'retardo') return 'badge-warning';
+        return 'badge-info';
+    };
+
+    const mapLabels = {
+        'a_tiempo': 'A tiempo',
+        'retardo': 'Retardo',
+        'ausente': 'Ausente',
+        'fuera_de_horario': 'Fuera',
+        'justificado': 'Justificado'
+    };
+
+    const isExcluido = (f) => data.excluded_dates.includes(f);
+
+    let html = '<table><thead><tr>';
+    html += '<th>Participante</th><th>Rol</th><th>Asistencias</th><th>Faltas</th>';
+
+    for (const f of data.dates) {
+        const excluido = isExcluido(f);
+        const titleText = excluido ? `Día ${f} (Excluido)` : `Día ${f}`;
+        const opacity = excluido ? 'opacity:0.6; text-decoration:line-through' : '';
+        html += `<th>
+            <div style="${opacity}" title="${titleText}">${f}</div>
+            <button class="btn btn-sm btn-outline" style="font-size:10px; margin-top:4px;" onclick="excluirDia(${grupoId}, '${f}')">
+                ${excluido ? 'Restaurar' : 'Pasar'}
+            </button>
+        </th>`;
+    }
+    html += '</tr></thead><tbody>';
+
+    const drawRow = (u, tipo) => {
+        if (!u) return '';
+        let rowHtml = `<tr>
+            <td style="white-space:nowrap;font-weight:500;">${u.nombre} ${u.apellido}</td>
+            <td><span class="badge ${tipo === 'Profesor' ? 'badge-purple' : 'badge-info'}">${tipo}</span></td>
+            <td><b>${u.total_asistencias}</b></td>
+            <td><b>${u.total_faltas}</b></td>
+        `;
+
+        for (const f of data.dates) {
+            const estado = u.asistencia_por_fecha[f] || 'ausente';
+            const excluido = isExcluido(f);
+
+            let btnJustificar = '';
+            if ((estado === 'ausente' || estado === 'fuera_de_horario') && !excluido && tipo === 'Alumno') {
+                btnJustificar = `<br><button class="btn btn-sm btn-primary" style="font-size:10px; margin-top:4px; padding:2px 4px;" onclick="justificarFalta(${u.id}, ${grupoId}, '${f}', '${u.nombre.replace(/'/g, "\\'")}')">Justificar</button>`;
+            }
+
+            const cellOpacity = excluido ? '0.4' : '1';
+            rowHtml += `<td style="opacity: ${cellOpacity}">
+                <span class="badge ${clsAsistencia(estado)}">${mapLabels[estado] || estado}</span>
+                ${btnJustificar}
+            </td>`;
+        }
+        rowHtml += '</tr>';
+        return rowHtml;
+    };
+
+    html += drawRow(data.teacher, 'Profesor');
+    for (const s of data.students) {
+        html += drawRow(s, 'Alumno');
+    }
+
+    html += '</tbody></table>';
+    cont.innerHTML = html;
+}
+
+async function excluirDia(grupoId, fecha) {
+    if (!confirm(`¿Deseas excluir o restaurar el día ${fecha}? Un día excluido no cuenta para las asistencias de nadie.`)) return;
+    const resp = await api(`/api/asistencia/grupo/${grupoId}/excluir_dia`, {
+        method: 'POST',
+        body: JSON.stringify({ fecha })
+    });
+    if (resp) {
+        cargarListaAsistencia();
+    }
+}
+
+async function justificarFalta(usuarioId, grupoId, fecha, nombre) {
+    if (!confirm(`¿Justificar falta de ${nombre} el día ${fecha}?`)) return;
+    const resp = await api(`/api/asistencia/justificar`, {
+        method: 'POST',
+        body: JSON.stringify({ usuario_id: usuarioId, grupo_id: grupoId, fecha })
+    });
+    if (resp) {
+        cargarListaAsistencia();
+    }
+}
+
 
 // ============================================================
 //  EMOCIONES (GRÁFICAS)

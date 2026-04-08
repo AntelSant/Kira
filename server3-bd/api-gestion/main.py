@@ -108,7 +108,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func as sql_func
 from sqlalchemy.exc import IntegrityError
 
-from models import Base, Usuario, Materia, Grupo, Horario, Inscripcion, Asistencia, Emocion
+from models import Base, Usuario, Materia, Grupo, Horario, Inscripcion, Asistencia, Emocion, DiaExcluido
 from models import TipoUsuario, EstadoAsistencia, CategoriaEmocion, TipoRegistro
 from database import engine, get_db
 
@@ -254,6 +254,14 @@ class AdminCreate(BaseModel):
     nombre: str
     email: str
     password: str
+
+class ExcluirDiaRequest(BaseModel):
+    fecha: str
+
+class JustificarRequest(BaseModel):
+    usuario_id: int
+    grupo_id: int
+    fecha: str
 
 
 # ============================================================
@@ -703,6 +711,118 @@ def listar_asistencia(
         })
 
     return resultado
+
+@app.get("/api/asistencia/grupo/{grupo_id}/tabla")
+def obtener_tabla_asistencia(grupo_id: int, db: Session = Depends(get_db)):
+    """Devuelve la tabla completa de asistencias para el grupo, con fechas como columnas."""
+    grupo = db.query(Grupo).filter(Grupo.id == grupo_id).first()
+    if not grupo:
+        raise HTTPException(status_code=404, detail="Grupo no encontrado")
+        
+    profesor = db.query(Usuario).filter(Usuario.id == grupo.profesor_id).first()
+    
+    inscripciones = db.query(Inscripcion).filter(Inscripcion.grupo_id == grupo_id).all()
+    alumnos_ids = [ins.alumno_id for ins in inscripciones]
+    alumnos = db.query(Usuario).filter(Usuario.id.in_(alumnos_ids)).all()
+    
+    asistencias = db.query(Asistencia).filter(Asistencia.grupo_id == grupo_id).all()
+    dias_excluidos_db = db.query(DiaExcluido).filter(DiaExcluido.grupo_id == grupo_id).all()
+    dias_excluidos = [str(d.fecha) for d in dias_excluidos_db]
+    
+    fechas_set = set(str(a.fecha) for a in asistencias)
+    fechas_ordenadas = sorted(list(fechas_set))
+    
+    dias_totales_clase = len([f for f in fechas_ordenadas if f not in dias_excluidos])
+
+    def estructurar_usuario(u):
+        if not u:
+            return None
+        asis_usuario = [a for a in asistencias if a.usuario_id == u.id]
+        por_fecha = {}
+        total_asis = 0
+        total_faltas = 0
+        for f in fechas_ordenadas:
+            registros = [a for a in asis_usuario if str(a.fecha) == f]
+            if not registros:
+                estado = "ausente"
+            else:
+                estado = registros[0].estado.value if registros[0].estado else "ausente"
+                # If there are multiple entries for the same day, take the earliest or most relevant. The first one is fine.
+            por_fecha[f] = estado
+            
+            if f not in dias_excluidos:
+                if estado in ["a_tiempo", "retardo", "justificado"]:
+                    total_asis += 1
+                elif estado in ["ausente", "fuera_de_horario"]:
+                    total_faltas += 1
+                    
+        return {
+            "id": u.id,
+            "nombre": u.nombre,
+            "apellido": u.apellido,
+            "matricula": u.matricula_o_num_empleado,
+            "asistencia_por_fecha": por_fecha,
+            "total_asistencias": total_asis,
+            "total_faltas": total_faltas
+        }
+
+    return {
+        "teacher": estructurar_usuario(profesor),
+        "students": [estructurar_usuario(a) for a in sorted(alumnos, key=lambda x: x.apellido)],
+        "dates": fechas_ordenadas,
+        "excluded_dates": dias_excluidos,
+        "total_class_days": dias_totales_clase
+    }
+
+@app.post("/api/asistencia/grupo/{grupo_id}/excluir_dia")
+def excluir_dia(grupo_id: int, request: ExcluirDiaRequest, db: Session = Depends(get_db)):
+    fecha_obj = datetime.strptime(request.fecha, "%Y-%m-%d").date()
+    existente = db.query(DiaExcluido).filter(
+        DiaExcluido.grupo_id == grupo_id,
+        DiaExcluido.fecha == fecha_obj
+    ).first()
+    
+    if existente:
+        db.delete(existente)
+        db.commit()
+        return {"mensaje": "Día restaurado (habil), ya cuenta como día de clase"}
+    else:
+        nuevo = DiaExcluido(grupo_id=grupo_id, fecha=fecha_obj)
+        db.add(nuevo)
+        db.commit()
+        return {"mensaje": "Día pasado de largo (excluido)"}
+
+@app.post("/api/asistencia/justificar")
+def justificar_ausencia(request: JustificarRequest, db: Session = Depends(get_db)):
+    fecha_obj = datetime.strptime(request.fecha, "%Y-%m-%d").date()
+    asistencia = db.query(Asistencia).filter(
+        Asistencia.usuario_id == request.usuario_id,
+        Asistencia.grupo_id == request.grupo_id,
+        Asistencia.fecha == fecha_obj
+    ).first()
+    
+    if asistencia:
+        asistencia.estado = EstadoAsistencia.justificado
+        db.commit()
+        return {"mensaje": "Falta justificada"}
+    else:
+        # Se asume que el tipo de usuario lo podemos buscar
+        usuario = db.query(Usuario).filter(Usuario.id == request.usuario_id).first()
+        tipo_usr = usuario.tipo if usuario else TipoUsuario.alumno
+        
+        nueva = Asistencia(
+            usuario_id=request.usuario_id,
+            grupo_id=request.grupo_id,
+            fecha=fecha_obj,
+            hora_registro=datetime.now().time(),
+            tipo_registro=TipoRegistro.entrada,
+            tipo_usuario=tipo_usr,
+            estado=EstadoAsistencia.justificado,
+            emocion_detectada=None
+        )
+        db.add(nueva)
+        db.commit()
+        return {"mensaje": "Falta justificada (registro creado)"}
 
 
 # ============================================================
