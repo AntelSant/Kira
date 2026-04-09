@@ -10,3 +10,4 @@ pgvector
 bcrypt
 passlib[bcrypt]
 python-jose[cryptography]
+httpx

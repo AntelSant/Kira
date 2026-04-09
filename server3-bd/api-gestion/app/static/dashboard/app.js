@@ -4,7 +4,7 @@
 
 // ── Configuration ───────────────────────────────────────────
 const API_BASE = window.location.origin;  // Server3
-const SERVER1_URL = localStorage.getItem('server1_url') || 'http://127.0.0.1:8001';
+const SERVER1_URL = localStorage.getItem('server1_url') || 'http://192.168.100.95:8001';
 
 // ── Auth (session token) ────────────────────────────────────
 // Token stored in sessionStorage — cleared automatically on tab/browser close
@@ -636,7 +636,7 @@ async function enviarCara() {
     btn.disabled = true;
     btn.textContent = '⏳ Procesando...';
 
-    const result = await apiServer1('/api/register', {
+    const result = await api('/api/proxy/registrar-cara', {
         method: 'POST',
         body: JSON.stringify({ matricula, foto_base64: capturedBase64 }),
     });

@@ -1,5 +1,6 @@
 import os
 import shutil
+import httpx
 from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException, Query, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
@@ -21,7 +22,9 @@ from models import (
 )
 from database import get_db, engine
 
-# --- Crear tablas al iniciar ---
+# URL de Server1 — se resuelve internamente (localhost), nunca pasa por el navegador
+SERVER1_INTERNAL_URL = os.getenv("SERVER1_URL", "http://127.0.0.1:8001")
+
 print("--Espere-- Verificando y construyendo tablas en la base de datos...")
 Base.metadata.create_all(bind=engine)
 print("-- ¡Tablas listas y creadas!")
@@ -1632,3 +1635,40 @@ def alumno_resumen(
             for r in emociones
         ],
     }
+
+
+# ============================================================
+#  PROXY — Registro de cara (redirige a Server1 internamente)
+#  Evita que el celular necesite acceso directo al puerto 8001
+# ============================================================
+
+class RegistrarCaraRequest(BaseModel):
+    matricula: str
+    foto_base64: str
+
+
+@app.post("/api/proxy/registrar-cara")
+async def proxy_registrar_cara(data: RegistrarCaraRequest):
+    """Proxy hacia Server1 /api/register.
+    El navegador (incluyendo el celular) no necesita acceder a Server1 directamente.
+    Server3 hace la llamada interna a localhost:8001.
+    """
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(
+                f"{SERVER1_INTERNAL_URL}/api/register",
+                json={"matricula": data.matricula, "foto_base64": data.foto_base64},
+            )
+        try:
+            return resp.json()
+        except Exception:
+            raise HTTPException(status_code=502, detail="Respuesta inválida de Server1")
+    except httpx.ConnectError:
+        raise HTTPException(
+            status_code=503,
+            detail="Server1 (reconocimiento facial) no está disponible. ¿Está encendido?"
+        )
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Server1 tardó demasiado en responder")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
