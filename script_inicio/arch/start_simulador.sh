@@ -33,7 +33,7 @@ if [ ! -d ".venv" ]; then
     
     echo -e "${YELLOW}Instalando dependencias...${NC}"
     pip install --upgrade pip setuptools wheel
-    pip install fastapi uvicorn requests python-multipart
+    pip install -r requirements.txt
 else
     # Arranque instantáneo si el entorno ya existe
     source .venv/bin/activate
@@ -42,7 +42,7 @@ fi
 # 3. Forzar actualización manual (Uso: ./start.sh --update)
 if [[ "$1" == "--update" ]]; then
     echo -e "${YELLOW}Actualizando dependencias (flag --update detectado)...${NC}"
-    pip install --upgrade fastapi uvicorn requests python-multipart
+    pip install -r requirements.txt
 fi
 
 # 4. Levantar Uvicorn de forma limpia

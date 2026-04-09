@@ -8,4 +8,5 @@ python-multipart
 python-dotenv
 pgvector
 bcrypt
+passlib[bcrypt]
 python-jose[cryptography]
