@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kira UAS — Dashboard de Gestión</title>
+    <title>Kira UAS</title>
     <meta name="description"
         content="Sistema distribuido de IA para reconocimiento facial y análisis emocional — Universidad Autónoma de Sinaloa">
     <link rel="stylesheet" href="/static/dashboard/styles.css?v=10">
@@ -121,7 +121,7 @@
                     <span class="admin-name" id="admin-name">—</span>
                     <span class="admin-role-badge" id="admin-role-badge"></span>
                 </div>
-                <button class="btn-logout" onclick="logout()" title="Cerrar sesión">🚪 Cerrar sesión</button>
+                <button class="btn-logout" onclick="logout()" title="Cerrar sesión">Cerrar sesión</button>
             </div>
         </aside>
 
@@ -136,7 +136,7 @@
             <!-- ═══ PAGE: INICIO ═══ -->
             <section class="page-section active" id="page-inicio">
                 <div class="page-header">
-                    <h2>📊 Panel de Control</h2>
+                    <h1>Panel de Control</h1>
                     <p>Resumen del sistema Kira UAS</p>
                 </div>
 
@@ -187,13 +187,13 @@
 
                 <div class="charts-grid">
                     <div class="chart-card">
-                        <h3>📈 Asistencias — Última semana</h3>
+                        <h3>Asistencias — Última semana</h3>
                         <div class="chart-canvas-container">
                             <canvas id="chart-asistencia-semanal"></canvas>
                         </div>
                     </div>
                     <div class="chart-card">
-                        <h3>🎭 Distribución Emocional — Últimos 7 días</h3>
+                        <h3>Distribución Emocional — Últimos 7 días</h3>
                         <div class="chart-canvas-container">
                             <canvas id="chart-emociones"></canvas>
                         </div>
@@ -204,7 +204,7 @@
             <!-- ═══ PAGE: USUARIOS ═══ -->
             <section class="page-section" id="page-usuarios">
                 <div class="page-header">
-                    <h2>👥 Gestión de Usuarios</h2>
+                    <h1>Gestión de Usuarios</h1>
                     <p>Administra alumnos y profesores</p>
                 </div>
 
@@ -239,7 +239,7 @@
             <!-- ═══ PAGE: MATERIAS ═══ -->
             <section class="page-section" id="page-materias">
                 <div class="page-header">
-                    <h2>📚 Materias</h2>
+                    <h1>Materias</h1>
                     <p>Gestión de materias del programa académico</p>
                 </div>
 
@@ -266,7 +266,7 @@
             <!-- ═══ PAGE: GRUPOS ═══ -->
             <section class="page-section" id="page-grupos">
                 <div class="page-header">
-                    <h2>🏫 Grupos</h2>
+                    <h1>Grupos</h1>
                     <p>Gestión de grupos académicos</p>
                 </div>
 
@@ -297,7 +297,7 @@
             <!-- ═══ PAGE: HORARIOS ═══ -->
             <section class="page-section" id="page-horarios">
                 <div class="page-header">
-                    <h2>🕐 Horarios</h2>
+                    <h1>Horarios</h1>
                     <p>Gestión de horarios por grupo</p>
                 </div>
 
@@ -330,7 +330,7 @@
             <!-- ═══ PAGE: INSCRIPCIONES ═══ -->
             <section class="page-section" id="page-inscripciones">
                 <div class="page-header">
-                    <h2>📋 Inscripciones</h2>
+                    <h1>Inscripciones</h1>
                     <p>Selecciona un alumno para ver e inscribirlo en sus clases</p>
                 </div>
 
@@ -354,7 +354,7 @@
             <!-- ═══ PAGE: ASISTENCIA ═══ -->
             <section class="page-section" id="page-asistencia">
                 <div class="page-header">
-                    <h2>✅ Registros de Asistencia</h2>
+                    <h1>Registros de Asistencia</h1>
                     <p>Consulta detallada de asistencia por grupo</p>
                 </div>
 
@@ -387,7 +387,7 @@
             <!-- ═══ PAGE: LISTA DE ASISTENCIA ═══ -->
             <section class="page-section" id="page-lista-asistencia">
                 <div class="page-header">
-                    <h2>📋 Listas de Asistencia</h2>
+                    <h1>Listas de Asistencia</h1>
                     <p>Tabla dinámica de asistencia general por alumno</p>
                 </div>
 
@@ -410,7 +410,7 @@
             <!-- ═══ PAGE: EMOCIONES ═══ -->
             <section class="page-section" id="page-emociones">
                 <div class="page-header">
-                    <h2>😊 Análisis Emocional</h2>
+                    <h1>Análisis Emocional</h1>
                     <p>Tendencias emocionales de la comunidad universitaria</p>
                 </div>
 
@@ -435,7 +435,7 @@
             <!-- ═══ PAGE: ADMINS ═══ -->
             <section class="page-section" id="page-admins">
                 <div class="page-header">
-                    <h2>🛡️ Administradores</h2>
+                    <h1>Administradores</h1>
                     <p>Gestión de acceso al dashboard</p>
                 </div>
 
@@ -464,7 +464,7 @@
             <!-- ═══ PAGE: PROFESOR — MIS GRUPOS ═══ -->
             <section class="page-section" id="page-profesor-grupos">
                 <div class="page-header">
-                    <h2>🏫 Mis Grupos</h2>
+                    <h1>Mis Grupos</h1>
                     <p>Grupos que impartes este periodo</p>
                 </div>
                 <div class="stats-grid" id="profesor-stats-grid"></div>
@@ -490,7 +490,7 @@
             <!-- ═══ PAGE: PROFESOR — LISTA ASISTENCIA ═══ -->
             <section class="page-section" id="page-profesor-asistencia">
                 <div class="page-header">
-                    <h2>📋 Lista de Asistencia</h2>
+                    <h1>Lista de Asistencia</h1>
                     <p>Asistencia de tus grupos — puedes justificar faltas directamente</p>
                 </div>
 
@@ -520,7 +520,7 @@
             <!-- ═══ PAGE: PROFESOR — EMOCIONES ═══ -->
             <section class="page-section" id="page-profesor-emociones">
                 <div class="page-header">
-                    <h2>😊 Emociones de mis Clases</h2>
+                    <h1>Emociones de mis Clases</h1>
                     <p>Tendencias emocionales de tus alumnos</p>
                 </div>
                 <div class="toolbar">
@@ -543,7 +543,7 @@
             <!-- ═══ PAGE: ALUMNO — MIS CLASES ═══ -->
             <section class="page-section" id="page-alumno-clases">
                 <div class="page-header">
-                    <h2>📚 Mis Clases</h2>
+                    <h1>Mis Clases</h1>
                     <p>Clases en las que estás inscrito</p>
                 </div>
                 <div class="stats-grid" id="alumno-stats-grid"></div>
@@ -567,7 +567,7 @@
             <!-- ═══ PAGE: ALUMNO — MI ASISTENCIA ═══ -->
             <section class="page-section" id="page-alumno-asistencia">
                 <div class="page-header">
-                    <h2>✅ Mi Asistencia</h2>
+                    <h1>Mi Asistencia</h1>
                     <p>Historial de tus registros de asistencia</p>
                 </div>
                 <div class="toolbar">

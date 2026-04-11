@@ -113,7 +113,7 @@ function showDashboard(user) {
     // Role badge
     const roleBadge = document.getElementById('admin-role-badge');
     if (roleBadge) {
-        const labels = { admin: '🛡️ Admin', profesor: '👨‍🏫 Profesor', alumno: '🎓 Alumno' };
+        const labels = { admin: '🛡️ Admin', profesor: 'Profesor', alumno: 'Alumno' };
         roleBadge.textContent = labels[role] || role;
     }
 
@@ -416,9 +416,9 @@ async function cargarUsuarios() {
             </td>
             <td><code>${u.matricula}</code></td>
             <td><span class="badge ${u.tipo === 'alumno' ? 'badge-info' : 'badge-purple'}">${u.tipo}</span></td>
-            <td>${u.tiene_embedding ? '<span class="badge badge-success">✅ Sí</span>' : '<span class="badge badge-warning">⚠️ No</span>'}</td>
+            <td>${u.tiene_embedding ? '<span class="badge badge-success">Listo</span>' : '<span class="badge badge-warning">Pendiente</span>'}</td>
             <td>
-                <button class="btn btn-sm btn-primary" onclick="abrirModalCapturaCara('${u.matricula}', '${u.nombre} ${u.apellido}')">📷 Cara</button>
+                <button class="btn btn-sm btn-primary" onclick="abrirModalCapturaCara('${u.matricula}', '${u.nombre} ${u.apellido}')">Registrar Cara</button>
                 <button class="btn btn-sm btn-outline" onclick="abrirModalSetEmail(${u.id}, '${u.nombre} ${u.apellido}', '${u.email || ''}')" title="Editar correo">📧</button>
                 <button class="btn btn-sm btn-outline" onclick="abrirModalSetPassword(${u.id}, '${u.nombre} ${u.apellido}', '${u.email || ''}')" title="Asignar contraseña">🔑</button>
                 <button class="btn btn-sm btn-danger" onclick="eliminarUsuario(${u.id})">🗑️</button>
@@ -517,13 +517,13 @@ function abrirModalCapturaCara(matricula, nombreCompleto) {
         </p>
         <div class="camera-container">
             <div class="camera-preview" id="camera-preview">
-                <div class="placeholder">📷 Vista previa</div>
+                <div class="placeholder">Vista previa</div>
             </div>
             <div class="camera-actions">
-                <button class="btn btn-outline" onclick="iniciarCamara()">🎥 Usar Cámara</button>
-                <button class="btn btn-outline" onclick="document.getElementById('file-upload-cara').click()">📁 Subir Imagen</button>
+                <button class="btn btn-outline" onclick="iniciarCamara()">Usar Cámara</button>
+                <button class="btn btn-outline" onclick="document.getElementById('file-upload-cara').click()">Subir Imagen</button>
                 <input type="file" id="file-upload-cara" accept="image/*" style="display:none" onchange="cargarImagenCara(event)">
-                <button class="btn btn-primary hidden" id="btn-capturar" onclick="capturarFoto()">📸 Capturar</button>
+                <button class="btn btn-primary hidden" id="btn-capturar" onclick="capturarFoto()">Tomar Fotografía</button>
             </div>
         </div>
         <input type="hidden" id="cara-matricula" value="${matricula}">
@@ -533,7 +533,7 @@ function abrirModalCapturaCara(matricula, nombreCompleto) {
         <button class="btn btn-outline" onclick="cerrarModal()">Cancelar</button>
         <button class="btn btn-primary" id="btn-enviar-cara" onclick="enviarCara()" disabled>🚀 Registrar Cara</button>
     `;
-    abrirModal('📷 Registro Facial', body, footer);
+    abrirModal('Registro Facial', body, footer);
 }
 
 let capturedBase64 = null;
@@ -1066,10 +1066,10 @@ function renderClaseCard(g, alumnoId) {
                 ${isFullyEnrolled ? '<span class="badge badge-success">✅ Completamente inscrito</span>' : isPartiallyEnrolled ? '<span class="badge badge-success">✅ Inscrito</span>' : ''}
             </div>
             <div class="clase-info">
-                <span>👨‍🏫 ${g.profesor_nombre}</span>
-                <span>🏫 Aula ${g.aula}</span>
-                <span>📚 ${g.semestre} — ${g.periodo}</span>
-                <span class="badge badge-info">👥 ${g.num_alumnos} alumno(s)</span>
+                <span>Profesor: ${g.profesor_nombre}</span>
+                <span>Aula: ${g.aula}</span>
+                <span>Semestre: ${g.semestre} — ${g.periodo}</span>
+                <span class="badge badge-info">Total de Alumnos: ${g.num_alumnos}</span>
             </div>
             <div class="clase-horarios-lista">
                 ${horariosTituloHTML}
@@ -1906,7 +1906,7 @@ async function cargarAlumnoMiAsistencia() {
     }
 
     function emocionBadge(emocion) {
-        const map = { positivo: '😊', neutro: '😐', negativo: '😞' };
+        const map = { positivo: 'Positivo 😊', neutro: 'Neutro 😐', negativo: 'Negativo 😞' };
         return map[emocion] || emocion || '—';
     }
 

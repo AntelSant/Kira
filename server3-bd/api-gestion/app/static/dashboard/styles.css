@@ -479,7 +479,7 @@ tr:last-child td {
     border-radius: 12px;
     background: rgba(99, 102, 241, 0.15);
     color: var(--accent);
-    margin-left: 6px;
+    margin-left: auto;
 }
 
 /* ── Buttons ────────────────────────────────────────────── */
@@ -1099,6 +1099,7 @@ select.form-control {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    align-items: stretch;
 }
 
 .admin-info {
@@ -1137,7 +1138,7 @@ select.form-control {
     font-weight: 600;
     cursor: pointer;
     transition: all var(--transition);
-    text-align: left;
+    text-align: center;
 }
 
 .btn-logout:hover {
