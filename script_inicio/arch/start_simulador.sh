@@ -7,7 +7,7 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # Sin color
 
-echo -e "${MAGENTA}📷 Iniciando Simulador ESP32 (Interfaz Web)...${NC}"
+echo -e "${MAGENTA} Iniciando Simulador ESP32 (Interfaz Web)...${NC}"
 
 # 1. Obtener la ruta absoluta del script automáticamente
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -33,7 +33,7 @@ if [ ! -d ".venv" ]; then
     
     echo -e "${YELLOW}Instalando dependencias...${NC}"
     pip install --upgrade pip setuptools wheel
-    pip install fastapi uvicorn requests python-multipart
+    pip install -r requirements.txt
 else
     # Arranque instantáneo si el entorno ya existe
     source .venv/bin/activate
@@ -42,9 +42,9 @@ fi
 # 3. Forzar actualización manual (Uso: ./start.sh --update)
 if [[ "$1" == "--update" ]]; then
     echo -e "${YELLOW}Actualizando dependencias (flag --update detectado)...${NC}"
-    pip install --upgrade fastapi uvicorn requests python-multipart
+    pip install -r requirements.txt
 fi
 
 # 4. Levantar Uvicorn de forma limpia
-echo -e "${GREEN}🌍 Servidor de simulación listo. Abre tu navegador en: http://localhost:8080${NC}"
+echo -e "${GREEN} Servidor de simulación listo. Abre tu navegador en: http://localhost:8080${NC}"
 exec uvicorn simular_esp32_web:app --host 0.0.0.0 --port 8080 --reload

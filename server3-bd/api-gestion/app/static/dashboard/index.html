@@ -4,10 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kira UAS — Dashboard de Gestión</title>
+    <title>Kira UAS</title>
     <meta name="description"
         content="Sistema distribuido de IA para reconocimiento facial y análisis emocional — Universidad Autónoma de Sinaloa">
-    <link rel="stylesheet" href="/static/dashboard/styles.css?v=4">
+    <link rel="stylesheet" href="/static/dashboard/styles.css?v=10">
+    <link rel="icon" type="image/png" href="/static/dashboard/assets/arbol-de-graficos.png">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
 
@@ -17,9 +18,9 @@
     <div id="login-screen" class="login-screen">
         <div class="login-card">
             <div class="login-brand">
-                <div class="login-logo">🤖</div>
-                <h1>Kira UAS</h1>
-                <p>Sistema de Asistencia Inteligente</p>
+                <div class="login-logo"></div>
+                <h1>Kira</h1>
+                <p>Sistema de Monitoreo y Asistencia Inteligente</p>
             </div>
             <form id="login-form" onsubmit="handleLogin(event)">
                 <div class="login-field">
@@ -39,7 +40,7 @@
                 <div id="login-error" class="login-error" style="display:none"></div>
                 <button type="submit" class="btn btn-primary btn-full" id="login-btn">Iniciar sesión</button>
             </form>
-            <p class="login-hint">Solo administradores autorizados pueden acceder</p>
+            <p class="login-hint">Acceso para administradores, profesores y alumnos</p>
         </div>
     </div>
 
@@ -47,106 +48,191 @@
 
         <!-- ═══ SIDEBAR ═══ -->
         <aside class="sidebar" id="sidebar">
-            <div class="sidebar-brand">
-                <h1>🤖 Kira</h1>
-                <p>UAS — Asistencia IA</p>
+            <div class="sidebar-brand"
+                style="display: flex; justify-content: space-between; align-items: center; padding: 24px 20px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <svg viewBox="0 0 24 24" width="28" height="28" fill="none">
+                        <defs>
+                            <linearGradient id="gradK" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#0ea5e9" />
+                                <stop offset="100%" stop-color="#8b5cf6" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M8 21V3M20 3l-6 9 6 9M4 12h4" stroke="url(#gradK)" stroke-width="3"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <h1>Kira UAS</h1>
+                </div>
+                <button class="sidebar-close-btn" onclick="toggleSidebar()" aria-label="Close Menu">✕</button>
             </div>
             <nav class="sidebar-nav">
                 <div class="nav-section-label">Principal</div>
                 <div class="nav-item active" data-page="inicio">
                     <span class="icon">🏠</span> Inicio
                 </div>
-                <div class="nav-item" data-page="usuarios">
+                <div class="nav-item" data-page="usuarios" data-role="admin">
                     <span class="icon">👥</span> Usuarios
                 </div>
 
-                <div class="nav-section-label">Académico</div>
-                <div class="nav-item" data-page="materias">
+                <div class="nav-section-label" data-role="admin">Académico</div>
+                <div class="nav-item" data-page="materias" data-role="admin">
                     <span class="icon">📚</span> Materias
                 </div>
-                <div class="nav-item" data-page="grupos">
+                <div class="nav-item" data-page="grupos" data-role="admin">
                     <span class="icon">🏫</span> Grupos
                 </div>
-                <div class="nav-item" data-page="horarios">
+                <div class="nav-item" data-page="horarios" data-role="admin">
                     <span class="icon">🕐</span> Horarios
                 </div>
-                <div class="nav-item" data-page="inscripciones">
+                <div class="nav-item" data-page="inscripciones" data-role="admin">
                     <span class="icon">📋</span> Inscripciones
                 </div>
 
-                <div class="nav-section-label">Reportes</div>
-                <div class="nav-item" data-page="asistencia">
+                <div class="nav-section-label" data-role="admin">Reportes (Admin)</div>
+                <div class="nav-item" data-page="asistencia" data-role="admin">
                     <span class="icon">✅</span> Registros Asistencia
                 </div>
-                <div class="nav-item" data-page="lista-asistencia">
+                <div class="nav-item" data-page="lista-asistencia" data-role="admin">
                     <span class="icon">📋</span> Lista Asistencia
                 </div>
-                <div class="nav-item" data-page="emociones">
+                <div class="nav-item" data-page="emociones" data-role="admin">
                     <span class="icon">😊</span> Emociones
                 </div>
 
-                <div class="nav-section-label">Sistema</div>
-                <div class="nav-item" data-page="admins">
+                <div class="nav-section-label" data-role="admin">Sistema</div>
+                <div class="nav-item" data-page="admins" data-role="admin">
                     <span class="icon">🛡️</span> Administradores
                 </div>
+
+                <!-- PROFESOR -->
+                <div class="nav-section-label" data-role="profesor">Mis Clases</div>
+                <div class="nav-item" data-page="profesor-grupos" data-role="profesor">
+                    <span class="icon">🏫</span> Mis Grupos
+                </div>
+                <div class="nav-item" data-page="profesor-asistencia" data-role="profesor">
+                    <span class="icon">📋</span> Lista Asistencia
+                </div>
+                <div class="nav-item" data-page="profesor-emociones" data-role="profesor">
+                    <span class="icon">😊</span> Emociones
+                </div>
+
+                <!-- ALUMNO -->
+                <div class="nav-section-label" data-role="alumno">Mi Portal</div>
+                <div class="nav-item" data-page="alumno-clases" data-role="alumno">
+                    <span class="icon">📚</span> Mis Clases
+                </div>
+                <div class="nav-item" data-page="alumno-asistencia" data-role="alumno">
+                    <span class="icon">✅</span> Mi Asistencia
+                </div>
             </nav>
-            <div class="sidebar-footer">
+            <div class="sidebar-footer" style="display: none;">
                 <div class="admin-info" id="admin-info">
                     <span class="admin-avatar">👤</span>
                     <span class="admin-name" id="admin-name">—</span>
+                    <span class="admin-role-badge" id="admin-role-badge"></span>
                 </div>
-                <button class="btn-logout" onclick="logout()" title="Cerrar sesión">🚪 Cerrar sesión</button>
+                <!-- <button class="btn-logout" onclick="logout()" title="Cerrar sesión">Cerrar sesión</button> -->
             </div>
         </aside>
 
         <!-- ═══ MAIN CONTENT ═══ -->
-        <main class="main-content">
+        <main class="main-content" id="main-content">
+            <div class="top-bar">
+                <button class="sidebar-toggle" onclick="toggleSidebar()">
+                    <span>☰</span> Menú
+                </button>
+            </div>
 
             <!-- ═══ PAGE: INICIO ═══ -->
             <section class="page-section active" id="page-inicio">
-                <div class="page-header">
-                    <h2>📊 Panel de Control</h2>
-                    <p>Resumen del sistema Kira UAS</p>
+                <div class="page-header"
+                    style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h1>Panel de Control</h1>
+                        <p>Resumen del sistema Kira UAS</p>
+                    </div>
+                    <div>
+                        <button class="btn-logout" onclick="logout()" title="Cerrar sesión"
+                            style="background: transparent; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px; cursor: pointer; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="stats-grid" id="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-icon blue">🎓</div>
+                        <div class="stat-icon grad-cyan">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                            </svg>
+                        </div>
                         <div class="stat-info">
                             <h3 id="stat-alumnos">—</h3>
                             <p>Alumnos</p>
                         </div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon green">👨‍🏫</div>
+                        <div class="stat-icon grad-purple">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                <circle cx="12" cy="7" r="4" />
+                            </svg>
+                        </div>
                         <div class="stat-info">
                             <h3 id="stat-profesores">—</h3>
                             <p>Profesores</p>
                         </div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon orange">🏫</div>
+                        <div class="stat-icon grad-blue-purple">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                <path
+                                    d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 21v-4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v4" />
+                                <path d="M9 7h6M9 11h6" />
+                            </svg>
+                        </div>
                         <div class="stat-info">
                             <h3 id="stat-grupos">—</h3>
                             <p>Grupos</p>
                         </div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon purple">📸</div>
+                        <div class="stat-icon grad-purple">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                <path
+                                    d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                                <circle cx="12" cy="13" r="4" />
+                            </svg>
+                        </div>
                         <div class="stat-info">
                             <h3 id="stat-embeddings">—</h3>
                             <p>Caras Registradas</p>
                         </div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon green">✅</div>
+                        <div class="stat-icon grad-blue">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                <polyline points="22 4 12 14.01 9 11.01" />
+                            </svg>
+                        </div>
                         <div class="stat-info">
                             <h3 id="stat-asistencias-hoy">—</h3>
                             <p>Asistencias Hoy</p>
                         </div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon blue">📚</div>
+                        <div class="stat-icon grad-green">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                            </svg>
+                        </div>
                         <div class="stat-info">
                             <h3 id="stat-materias">—</h3>
                             <p>Materias</p>
@@ -156,13 +242,13 @@
 
                 <div class="charts-grid">
                     <div class="chart-card">
-                        <h3>📈 Asistencias — Última semana</h3>
+                        <h3>Asistencias — Última semana</h3>
                         <div class="chart-canvas-container">
                             <canvas id="chart-asistencia-semanal"></canvas>
                         </div>
                     </div>
                     <div class="chart-card">
-                        <h3>🎭 Distribución Emocional — Últimos 7 días</h3>
+                        <h3>Distribución Emocional — Últimos 7 días</h3>
                         <div class="chart-canvas-container">
                             <canvas id="chart-emociones"></canvas>
                         </div>
@@ -173,7 +259,7 @@
             <!-- ═══ PAGE: USUARIOS ═══ -->
             <section class="page-section" id="page-usuarios">
                 <div class="page-header">
-                    <h2>👥 Gestión de Usuarios</h2>
+                    <h1>Gestión de Usuarios</h1>
                     <p>Administra alumnos y profesores</p>
                 </div>
 
@@ -208,7 +294,7 @@
             <!-- ═══ PAGE: MATERIAS ═══ -->
             <section class="page-section" id="page-materias">
                 <div class="page-header">
-                    <h2>📚 Materias</h2>
+                    <h1>Materias</h1>
                     <p>Gestión de materias del programa académico</p>
                 </div>
 
@@ -235,7 +321,7 @@
             <!-- ═══ PAGE: GRUPOS ═══ -->
             <section class="page-section" id="page-grupos">
                 <div class="page-header">
-                    <h2>🏫 Grupos</h2>
+                    <h1>Grupos</h1>
                     <p>Gestión de grupos académicos</p>
                 </div>
 
@@ -266,7 +352,7 @@
             <!-- ═══ PAGE: HORARIOS ═══ -->
             <section class="page-section" id="page-horarios">
                 <div class="page-header">
-                    <h2>🕐 Horarios</h2>
+                    <h1>Horarios</h1>
                     <p>Gestión de horarios por grupo</p>
                 </div>
 
@@ -299,7 +385,7 @@
             <!-- ═══ PAGE: INSCRIPCIONES ═══ -->
             <section class="page-section" id="page-inscripciones">
                 <div class="page-header">
-                    <h2>📋 Inscripciones</h2>
+                    <h1>Inscripciones</h1>
                     <p>Selecciona un alumno para ver e inscribirlo en sus clases</p>
                 </div>
 
@@ -323,7 +409,7 @@
             <!-- ═══ PAGE: ASISTENCIA ═══ -->
             <section class="page-section" id="page-asistencia">
                 <div class="page-header">
-                    <h2>✅ Registros de Asistencia</h2>
+                    <h1>Registros de Asistencia</h1>
                     <p>Consulta detallada de asistencia por grupo</p>
                 </div>
 
@@ -356,7 +442,7 @@
             <!-- ═══ PAGE: LISTA DE ASISTENCIA ═══ -->
             <section class="page-section" id="page-lista-asistencia">
                 <div class="page-header">
-                    <h2>📋 Listas de Asistencia</h2>
+                    <h1>Listas de Asistencia</h1>
                     <p>Tabla dinámica de asistencia general por alumno</p>
                 </div>
 
@@ -379,7 +465,7 @@
             <!-- ═══ PAGE: EMOCIONES ═══ -->
             <section class="page-section" id="page-emociones">
                 <div class="page-header">
-                    <h2>😊 Análisis Emocional</h2>
+                    <h1>Análisis Emocional</h1>
                     <p>Tendencias emocionales de la comunidad universitaria</p>
                 </div>
 
@@ -404,7 +490,7 @@
             <!-- ═══ PAGE: ADMINS ═══ -->
             <section class="page-section" id="page-admins">
                 <div class="page-header">
-                    <h2>🛡️ Administradores</h2>
+                    <h1>Administradores</h1>
                     <p>Gestión de acceso al dashboard</p>
                 </div>
 
@@ -430,6 +516,139 @@
                 </div>
             </section>
 
+            <!-- ═══ PAGE: PROFESOR — MIS GRUPOS ═══ -->
+            <section class="page-section" id="page-profesor-grupos">
+                <div class="page-header">
+                    <h1>Mis Grupos</h1>
+                    <p>Grupos que impartes este periodo</p>
+                </div>
+                <div class="stats-grid" id="profesor-stats-grid"></div>
+                <div class="table-card">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Materia</th>
+                                    <th>Aula</th>
+                                    <th>Semestre</th>
+                                    <th>Alumnos</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-profesor-grupos"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ═══ PAGE: PROFESOR — LISTA ASISTENCIA ═══ -->
+            <section class="page-section" id="page-profesor-asistencia">
+                <div class="page-header">
+                    <h1>Lista de Asistencia</h1>
+                    <p>Asistencia de tus grupos — puedes justificar faltas directamente</p>
+                </div>
+
+                <div class="toolbar">
+                    <select class="form-control" id="profesor-asistencia-grupo-select"
+                        onchange="cargarProfesorListaAsistencia()">
+                        <option value="">-- Selecciona un grupo --</option>
+                    </select>
+                    <input type="date" class="form-control" id="profesor-asistencia-fecha" style="max-width:180px;"
+                        placeholder="Filtrar por fecha" onchange="cargarProfesorListaAsistencia()">
+                    <button class="btn btn-outline"
+                        onclick="document.getElementById('profesor-asistencia-fecha').value=''; cargarProfesorListaAsistencia();">Limpiar
+                        fecha</button>
+                </div>
+
+                <div class="table-card" style="padding: 16px; overflow-x: auto;">
+                    <div id="profesor-lista-asistencia-stats"
+                        style="margin-bottom: 12px; font-weight: bold; text-align: right; color: var(--accent);">
+                    </div>
+                    <div class="table-wrapper" id="profesor-lista-asistencia-contenedor" style="overflow-x: auto;">
+                        <div class="empty-state">Selecciona un grupo para ver la lista.</div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- ═══ PAGE: PROFESOR — EMOCIONES ═══ -->
+            <section class="page-section" id="page-profesor-emociones">
+                <div class="page-header">
+                    <h1>Emociones de mis Clases</h1>
+                    <p>Tendencias emocionales de tus alumnos</p>
+                </div>
+                <div class="toolbar">
+                    <select class="form-control" id="profesor-emociones-dias" onchange="cargarProfesorEmociones()">
+                        <option value="7">Últimos 7 días</option>
+                        <option value="14">Últimos 14 días</option>
+                        <option value="30" selected>Últimos 30 días</option>
+                    </select>
+                </div>
+                <div class="charts-grid">
+                    <div class="chart-card" style="grid-column: 1 / -1;">
+                        <h3>📈 Tendencia Emocional</h3>
+                        <div class="chart-canvas-container" style="height: 340px;">
+                            <canvas id="chart-profesor-emociones-tendencia"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ═══ PAGE: ALUMNO — MIS CLASES ═══ -->
+            <section class="page-section" id="page-alumno-clases">
+                <div class="page-header">
+                    <h1>Mis Clases</h1>
+                    <p>Clases en las que estás inscrito</p>
+                </div>
+                <div class="stats-grid" id="alumno-stats-grid"></div>
+                <div class="table-card">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Materia</th>
+                                    <th>Profesor</th>
+                                    <th>Aula</th>
+                                    <th>Semestre</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-alumno-clases"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ═══ PAGE: ALUMNO — MI ASISTENCIA ═══ -->
+            <section class="page-section" id="page-alumno-asistencia">
+                <div class="page-header">
+                    <h1>Mi Asistencia</h1>
+                    <p>Historial de tus registros de asistencia</p>
+                </div>
+                <div class="toolbar">
+                    <select class="form-control" id="alumno-asistencia-clase-select"
+                        onchange="cargarAlumnoMiAsistencia()">
+                        <option value="">— Todas las clases —</option>
+                    </select>
+                </div>
+                <div class="table-card">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Materia</th>
+                                    <th>Fecha</th>
+                                    <th>Hora</th>
+                                    <th>Estado</th>
+                                    <th>Emoción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-alumno-asistencia"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
         </main>
     </div>
 
@@ -445,7 +664,7 @@
         </div>
     </div>
 
-    <script src="/static/dashboard/app.js?v=6"></script>
+    <script src="/static/dashboard/app.js?v=10"></script>
 </body>
 
 </html>

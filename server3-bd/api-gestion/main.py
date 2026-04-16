@@ -1,5 +1,6 @@
 import os
 import shutil
+import httpx
 from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException, Query, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
@@ -21,10 +22,12 @@ from models import (
 )
 from database import get_db, engine
 
-# --- Crear tablas al iniciar ---
-print("⏳ Verificando y construyendo tablas en la base de datos...")
+# URL de Server1 — se resuelve internamente (localhost), nunca pasa por el navegador
+SERVER1_INTERNAL_URL = os.getenv("SERVER1_URL", "http://127.0.0.1:8001")
+
+print("--Espere-- Verificando y construyendo tablas en la base de datos...")
 Base.metadata.create_all(bind=engine)
-print("✅ ¡Tablas listas y creadas!")
+print("-- ¡Tablas listas y creadas!")
 
 # --- Crear carpetas necesarias ---
 os.makedirs("app/static/perfiles", exist_ok=True)
@@ -67,7 +70,7 @@ def verificar_token(token: str) -> dict:
             headers={"WWW-Authenticate": "Bearer"},
         )
     except JWTError as e:
-        print(f"❌ JWT inválido: {e}")
+        print(f"!! -- JWT inválido: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token inválido",
@@ -82,6 +85,9 @@ def get_current_admin(
     """Auth guard — protege cualquier endpoint que lo use como dependencia"""
     payload = verificar_token(credentials.credentials)
     admin_id = payload.get("sub")
+    role = payload.get("role", "admin")
+    if role != "admin":
+        raise HTTPException(status_code=403, detail="Solo administradores pueden acceder")
     try:
         admin_id = int(admin_id)
     except (TypeError, ValueError):
@@ -95,6 +101,33 @@ def get_current_admin(
     if not admin:
         raise HTTPException(status_code=401, detail="Administrador no encontrado o inactivo")
     return admin
+
+
+def get_current_user_any(
+    credentials: HTTPAuthorizationCredentials = Depends(http_bearer),
+    db: Session = Depends(get_db)
+) -> dict:
+    """Auth guard universal — devuelve {role, user, id} para admin, profesor o alumno"""
+    payload = verificar_token(credentials.credentials)
+    role = payload.get("role", "admin")
+    user_id = payload.get("sub")
+    try:
+        user_id = int(user_id)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=401, detail="Token sin identidad")
+
+    if role == "admin":
+        obj = db.query(Administrador).filter(
+            Administrador.id == user_id, Administrador.activo == True
+        ).first()
+    else:
+        obj = db.query(Usuario).filter(
+            Usuario.id == user_id, Usuario.activo == True
+        ).first()
+
+    if not obj:
+        raise HTTPException(status_code=401, detail="Usuario no encontrado o inactivo")
+    return {"role": role, "user": obj, "id": user_id}
 
 # --- App ---
 import asyncio
@@ -124,7 +157,7 @@ app = FastAPI(
 async def check_ausencias_bg():
     while True:
         await asyncio.sleep(300) # Every 5 minutes
-        print("🔄 [Background] Verificando inasistencias en clases terminadas...")
+        print("--Proceso Automatico-- [Background] Verificando inasistencias en clases terminadas...")
         try:
             with Session(bind=engine) as db:
                 hoy = date.today()
@@ -163,7 +196,7 @@ async def check_ausencias_bg():
                             db.add(nueva_falta)
                 db.commit()
         except Exception as e:
-            print(f"Error en tarea de fondo (ausencias): {e}")
+            print(f"!! -- Error en tarea de fondo (ausencias): {e}")
 
 @app.on_event("startup")
 async def startup_event():
@@ -263,6 +296,9 @@ class JustificarRequest(BaseModel):
     grupo_id: int
     fecha: str
 
+class SetPasswordRequest(BaseModel):
+    password: str
+
 
 # ============================================================
 #  FUNCIONES AUXILIARES
@@ -309,24 +345,50 @@ def serializar_usuario(u: Usuario) -> dict:
 
 @app.post("/api/auth/login")
 def login(data: LoginRequest, db: Session = Depends(get_db)):
-    """Autentica un administrador y devuelve un JWT de sesión (8h)"""
+    """Autentica admin, profesor o alumno y devuelve un JWT de sesión (8h)"""
+    # 1. Intentar como Administrador
     admin = db.query(Administrador).filter(
         Administrador.email == data.email,
         Administrador.activo == True
     ).first()
-    if not admin or not verify_password(data.password, admin.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciales incorrectas"
-        )
-    token = crear_token({"sub": str(admin.id), "nombre": admin.nombre, "email": admin.email})
-    return {"access_token": token, "token_type": "bearer", "nombre": admin.nombre}
+    if admin and verify_password(data.password, admin.password_hash):
+        token = crear_token({"sub": str(admin.id), "role": "admin", "nombre": admin.nombre, "email": admin.email})
+        return {"access_token": token, "token_type": "bearer", "role": "admin", "nombre": admin.nombre}
+
+    # 2. Intentar como Usuario (profesor o alumno)
+    usuario = db.query(Usuario).filter(
+        Usuario.email == data.email,
+        Usuario.activo == True
+    ).first()
+    if usuario and usuario.password_hash and verify_password(data.password, usuario.password_hash):
+        role = usuario.tipo.value  # "profesor" o "alumno"
+        nombre_completo = f"{usuario.nombre} {usuario.apellido}"
+        token = crear_token({"sub": str(usuario.id), "role": role, "nombre": nombre_completo, "email": usuario.email})
+        return {"access_token": token, "token_type": "bearer", "role": role, "nombre": nombre_completo}
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Credenciales incorrectas"
+    )
 
 
 @app.get("/api/auth/me")
-def me(admin: Administrador = Depends(get_current_admin)):
-    """Devuelve los datos del administrador autenticado (auth guard)"""
-    return {"id": admin.id, "nombre": admin.nombre, "email": admin.email, "activo": admin.activo}
+def me(current: dict = Depends(get_current_user_any)):
+    """Devuelve los datos del usuario autenticado (cualquier rol)"""
+    role = current["role"]
+    user = current["user"]
+    if role == "admin":
+        return {"id": user.id, "nombre": user.nombre, "email": user.email, "activo": user.activo, "role": "admin"}
+    else:
+        return {
+            "id": user.id,
+            "nombre": f"{user.nombre} {user.apellido}",
+            "email": user.email,
+            "activo": user.activo,
+            "role": role,
+            "tipo": user.tipo.value,
+            "matricula": user.matricula_o_num_empleado,
+        }
 
 
 # ============================================================
@@ -578,14 +640,14 @@ def reconocer_usuario(data: ReconocerRequest, db: Session = Depends(get_db)):
 @app.post("/api/asistencia/registrar")
 def registrar_asistencia(data: RegistroAsistenciaRequest, db: Session = Depends(get_db)):
     """Guarda la asistencia y la emoción detectada. Encuentra el grupo por aula y calcula estado según horario."""
-    print(f"📥 Registrando asistencia — Usuario {data.usuario_id}, Aula: {data.aula}")
+    print(f"-- Registrando asistencia — Usuario {data.usuario_id}, Aula: {data.aula}")
 
     # Normalizar emoción
     emocion_limpia = data.emocion.lower().strip()
     try:
         emocion_enum = CategoriaEmocion(emocion_limpia)
     except ValueError:
-        print(f"⚠️ Emoción '{emocion_limpia}' no válida, usando neutro")
+        print(f"!! -- Emoción '{emocion_limpia}' no válida, usando neutro")
         emocion_enum = CategoriaEmocion.neutro
 
     try:
@@ -611,11 +673,11 @@ def registrar_asistencia(data: RegistroAsistenciaRequest, db: Session = Depends(
                 break
                 
         if not horario_activo:
-            print(f"⚠️ No hay clase programada en '{data.aula}' para el día {dia_semana} a las {hora_obj}")
+            print(f"!! -- No hay clase programada en '{data.aula}' para el día {dia_semana} a las {hora_obj}")
             return {"status": "error", "mensaje": f"No hay clase activa en aula '{data.aula}'"}
             
         grupo_id_activo = horario_activo.grupo_id
-        print(f"✅ Clase activa encontrada: Grupo ID {grupo_id_activo}")
+        print(f"-- Clase activa encontrada: Grupo ID {grupo_id_activo}")
 
         # --- ANTI-DUPLICADOS ---
         existente = db.query(Asistencia).filter(
@@ -625,7 +687,7 @@ def registrar_asistencia(data: RegistroAsistenciaRequest, db: Session = Depends(
         ).first()
 
         if existente:
-            print("⚠️ Asistencia ya registrada para hoy")
+            print("!! -- Asistencia ya registrada para hoy")
             return {"status": "ya_registrado", "mensaje": "Asistencia ya registrada hoy para esta clase"}
 
         # --- CALCULAR ESTADO SEGÚN HORARIO ---
@@ -665,7 +727,7 @@ def registrar_asistencia(data: RegistroAsistenciaRequest, db: Session = Depends(
 
         db.add(nueva_emocion)
         db.commit()
-        print(f"✅ Asistencia registrada: {estado.value}")
+        print(f"-- Asistencia registrada: {estado.value}")
         return {
             "status": "success",
             "mensaje": "Asistencia registrada",
@@ -674,7 +736,7 @@ def registrar_asistencia(data: RegistroAsistenciaRequest, db: Session = Depends(
 
     except Exception as e:
         db.rollback()
-        print(f"\n❌ ERROR CRÍTICO EN SERVIDOR 3:\n{str(e)}\n")
+        print(f"\n!! -- ERROR CRÍTICO EN SERVIDOR 3:\n{str(e)}\n")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -785,12 +847,44 @@ def excluir_dia(grupo_id: int, request: ExcluirDiaRequest, db: Session = Depends
     if existente:
         db.delete(existente)
         db.commit()
-        return {"mensaje": "Día restaurado (habil), ya cuenta como día de clase"}
+        return {"mensaje": "Día restaurado (hábil), ya cuenta como día de clase"}
     else:
         nuevo = DiaExcluido(grupo_id=grupo_id, fecha=fecha_obj)
         db.add(nuevo)
         db.commit()
         return {"mensaje": "Día pasado de largo (excluido)"}
+
+
+@app.post("/api/profesor/grupo/{grupo_id}/excluir_dia")
+def profesor_excluir_dia(
+    grupo_id: int,
+    request: ExcluirDiaRequest,
+    current: dict = Depends(get_current_user_any),
+    db: Session = Depends(get_db)
+):
+    """Permite al profesor excluir o restaurar un día de su grupo del conteo de asistencias"""
+    if current["role"] != "profesor":
+        raise HTTPException(status_code=403, detail="Solo profesores pueden acceder")
+
+    grupo = db.query(Grupo).filter(Grupo.id == grupo_id, Grupo.profesor_id == current["id"]).first()
+    if not grupo:
+        raise HTTPException(status_code=403, detail="Este grupo no te pertenece")
+
+    fecha_obj = datetime.strptime(request.fecha, "%Y-%m-%d").date()
+    existente = db.query(DiaExcluido).filter(
+        DiaExcluido.grupo_id == grupo_id,
+        DiaExcluido.fecha == fecha_obj
+    ).first()
+
+    if existente:
+        db.delete(existente)
+        db.commit()
+        return {"mensaje": "Día restaurado"}
+    else:
+        db.add(DiaExcluido(grupo_id=grupo_id, fecha=fecha_obj))
+        db.commit()
+        return {"mensaje": "Día excluido del conteo"}
+
 
 @app.post("/api/asistencia/justificar")
 def justificar_ausencia(request: JustificarRequest, db: Session = Depends(get_db)):
@@ -1190,3 +1284,391 @@ def dashboard_emociones_tendencia(
             por_fecha[key][emocion.value] = cantidad
 
     return list(por_fecha.values())
+
+
+# ============================================================
+#  SET PASSWORD — Admin asigna contraseña a un usuario
+# ============================================================
+
+@app.put("/api/usuarios/{usuario_id}/set-password")
+def set_user_password(
+    usuario_id: int,
+    data: SetPasswordRequest,
+    admin: Administrador = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Permite a un admin asignar o cambiar la contraseña de un usuario (profesor/alumno)"""
+    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if not usuario.email:
+        raise HTTPException(status_code=400, detail="El usuario necesita un email antes de asignarle contraseña")
+    usuario.password_hash = hash_password(data.password)
+    db.commit()
+    return {"mensaje": f"Contraseña asignada a {usuario.nombre} {usuario.apellido}"}
+
+
+class SetEmailRequest(BaseModel):
+    email: str
+
+@app.put("/api/usuarios/{usuario_id}/set-email")
+def set_user_email(
+    usuario_id: int,
+    data: SetEmailRequest,
+    admin: Administrador = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Permite a un admin asignar o cambiar el correo de un usuario"""
+    if not data.email or "@" not in data.email:
+        raise HTTPException(status_code=400, detail="Correo electrónico inválido")
+    # Verificar que el email no esté ya en uso
+    existente = db.query(Usuario).filter(Usuario.email == data.email, Usuario.id != usuario_id).first()
+    if existente:
+        raise HTTPException(status_code=400, detail="Ese correo ya está registrado en otro usuario")
+    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    usuario.email = data.email
+    db.commit()
+    return {"mensaje": f"Correo actualizado para {usuario.nombre} {usuario.apellido}"}
+
+
+# ============================================================
+#  PROFESOR — Endpoints exclusivos
+# ============================================================
+
+@app.get("/api/profesor/mis-grupos")
+def profesor_mis_grupos(
+    current: dict = Depends(get_current_user_any),
+    db: Session = Depends(get_db)
+):
+    """Lista los grupos que imparte el profesor autenticado"""
+    if current["role"] != "profesor":
+        raise HTTPException(status_code=403, detail="Solo profesores pueden acceder")
+    profesor_id = current["id"]
+
+    grupos = db.query(Grupo).filter(Grupo.profesor_id == profesor_id).order_by(Grupo.id).all()
+    resultado = []
+    for g in grupos:
+        materia = db.query(Materia).filter(Materia.id == g.materia_id).first()
+        num_alumnos = db.query(Inscripcion).filter(Inscripcion.grupo_id == g.id).with_entities(Inscripcion.alumno_id).distinct().count()
+        resultado.append({
+            "id": g.id,
+            "materia_id": g.materia_id,
+            "materia_nombre": materia.nombre if materia else "Sin materia",
+            "materia_clave": materia.clave if materia else "",
+            "aula": g.aula,
+            "semestre": g.semestre,
+            "periodo": g.periodo,
+            "num_alumnos": num_alumnos,
+        })
+    return resultado
+
+
+@app.get("/api/profesor/grupo/{grupo_id}/tabla")
+def profesor_tabla_asistencia(
+    grupo_id: int,
+    fecha: Optional[str] = None,
+    current: dict = Depends(get_current_user_any),
+    db: Session = Depends(get_db)
+):
+    """Tabla de asistencia de un grupo — solo si el grupo pertenece al profesor. Acepta ?fecha=YYYY-MM-DD para filtrar."""
+    if current["role"] != "profesor":
+        raise HTTPException(status_code=403, detail="Solo profesores pueden acceder")
+
+    grupo = db.query(Grupo).filter(Grupo.id == grupo_id, Grupo.profesor_id == current["id"]).first()
+    if not grupo:
+        raise HTTPException(status_code=403, detail="Este grupo no te pertenece")
+
+    # Si se pasa fecha, filtrar solo a ese día; si no, devolver todo
+    if fecha:
+        try:
+            fecha_obj = date.fromisoformat(fecha)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Formato de fecha inválido, usa YYYY-MM-DD")
+        asistencias = db.query(Asistencia).filter(
+            Asistencia.grupo_id == grupo_id,
+            Asistencia.fecha == fecha_obj
+        ).all()
+    else:
+        asistencias = db.query(Asistencia).filter(Asistencia.grupo_id == grupo_id).all()
+
+    dias_excluidos_db = db.query(DiaExcluido).filter(DiaExcluido.grupo_id == grupo_id).all()
+    dias_excluidos = [str(d.fecha) for d in dias_excluidos_db]
+
+    fechas_set = set(str(a.fecha) for a in asistencias)
+    fechas_ordenadas = sorted(list(fechas_set))
+    dias_totales_clase = len([f for f in fechas_ordenadas if f not in dias_excluidos])
+
+    profesor = db.query(Usuario).filter(Usuario.id == grupo.profesor_id).first()
+    inscripciones = db.query(Inscripcion).filter(Inscripcion.grupo_id == grupo_id).all()
+    alumnos = db.query(Usuario).filter(
+        Usuario.id.in_([ins.alumno_id for ins in inscripciones])
+    ).all()
+
+    def estructurar_usuario(u):
+        if not u:
+            return None
+        asis_usuario = [a for a in asistencias if a.usuario_id == u.id]
+        por_fecha = {}
+        total_asis = 0
+        total_faltas = 0
+        for f in fechas_ordenadas:
+            registros = [a for a in asis_usuario if str(a.fecha) == f]
+            estado = (registros[0].estado.value if registros[0].estado else "ausente") if registros else "ausente"
+            por_fecha[f] = estado
+            if f not in dias_excluidos:
+                if estado in ["a_tiempo", "retardo", "justificado"]:
+                    total_asis += 1
+                elif estado in ["ausente", "fuera_de_horario"]:
+                    total_faltas += 1
+        return {
+            "id": u.id,
+            "nombre": u.nombre,
+            "apellido": u.apellido,
+            "matricula": u.matricula_o_num_empleado,
+            "asistencia_por_fecha": por_fecha,
+            "total_asistencias": total_asis,
+            "total_faltas": total_faltas,
+        }
+
+    return {
+        "teacher": estructurar_usuario(profesor),
+        "students": [estructurar_usuario(a) for a in sorted(alumnos, key=lambda x: x.apellido)],
+        "dates": fechas_ordenadas,
+        "excluded_dates": dias_excluidos,
+        "total_class_days": dias_totales_clase,
+    }
+
+
+@app.get("/api/profesor/resumen")
+def profesor_resumen(
+    current: dict = Depends(get_current_user_any),
+    db: Session = Depends(get_db)
+):
+    """Resumen del profesor: sus grupos, total alumnos, asistencias de hoy en sus clases"""
+    if current["role"] != "profesor":
+        raise HTTPException(status_code=403, detail="Solo profesores pueden acceder")
+    profesor_id = current["id"]
+
+    mis_grupos = db.query(Grupo).filter(Grupo.profesor_id == profesor_id).all()
+    grupo_ids = [g.id for g in mis_grupos]
+
+    total_alumnos = 0
+    if grupo_ids:
+        total_alumnos = db.query(Inscripcion).filter(
+            Inscripcion.grupo_id.in_(grupo_ids)
+        ).with_entities(Inscripcion.alumno_id).distinct().count()
+
+    hoy = date.today()
+    asistencias_hoy = 0
+    if grupo_ids:
+        asistencias_hoy = db.query(Asistencia).filter(
+            Asistencia.grupo_id.in_(grupo_ids),
+            Asistencia.fecha == hoy
+        ).count()
+
+    # Emociones  de los últimos 7 días en sus grupos
+    desde = hoy - timedelta(days=7)
+    emociones = []
+    if grupo_ids:
+        registros = db.query(
+            Asistencia.emocion_detectada,
+            sql_func.count(Asistencia.id)
+        ).filter(
+            Asistencia.fecha >= desde,
+            Asistencia.grupo_id.in_(grupo_ids),
+            Asistencia.emocion_detectada.isnot(None)
+        ).group_by(Asistencia.emocion_detectada).all()
+        emociones = [{"emocion": r[0].value if r[0] else "desconocido", "cantidad": r[1]} for r in registros]
+
+    return {
+        "total_grupos": len(mis_grupos),
+        "total_alumnos": total_alumnos,
+        "asistencias_hoy": asistencias_hoy,
+        "emociones_semana": emociones,
+    }
+
+
+@app.get("/api/profesor/emociones-tendencia")
+def profesor_emociones_tendencia(
+    dias: int = 30,
+    current: dict = Depends(get_current_user_any),
+    db: Session = Depends(get_db)
+):
+    """Tendencia de emociones para los grupos del profesor"""
+    if current["role"] != "profesor":
+        raise HTTPException(status_code=403, detail="Solo profesores pueden acceder")
+
+    grupo_ids = [g.id for g in db.query(Grupo).filter(Grupo.profesor_id == current["id"]).all()]
+    if not grupo_ids:
+        return []
+
+    desde = date.today() - timedelta(days=dias)
+    registros = db.query(
+        Asistencia.fecha,
+        Asistencia.emocion_detectada,
+        sql_func.count(Asistencia.id)
+    ).filter(
+        Asistencia.fecha >= desde,
+        Asistencia.grupo_id.in_(grupo_ids),
+        Asistencia.emocion_detectada.isnot(None)
+    ).group_by(Asistencia.fecha, Asistencia.emocion_detectada).order_by(Asistencia.fecha).all()
+
+    por_fecha = {}
+    for fecha, emocion, cantidad in registros:
+        key = str(fecha)
+        if key not in por_fecha:
+            por_fecha[key] = {"fecha": key, "positivo": 0, "neutro": 0, "negativo": 0}
+        if emocion:
+            por_fecha[key][emocion.value] = cantidad
+    return list(por_fecha.values())
+
+
+# ============================================================
+#  ALUMNO — Endpoints exclusivos
+# ============================================================
+
+@app.get("/api/alumno/mis-clases")
+def alumno_mis_clases(
+    current: dict = Depends(get_current_user_any),
+    db: Session = Depends(get_db)
+):
+    """Lista las clases donde el alumno está inscrito"""
+    if current["role"] != "alumno":
+        raise HTTPException(status_code=403, detail="Solo alumnos pueden acceder")
+    alumno_id = current["id"]
+
+    inscripciones = db.query(Inscripcion).filter(Inscripcion.alumno_id == alumno_id).all()
+    grupo_ids = list(set(ins.grupo_id for ins in inscripciones))
+
+    resultado = []
+    for gid in grupo_ids:
+        grupo = db.query(Grupo).filter(Grupo.id == gid).first()
+        if not grupo:
+            continue
+        materia = db.query(Materia).filter(Materia.id == grupo.materia_id).first()
+        profesor = db.query(Usuario).filter(Usuario.id == grupo.profesor_id).first()
+        resultado.append({
+            "grupo_id": grupo.id,
+            "materia_nombre": materia.nombre if materia else "Sin materia",
+            "profesor_nombre": f"{profesor.nombre} {profesor.apellido}" if profesor else "Sin profesor",
+            "aula": grupo.aula,
+            "semestre": grupo.semestre,
+        })
+    return resultado
+
+
+@app.get("/api/alumno/mi-asistencia")
+def alumno_mi_asistencia(
+    grupo_id: Optional[int] = None,
+    current: dict = Depends(get_current_user_any),
+    db: Session = Depends(get_db)
+):
+    """Devuelve los registros de asistencia del alumno autenticado"""
+    if current["role"] != "alumno":
+        raise HTTPException(status_code=403, detail="Solo alumnos pueden acceder")
+    alumno_id = current["id"]
+
+    query = db.query(Asistencia).filter(Asistencia.usuario_id == alumno_id)
+    if grupo_id:
+        query = query.filter(Asistencia.grupo_id == grupo_id)
+
+    registros = query.order_by(Asistencia.fecha.desc(), Asistencia.hora_registro).all()
+
+    resultado = []
+    for r in registros:
+        grupo = db.query(Grupo).filter(Grupo.id == r.grupo_id).first()
+        materia = db.query(Materia).filter(Materia.id == grupo.materia_id).first() if grupo else None
+        resultado.append({
+            "id": r.id,
+            "grupo_id": r.grupo_id,
+            "materia_nombre": materia.nombre if materia else "—",
+            "fecha": str(r.fecha),
+            "hora_registro": str(r.hora_registro),
+            "estado": r.estado.value if r.estado else None,
+            "emocion": r.emocion_detectada.value if r.emocion_detectada else None,
+        })
+    return resultado
+
+
+@app.get("/api/alumno/resumen")
+def alumno_resumen(
+    current: dict = Depends(get_current_user_any),
+    db: Session = Depends(get_db)
+):
+    """Resumen personal del alumno: asistencias, faltas, emociones"""
+    if current["role"] != "alumno":
+        raise HTTPException(status_code=403, detail="Solo alumnos pueden acceder")
+    alumno_id = current["id"]
+
+    total_asistencias = db.query(Asistencia).filter(
+        Asistencia.usuario_id == alumno_id,
+        Asistencia.estado.in_([EstadoAsistencia.a_tiempo, EstadoAsistencia.retardo, EstadoAsistencia.justificado])
+    ).count()
+
+    total_faltas = db.query(Asistencia).filter(
+        Asistencia.usuario_id == alumno_id,
+        Asistencia.estado.in_([EstadoAsistencia.ausente, EstadoAsistencia.fuera_de_horario])
+    ).count()
+
+    total_clases = db.query(Inscripcion).filter(Inscripcion.alumno_id == alumno_id).with_entities(Inscripcion.grupo_id).distinct().count()
+
+    # Emociones últimos 7 días
+    hoy = date.today()
+    desde = hoy - timedelta(days=7)
+    emociones = db.query(
+        Asistencia.emocion_detectada,
+        sql_func.count(Asistencia.id)
+    ).filter(
+        Asistencia.usuario_id == alumno_id,
+        Asistencia.fecha >= desde,
+        Asistencia.emocion_detectada.isnot(None)
+    ).group_by(Asistencia.emocion_detectada).all()
+
+    return {
+        "total_clases_inscritas": total_clases,
+        "total_asistencias": total_asistencias,
+        "total_faltas": total_faltas,
+        "emociones_semana": [
+            {"emocion": r[0].value if r[0] else "desconocido", "cantidad": r[1]}
+            for r in emociones
+        ],
+    }
+
+
+# ============================================================
+#  PROXY — Registro de cara (redirige a Server1 internamente)
+#  Evita que el celular necesite acceso directo al puerto 8001
+# ============================================================
+
+class RegistrarCaraRequest(BaseModel):
+    matricula: str
+    foto_base64: str
+
+
+@app.post("/api/proxy/registrar-cara")
+async def proxy_registrar_cara(data: RegistrarCaraRequest):
+    """Proxy hacia Server1 /api/register.
+    El navegador (incluyendo el celular) no necesita acceder a Server1 directamente.
+    Server3 hace la llamada interna a localhost:8001.
+    """
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(
+                f"{SERVER1_INTERNAL_URL}/api/register",
+                json={"matricula": data.matricula, "foto_base64": data.foto_base64},
+            )
+        try:
+            return resp.json()
+        except Exception:
+            raise HTTPException(status_code=502, detail="Respuesta inválida de Server1")
+    except httpx.ConnectError:
+        raise HTTPException(
+            status_code=503,
+            detail="Server1 (reconocimiento facial) no está disponible. ¿Está encendido?"
+        )
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Server1 tardó demasiado en responder")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

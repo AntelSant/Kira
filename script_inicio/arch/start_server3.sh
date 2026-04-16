@@ -7,7 +7,7 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # Sin color
 
-echo -e "${CYAN}🗄️ Iniciando Servidor 3 (Base de Datos/Gestión)...${NC}"
+echo -e "${CYAN} Iniciando Servidor 3 (Base de Datos/Gestión)...${NC}"
 
 # 1. Obtener la ruta absoluta del script automáticamente
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

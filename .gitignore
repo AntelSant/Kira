@@ -14,6 +14,10 @@ server3-db/api-gestion/app/static/perfiles/*
 
 #Capturas temporales (no queremos subir capturas de prueba a GitHub)
 server1-face/capturas_temp/*
+server1-face/caras_recortadas/*
+
+#Mejoras
+ANALISIS_MEJORAS_KIRA.md
 
 # Docker
 .data/
