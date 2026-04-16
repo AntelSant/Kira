@@ -341,10 +341,19 @@ async function cargarInicio() {
                 datasets: [{
                     label: 'Asistencias',
                     data: semanal.map(d => d.cantidad),
-                    backgroundColor: 'rgba(99, 102, 241, 0.6)',
-                    borderColor: '#6366f1',
-                    borderWidth: 1,
-                    borderRadius: 6,
+                    backgroundColor: (context) => {
+                        const chart = context.chart;
+                        const { ctx, chartArea } = chart;
+                        if (!chartArea) return '#3b82f6';
+                        const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                        gradient.addColorStop(0, '#8b5cf6');
+                        gradient.addColorStop(1, '#0ea5e9');
+                        return gradient;
+                    },
+                    borderColor: 'transparent',
+                    borderWidth: 0,
+                    borderRadius: 8,
+                    borderSkipped: false,
                 }]
             },
             options: {
@@ -352,8 +361,8 @@ async function cargarInicio() {
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                    y: { beginAtZero: true, ticks: { color: '#64748b' }, grid: { color: '#1e2843' } },
-                    x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+                    y: { beginAtZero: true, border: { display: false }, ticks: { color: '#64748b', padding: 10 }, grid: { color: '#1e2843', drawTicks: false } },
+                    x: { border: { display: false }, ticks: { color: '#94a3b8', padding: 10 }, grid: { display: false, drawTicks: false } }
                 }
             }
         });
@@ -365,7 +374,7 @@ async function cargarInicio() {
         const ctx = document.getElementById('chart-emociones').getContext('2d');
         if (chartEmociones) chartEmociones.destroy();
 
-        const colorMap = { positivo: '#10b981', neutro: '#6366f1', negativo: '#ef4444' };
+        const colorMap = { positivo: '#10b981', neutro: '#3b82f6', negativo: '#ef4444' };
         chartEmociones = new Chart(ctx, {
             type: 'doughnut',
             data: {
@@ -379,10 +388,16 @@ async function cargarInicio() {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                cutout: '65%',
                 plugins: {
                     legend: {
-                        position: 'bottom',
-                        labels: { color: '#94a3b8', padding: 16 }
+                        position: 'right',
+                        labels: {
+                            color: '#94a3b8',
+                            padding: 20,
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
                     }
                 }
             }
