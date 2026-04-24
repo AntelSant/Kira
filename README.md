@@ -16,10 +16,10 @@ Estructura del proyecto:
 │   │   ├── emotion_model/     # Lógica de HSEmotion o DeepFace [cite: 271]
 │   │   └── routers/           # Endpoints (ej. /api/emotion) [cite: 272]
 │   └── requirements.txt
-└── /server3-db                # Base de datos y Dashboard Angular 
-    ├── /api-gestion           # FastAPI con endpoints CRUD y reportes [cite: 298, 305]
-    ├── /dashboard             # Código fuente de Angular 17+ [cite: 306]
-    └── docker-compose.yml     # Orquestación de PostgreSQL, API y Nginx [cite: 194, 195]
+└── /server3-bd                # Base de datos y Dashboard en Vanilla JS 
+    ├── /api-gestion           # FastAPI con endpoints CRUD, reportes y sirve el Dashboard estático [cite: 298, 305]
+    │   └── /app/static/dashboard # Frontend SPA en HTML/CSS/JS Puro (Dashboard responsivo de ancho completo)
+    └── docker-compose.yml     # Orquestación de PostgreSQL y API [cite: 194, 195]
 
 
 firmware/: Contendra todo el codigo en C/C++ necesario para el microcontrolador, desarrollado utilizando Arduino IDE.
@@ -61,17 +61,16 @@ server2-emotion/: Este modulo se ejecutara en el segundo equipo (Windows con WSL
 				+ httpx (para enviar el resultado final al Servidor 3).
 
 
-server3-db/:Este directiorio centraliza la persistencia de los datos y la interfaz grafica de usuario en el tercer equipo.
-	/api-gestion:	Es otra aplicacion FastAPI que actua como el backend administrativo. Contendra los endpoints CRUD para registrar materias, alumnos, profesores y horarios.
+server3-bd/: Este directorio centraliza la persistencia de los datos y la interfaz grafica de usuario en el tercer equipo.
+	/api-gestion:	Es la aplicacion FastAPI que actua como el backend administrativo y sirve la SPA del dashboard. Contendra los endpoints CRUD para registrar materias, alumnos, profesores y horarios, y cuenta con soporte CORS para solicitudes a localhost.
 
 		requeriments.txt:	incluira fastapi, uvicorn, sqlalchemy (como ORM para mapear la base de datos), alembic (para migraciones del esquema) y psycopg2-binary (el conector con PostgreSQL).
 
-	/dashboard:	Aqui vivira todo el codigo fuente generado por el CLI de Angular. Contendra los componentes de visualizacion (grafiacs de asistencia, tendencias emocionales) y los formularios de gestion.
+	/api-gestion/app/static/dashboard:	Aqui reside el codigo fuente del Frontend en Vanilla JS. Contendra los componentes de visualizacion y formularios de gestion, con un diseño de UI adaptado al espacio completo de la pantalla.
 
-	/docker-compose.yml: 	El archivo de orquestacion vital. Definira tres conectores o servicios:
+	/docker-compose.yml: 	El archivo de orquestacion vital. Definira los siguientes conectores o servicios:
 					1. La base de datos PosgreSQL 16 con un volumen persistente para no perder informacion si se reinicia.
-					2. El contenedor de la api-gestion.
-					3. El contenedor que compila Angular y lo sirve a traves de Nginx.
+					2. El contenedor de la api-gestion (que incluye el frontend servido estáticamente).
 
 
 

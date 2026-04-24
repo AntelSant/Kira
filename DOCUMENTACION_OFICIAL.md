@@ -41,13 +41,13 @@ Ejecutado en entorno aislado o secundario (ej. WSL2).
 
 ### 2.4 Servidor 3: API de Gestión, BD y Dashboard (`/server3-bd`)
 El núcleo administrativo central.
-- **Backend:** FastAPI, SQLAlchemy (ORM), Alembic, JWT (Roles).
+- **Backend:** FastAPI, SQLAlchemy (ORM), Alembic, JWT (Roles). Configurado con soporte CORS para permitir solicitudes externas a localhost desde los otros servidores.
 - **Base de Datos:** PostgreSQL (con extensiones pgvector / cube si aplica, o tablas relacionales de embebidos). Guardan usuarios, inscripciones, asistencias y metadatos emocionales.
-- **Frontend SPA (Dashboard):** Implementado en JavaScript puro (Vanilla JS), HTML5 y CSS3. Consumo dinámico de API (`app.js`). Renderiza vistas distintas dependiendo del rol autenticado.
+- **Frontend SPA (Dashboard):** Implementado en JavaScript puro (Vanilla JS), HTML5 y CSS3. Consumo dinámico de API (`app.js`). Renderiza vistas distintas dependiendo del rol autenticado, con un diseño de interfaz de ancho completo para mejor aprovechamiento del espacio.
 
 ### 2.5 Simulador Web (`/simuladorESP32`)
 Una utilidad local en Python.
-- **Rol:** Permite subir archivos JPEG desde el navegador para probar el `Servidor 1` sin necesidad de hardware ESP32 real.
+- **Rol:** Permite subir archivos JPEG desde el navegador o capturar fotos directamente desde la cámara web del dispositivo para probar el `Servidor 1` sin necesidad de hardware ESP32 real.
 
 ---
 
