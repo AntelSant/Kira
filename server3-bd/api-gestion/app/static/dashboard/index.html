@@ -50,7 +50,7 @@
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-brand"
                 style="display: flex; justify-content: space-between; align-items: center; padding: 24px 20px;">
-                <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 2px;">
                     <svg viewBox="0 0 24 24" width="28" height="28" fill="none">
                         <defs>
                             <linearGradient id="gradK" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -61,7 +61,7 @@
                         <path d="M8 21V3M20 3l-6 9 6 9M4 12h4" stroke="url(#gradK)" stroke-width="3"
                             stroke-linecap="round" stroke-linejoin="round" />
                     </svg>
-                    <h1>Kira UAS</h1>
+                    <h1>ira UAS</h1>
                 </div>
                 <button class="sidebar-close-btn" onclick="toggleSidebar()" aria-label="Close Menu">✕</button>
             </div>
@@ -224,33 +224,30 @@
                 <button class="sidebar-toggle" onclick="toggleSidebar()">
                     <span>☰</span> Menú
                 </button>
-                <button class="theme-toggle-btn" onclick="toggleTheme()" title="Cambiar tema">
-                    <svg id="theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-                    </svg>
-                </button>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button class="theme-toggle-btn" onclick="toggleTheme()" title="Cambiar tema">
+                        <svg id="theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </button>
+                    <button class="btn-logout" onclick="logout()" title="Cerrar sesión"
+                        style="background: transparent; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px; cursor: pointer; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                    </button>
+                </div>
             </div>
 
             <!-- ═══ PAGE: INICIO ═══ -->
             <section class="page-section active" id="page-inicio">
-                <div class="page-header"
-                    style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <div>
-                        <h1>Panel de Control</h1>
-                        <p>Resumen del sistema Kira UAS</p>
-                    </div>
-                    <div>
-                        <button class="btn-logout" onclick="logout()" title="Cerrar sesión"
-                            style="background: transparent; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px; cursor: pointer; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                                <polyline points="16 17 21 12 16 7"></polyline>
-                                <line x1="21" y1="12" x2="9" y2="12"></line>
-                            </svg>
-                        </button>
-                    </div>
+                <div class="page-header">
+                    <h1>Panel de Control</h1>
+                    <p>Resumen del sistema Kira UAS</p>
                 </div>
 
                 <div class="stats-grid" id="stats-grid">
@@ -353,7 +350,10 @@
                 </div>
 
                 <div class="toolbar">
-                    <button class="btn btn-primary" onclick="abrirModalUsuario()">➕ Nuevo Usuario</button>
+                    <button class="btn btn-primary" onclick="abrirModalUsuario()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        Nuevo Usuario
+                    </button>
                     <select class="form-control" id="filtro-tipo-usuario" onchange="cargarUsuarios()">
                         <option value="">Todos</option>
                         <option value="alumno">Alumnos</option>
@@ -388,7 +388,10 @@
                 </div>
 
                 <div class="toolbar">
-                    <button class="btn btn-primary" onclick="abrirModalMateria()">➕ Nueva Materia</button>
+                    <button class="btn btn-primary" onclick="abrirModalMateria()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        Nueva Materia
+                    </button>
                 </div>
 
                 <div class="table-card">
@@ -415,7 +418,10 @@
                 </div>
 
                 <div class="toolbar">
-                    <button class="btn btn-primary" onclick="abrirModalGrupo()">➕ Nuevo Grupo</button>
+                    <button class="btn btn-primary" onclick="abrirModalGrupo()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        Nuevo Grupo
+                    </button>
                 </div>
 
                 <div class="table-card">
@@ -449,7 +455,10 @@
                     <select class="form-control" id="horario-grupo-select" onchange="cargarHorarios()">
                         <option value="">-- Selecciona un grupo --</option>
                     </select>
-                    <button class="btn btn-primary" onclick="abrirModalHorario()">➕ Nuevo Horario</button>
+                    <button class="btn btn-primary" onclick="abrirModalHorario()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        Nuevo Horario
+                    </button>
                 </div>
 
                 <div class="table-card">
@@ -584,7 +593,10 @@
                 </div>
 
                 <div class="toolbar">
-                    <button class="btn btn-primary" onclick="abrirModalAdmin()">➕ Nuevo Administrador</button>
+                    <button class="btn btn-primary" onclick="abrirModalAdmin()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        Nuevo Administrador
+                    </button>
                 </div>
 
                 <div class="table-card">
