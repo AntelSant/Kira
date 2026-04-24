@@ -47,6 +47,45 @@
     --transition: 0.2s ease;
 }
 
+.light-theme {
+    --bg-primary: #f8fafc;
+    --bg-secondary: #ffffff;
+    --bg-card: rgba(255, 255, 255, 0.85);
+    --bg-card-hover: #f1f5f9;
+    --bg-input: #ffffff;
+    --bg-modal: rgba(15, 23, 42, 0.4);
+
+    --border: #e2e8f0;
+    --border-subtle: #f1f5f9;
+
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+
+    --shadow: 0 4px 24px rgba(15, 23, 42, 0.08);
+}
+
+/* ── Theme Toggle Button ────────────────────────────────── */
+.theme-toggle-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 8px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition);
+    margin-right: 12px;
+}
+
+.theme-toggle-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-card);
+    border-color: var(--border-subtle);
+}
+
 /* ── Reset ──────────────────────────────────────────────── */
 *,
 *::before,
@@ -269,6 +308,8 @@ body {
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius);
     padding: 20px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     transition: all var(--transition);
 }
 
@@ -292,6 +333,8 @@ body {
     display: flex;
     align-items: center;
     gap: 18px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     transition: all var(--transition);
 }
 
@@ -361,6 +404,8 @@ body {
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius);
     padding: 24px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
 
 .chart-card h3 {
@@ -387,6 +432,8 @@ body {
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius);
     overflow: hidden;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
 
 .table-header {
