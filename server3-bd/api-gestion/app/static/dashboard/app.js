@@ -152,7 +152,7 @@ function showDashboard(user) {
     // Role badge
     const roleBadge = document.getElementById('admin-role-badge');
     if (roleBadge) {
-        const labels = { admin: '🛡️ Admin', profesor: 'Profesor', alumno: 'Alumno' };
+        const labels = { admin: 'Admin', profesor: 'Profesor', alumno: 'Alumno' };
         roleBadge.textContent = labels[role] || role;
     }
 
@@ -344,7 +344,11 @@ document.getElementById('modal-overlay').addEventListener('click', (e) => {
 });
 
 function showAlert(container, type, message) {
-    const icons = { success: '✅', danger: '❌', info: 'ℹ️' };
+    const icons = {
+        success: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>',
+        danger:  '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>',
+        info:    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>',
+    };
     const el = document.getElementById(container) || document.getElementById('modal-body');
     const alertDiv = document.createElement('div');
     alertDiv.className = `alert alert-${type}`;
@@ -473,9 +477,9 @@ async function cargarUsuarios() {
             <td>${u.tiene_embedding ? '<span class="badge badge-success">Listo</span>' : '<span class="badge badge-warning">Pendiente</span>'}</td>
             <td>
                 <button class="btn btn-sm btn-primary" onclick="abrirModalCapturaCara('${u.matricula}', '${u.nombre} ${u.apellido}')">Registrar Cara</button>
-                <button class="btn btn-sm btn-outline" onclick="abrirModalSetEmail(${u.id}, '${u.nombre} ${u.apellido}', '${u.email || ''}')" title="Editar correo">📧</button>
-                <button class="btn btn-sm btn-outline" onclick="abrirModalSetPassword(${u.id}, '${u.nombre} ${u.apellido}', '${u.email || ''}')" title="Asignar contraseña">🔑</button>
-                <button class="btn btn-sm btn-danger" onclick="eliminarUsuario(${u.id})">🗑️</button>
+                <button class="btn btn-sm btn-outline" onclick="abrirModalSetEmail(${u.id}, '${u.nombre} ${u.apellido}', '${u.email || ''}')" title="Editar correo"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg></button>
+                <button class="btn btn-sm btn-outline" onclick="abrirModalSetPassword(${u.id}, '${u.nombre} ${u.apellido}', '${u.email || ''}')" title="Asignar contraseña"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></button>
+                <button class="btn btn-sm btn-danger" onclick="eliminarUsuario(${u.id})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4h6v2"></path></svg></button>
             </td>
         </tr>
     `).join('');
@@ -514,9 +518,9 @@ function abrirModalUsuario() {
     `;
     const footer = `
         <button class="btn btn-outline" onclick="cerrarModal()">Cancelar</button>
-        <button class="btn btn-primary" onclick="guardarUsuario()">💾 Registrar</button>
+        <button class="btn btn-primary" onclick="guardarUsuario()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Registrar</button>
     `;
-    abrirModal('➕ Nuevo Usuario', body, footer);
+    abrirModal('Nuevo Usuario', body, footer);
 }
 
 async function guardarUsuario() {
@@ -585,7 +589,7 @@ function abrirModalCapturaCara(matricula, nombreCompleto) {
     `;
     const footer = `
         <button class="btn btn-outline" onclick="cerrarModal()">Cancelar</button>
-        <button class="btn btn-primary" id="btn-enviar-cara" onclick="enviarCara()" disabled>🚀 Registrar Cara</button>
+        <button class="btn btn-primary" id="btn-enviar-cara" onclick="enviarCara()" disabled><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg> Registrar Cara</button>
     `;
     abrirModal('Registro Facial', body, footer);
 }
@@ -598,7 +602,7 @@ async function iniciarCamara() {
         const esHTTP = location.protocol === 'http:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1';
         if (esHTTP) {
             showAlert('modal-alert-zone', 'danger',
-                '⚠️ La cámara requiere acceder por <strong>localhost</strong> o HTTPS. ' +
+                'La cámara requiere acceder por <strong>localhost</strong> o HTTPS. ' +
                 'Abre el dashboard en <code>http://localhost:8003/dashboard</code> en lugar de por IP.');
         } else {
             showAlert('modal-alert-zone', 'danger', 'Tu navegador no soporta acceso a la cámara.');
@@ -623,12 +627,12 @@ async function iniciarCamara() {
 
         let msg = 'No se pudo acceder a la cámara.';
         if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
-            msg = '🔒 Permiso de cámara denegado. Haz clic en el ícono de cámara 🔒 en la barra de dirección ' +
+            msg = 'Permiso de cámara denegado. Haz clic en el ícono de cámara en la barra de dirección ' +
                 'del navegador y selecciona <strong>"Permitir"</strong>, luego vuelve a intentarlo.';
         } else if (e.name === 'NotFoundError' || e.name === 'DevicesNotFoundError') {
-            msg = '📷 No se encontró ninguna cámara. Conecta una webcam y vuelve a intentarlo.';
+            msg = 'No se encontró ninguna cámara. Conecta una webcam y vuelve a intentarlo.';
         } else if (e.name === 'NotReadableError' || e.name === 'TrackStartError') {
-            msg = '⚠️ La cámara está siendo usada por otra aplicación. Ciérrala y vuelve a intentarlo.';
+            msg = 'La cámara está siendo usada por otra aplicación. Ciérrala y vuelve a intentarlo.';
         } else if (e.name === 'OverconstrainedError') {
             // Reintentar sin restricciones de resolución
             try {
@@ -688,7 +692,7 @@ async function enviarCara() {
     const matricula = document.getElementById('cara-matricula').value;
     const btn = document.getElementById('btn-enviar-cara');
     btn.disabled = true;
-    btn.textContent = '⏳ Procesando...';
+    btn.textContent = 'Procesando...';
 
     const result = await api('/api/proxy/registrar-cara', {
         method: 'POST',
@@ -702,7 +706,7 @@ async function enviarCara() {
         const msg = result?.mensaje || 'Error al procesar. ¿Server1 está corriendo?';
         showAlert('modal-alert-zone', 'danger', msg);
         btn.disabled = false;
-        btn.textContent = '🚀 Registrar Cara';
+        btn.textContent = 'Registrar Cara';
     }
 
     capturedBase64 = null;
@@ -744,9 +748,9 @@ function abrirModalMateria() {
     `;
     const footer = `
         <button class="btn btn-outline" onclick="cerrarModal()">Cancelar</button>
-        <button class="btn btn-primary" onclick="guardarMateria()">💾 Registrar</button>
+        <button class="btn btn-primary" onclick="guardarMateria()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Registrar</button>
     `;
-    abrirModal('➕ Nueva Materia', body, footer);
+    abrirModal('Nueva Materia', body, footer);
 }
 
 async function guardarMateria() {
@@ -838,9 +842,9 @@ async function abrirModalGrupo() {
     `;
     const footer = `
         <button class="btn btn-outline" onclick="cerrarModal()">Cancelar</button>
-        <button class="btn btn-primary" onclick="guardarGrupo()">💾 Registrar</button>
+        <button class="btn btn-primary" onclick="guardarGrupo()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Registrar</button>
     `;
-    abrirModal('➕ Nuevo Grupo', body, footer);
+    abrirModal('Nuevo Grupo', body, footer);
 }
 
 async function guardarGrupo() {
@@ -907,7 +911,7 @@ async function cargarHorarios() {
             <td>${h.hora_inicio}</td>
             <td>${h.hora_fin}</td>
             <td>${h.tolerancia_minutos} min</td>
-            <td><button class="btn btn-sm btn-danger" onclick="eliminarHorario(${h.id})">🗑️</button></td>
+            <td><button class="btn btn-sm btn-danger" onclick="eliminarHorario(${h.id})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4h6v2"></path></svg></button></td>
         </tr>
     `).join('');
 }
@@ -950,9 +954,9 @@ function abrirModalHorario() {
     `;
     const footer = `
         <button class="btn btn-outline" onclick="cerrarModal()">Cancelar</button>
-        <button class="btn btn-primary" onclick="guardarHorario()">💾 Registrar</button>
+        <button class="btn btn-primary" onclick="guardarHorario()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Registrar</button>
     `;
-    abrirModal('➕ Nuevo Horario', body, footer);
+    abrirModal('Nuevo Horario', body, footer);
 }
 
 async function guardarHorario() {
@@ -1012,7 +1016,7 @@ async function cargarClasesAlumno() {
 
     empty.style.display = 'none';
     grid.style.display = 'none';
-    grid.innerHTML = '<div class="clase-card-loading">⏳ Cargando clases...</div>';
+    grid.innerHTML = '<div class="clase-card-loading">Cargando clases...</div>';
     grid.style.display = 'grid';
 
     const grupos = await api(`/api/grupos/con-horarios?alumno_id=${alumnoId}`);
@@ -1042,7 +1046,7 @@ function renderClaseCard(g, alumnoId) {
     let horariosHTML = '';
     if (!hasHorarios) {
         horariosHTML = `
-            <div class="horario-empty-notice">⚠️ Sin horario asignado — no se puede inscribir</div>
+            <div class="horario-empty-notice"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Sin horario asignado — no se puede inscribir</div>
         `;
     } else {
         horariosHTML = g.horarios.map((h, idx) => {
@@ -1054,12 +1058,12 @@ function renderClaseCard(g, alumnoId) {
                 return `
                     <div class="horario-option horario-option--enrolled" style="display:flex; justify-content:space-between;">
                         <div style="display:flex; align-items:center; gap: 10px;">
-                            <span class="horario-radio" title="Inscrito">✅</span>
+                            <span class="horario-radio" title="Inscrito"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
                             <span class="horario-dia">${h.dia_nombre}</span>
                             <span class="horario-tiempo horario-tiempo--enrolled">${inicio} – ${fin}</span>
                         </div>
                         <button class="btn btn-sm btn-danger py-0 px-2" style="font-size:0.75rem;" onclick="desinscribirAlumno(${h.inscripcion_id}, ${alumnoId})" title="Dar de baja de este horario">
-                            🗑️
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4h6v2"></path></svg>
                         </button>
                     </div>
                 `;
@@ -1071,7 +1075,7 @@ function renderClaseCard(g, alumnoId) {
                          onclick="seleccionarHorario('${cardId}', ${idx}, ${g.id}, ${h.id}, ${alumnoId})"
                          data-horario-idx="${idx}"
                          title="Selecciona este horario">
-                        <span class="horario-radio">${selected ? '🔵' : '⚪'}</span>
+                        <span class="horario-radio">${selected ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="4" fill="#0ea5e9"></circle></svg>' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg>'}</span>
                         <span class="horario-dia">${h.dia_nombre}</span>
                         <span class="horario-tiempo">${inicio} – ${fin}</span>
                     </div>
@@ -1087,12 +1091,12 @@ function renderClaseCard(g, alumnoId) {
     let btnInscribir = '';
     if (hasHorarios) {
         if (isFullyEnrolled) {
-            btnInscribir = `<button class="btn btn-sm btn-success" disabled>✅ Inscrito en todos los horarios</button>`;
+            btnInscribir = `<button class="btn btn-sm btn-success" disabled><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Inscrito en todos los horarios</button>`;
         } else {
             const defaultH = autoSelectIdx >= 0 ? g.horarios[autoSelectIdx] : null;
             const btnLabel = defaultH
-                ? `➕ Inscribir — ${defaultH.dia_nombre} ${defaultH.hora_inicio.substring(0, 5)}`
-                : `➕ Selecciona un horario`;
+                ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Inscribir — ${defaultH.dia_nombre} ${defaultH.hora_inicio.substring(0, 5)}`
+                : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Selecciona un horario`;
 
             const btnDisabled = autoSelectIdx >= 0 ? '' : 'disabled';
             const onclickParam = defaultH ? `onclick="inscribirAlumno(${g.id}, ${defaultH.id}, ${alumnoId})"` : '';
@@ -1107,8 +1111,8 @@ function renderClaseCard(g, alumnoId) {
     }
 
     const horariosTituloHTML = isPartiallyEnrolled
-        ? `<div class="clase-horarios-title enrolled-title">📌 Selecciona horarios adicionales</div>`
-        : `<div class="clase-horarios-title">🗓️ Selecciona el horario</div>`;
+        ? `<div class="clase-horarios-title enrolled-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Selecciona horarios adicionales</div>`
+        : `<div class="clase-horarios-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> Selecciona el horario</div>`;
 
     return `
         <div class="clase-card ${isPartiallyEnrolled ? 'clase-card--inscrito' : ''}" id="${cardId}">
@@ -1117,7 +1121,7 @@ function renderClaseCard(g, alumnoId) {
                     <div class="clase-materia">${g.materia_nombre}</div>
                     <code class="clase-clave">${g.materia_clave}</code>
                 </div>
-                ${isFullyEnrolled ? '<span class="badge badge-success">✅ Completamente inscrito</span>' : isPartiallyEnrolled ? '<span class="badge badge-success">✅ Inscrito</span>' : ''}
+                ${isFullyEnrolled ? '<span class="badge badge-success"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Completamente inscrito</span>' : isPartiallyEnrolled ? '<span class="badge badge-success"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Inscrito</span>' : ''}
             </div>
             <div class="clase-info">
                 <span>Profesor: ${g.profesor_nombre}</span>
@@ -1142,14 +1146,14 @@ function seleccionarHorario(cardId, idx, grupoId, horarioId, alumnoId) {
     // Deselect all options in this card
     card.querySelectorAll('.horario-option:not(.horario-option--enrolled)').forEach(el => {
         el.classList.remove('horario-option--selected');
-        el.querySelector('.horario-radio').textContent = '⚪';
+        el.querySelector('.horario-radio').innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg>';
     });
 
     // Select the clicked option
     const selected = card.querySelector(`.horario-option[data-horario-idx="${idx}"]`);
     if (selected) {
         selected.classList.add('horario-option--selected');
-        selected.querySelector('.horario-radio').textContent = '🔵';
+        selected.querySelector('.horario-radio').innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="4" fill="#0ea5e9"></circle></svg>';
     }
 
     // Update the Inscribir button
@@ -1157,7 +1161,7 @@ function seleccionarHorario(cardId, idx, grupoId, horarioId, alumnoId) {
     if (btn) {
         const dia = selected?.querySelector('.horario-dia')?.textContent || '';
         const tiempo = selected?.querySelector('.horario-tiempo')?.textContent || '';
-        btn.textContent = `➕ Inscribir — ${dia} ${tiempo.split(' –')[0]}`;
+        btn.textContent = `Inscribir — ${dia} ${tiempo.split(' –')[0]}`;
         btn.disabled = false;
         btn.onclick = () => inscribirAlumno(grupoId, horarioId, alumnoId);
     }
@@ -1459,7 +1463,7 @@ async function cargarAdmins() {
                 <td>${a.email}</td>
                 <td>${a.fecha_registro || '—'}</td>
                 <td>
-                    <button class="btn btn-sm btn-danger" onclick="eliminarAdmin(${a.id})">🗑️</button>
+                    <button class="btn btn-sm btn-danger" onclick="eliminarAdmin(${a.id})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4h6v2"></path></svg></button>
                 </td>
             </tr>
         `).join('');
@@ -1486,9 +1490,9 @@ function abrirModalAdmin() {
     `;
     const footer = `
         <button class="btn btn-outline" onclick="cerrarModal()">Cancelar</button>
-        <button class="btn btn-primary" onclick="guardarAdmin()">💾 Registrar</button>
+        <button class="btn btn-primary" onclick="guardarAdmin()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Registrar</button>
     `;
-    abrirModal('🛡️ Nuevo Administrador', body, footer);
+    abrirModal('Nuevo Administrador', body, footer);
 }
 
 async function guardarAdmin() {
@@ -1555,9 +1559,9 @@ function abrirModalSetEmail(userId, nombreCompleto, emailActual) {
     `;
     const footer = `
         <button class="btn btn-outline" onclick="cerrarModal()">Cancelar</button>
-        <button class="btn btn-primary" onclick="guardarEmail()">📧 Guardar Correo</button>
+        <button class="btn btn-primary" onclick="guardarEmail()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg> Guardar Correo</button>
     `;
-    abrirModal('📧 Editar Correo', body, footer);
+    abrirModal('Editar Correo', body, footer);
 }
 
 async function guardarEmail() {
@@ -1593,7 +1597,7 @@ async function guardarEmail() {
 
 function abrirModalSetPassword(userId, nombreCompleto, email) {
     if (!email) {
-        alert('Este usuario necesita un email antes de asignarle contraseña. Usa primero el botón 📧 para asignarle un correo.');
+        alert('Este usuario necesita un email antes de asignarle contraseña. Usa primero el botón de correo para asignarle un correo.');
         return;
     }
     const body = `
@@ -1614,9 +1618,9 @@ function abrirModalSetPassword(userId, nombreCompleto, email) {
     `;
     const footer = `
         <button class="btn btn-outline" onclick="cerrarModal()">Cancelar</button>
-        <button class="btn btn-primary" onclick="guardarPassword()">🔑 Asignar Contraseña</button>
+        <button class="btn btn-primary" onclick="guardarPassword()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Asignar Contraseña</button>
     `;
-    abrirModal('🔑 Asignar Contraseña', body, footer);
+    abrirModal('Asignar Contraseña', body, footer);
 }
 
 async function guardarPassword() {
@@ -1664,15 +1668,15 @@ async function cargarProfesorGrupos() {
     if (resumen && statsGrid) {
         statsGrid.innerHTML = `
             <div class="stat-card">
-                <div class="stat-icon blue">🏫</div>
+                <div class="stat-icon blue"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 21v-4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v4"></path></svg></div>
                 <div class="stat-info"><h3>${resumen.total_grupos}</h3><p>Mis Grupos</p></div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon green">🎓</div>
+                <div class="stat-icon green"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path></svg></div>
                 <div class="stat-info"><h3>${resumen.total_alumnos}</h3><p>Total Alumnos</p></div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon orange">✅</div>
+                <div class="stat-icon orange"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
                 <div class="stat-info"><h3>${resumen.asistencias_hoy}</h3><p>Asistencias Hoy</p></div>
             </div>
         `;
@@ -1694,7 +1698,7 @@ async function cargarProfesorGrupos() {
             <td>${g.semestre}</td>
             <td><span class="badge badge-info">${g.num_alumnos}</span></td>
             <td>
-                <button class="btn btn-sm btn-primary" onclick="verListaAsistenciaProfesor(${g.id})">📋 Lista</button>
+                <button class="btn btn-sm btn-primary" onclick="verListaAsistenciaProfesor(${g.id})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg> Lista</button>
             </td>
         </tr>
     `).join('');
@@ -1891,15 +1895,15 @@ async function cargarAlumnoClases() {
     if (resumen && statsGrid) {
         statsGrid.innerHTML = `
             <div class="stat-card">
-                <div class="stat-icon blue">📚</div>
+                <div class="stat-icon blue"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg></div>
                 <div class="stat-info"><h3>${resumen.total_clases_inscritas}</h3><p>Clases Inscritas</p></div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon green">✅</div>
+                <div class="stat-icon green"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
                 <div class="stat-info"><h3>${resumen.total_asistencias}</h3><p>Asistencias</p></div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon orange">❌</div>
+                <div class="stat-icon orange"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></div>
                 <div class="stat-info"><h3>${resumen.total_faltas}</h3><p>Faltas</p></div>
             </div>
         `;
@@ -1949,18 +1953,18 @@ async function cargarAlumnoMiAsistencia() {
 
     function estadoBadge(estado) {
         const map = {
-            a_tiempo: ['✅ A tiempo', 'badge-success'],
-            retardo: ['⏰ Retardo', 'badge-warning'],
-            ausente: ['❌ Ausente', 'badge-danger'],
-            fuera_de_horario: ['🚫 Fuera', 'badge-danger'],
-            justificado: ['📝 Justificado', 'badge-info'],
+            a_tiempo: ['A tiempo', 'badge-success'],
+            retardo: ['Retardo', 'badge-warning'],
+            ausente: ['Ausente', 'badge-danger'],
+            fuera_de_horario: ['Fuera', 'badge-danger'],
+            justificado: ['Justificado', 'badge-info'],
         };
         const [text, cls] = map[estado] || [estado || '—', 'badge-secondary'];
         return `<span class="badge ${cls}">${text}</span>`;
     }
 
     function emocionBadge(emocion) {
-        const map = { positivo: 'Positivo 😊', neutro: 'Neutro 😐', negativo: 'Negativo 😞' };
+        const map = { positivo: 'Positivo', neutro: 'Neutro', negativo: 'Negativo' };
         return map[emocion] || emocion || '—';
     }
 
