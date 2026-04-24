@@ -467,7 +467,7 @@ async function cargarUsuarios() {
         <tr>
             <td>${u.id}</td>
             <td>
-                <div style="display:flex;align-items:center;gap:8px;">
+                <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
                     ${u.foto_perfil ? `<img src="${u.foto_perfil}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" onerror="this.style.display='none'">` : ''}
                     <span>${u.nombre} ${u.apellido}</span>
                 </div>
