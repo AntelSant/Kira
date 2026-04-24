@@ -28,3 +28,6 @@ ANALISIS_MEJORAS_KIRA.md
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+
+#Agent skill
+.agent
