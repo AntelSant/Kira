@@ -1117,9 +1117,9 @@ function renderClaseCard(g, alumnoId) {
     return `
         <div class="clase-card ${isPartiallyEnrolled ? 'clase-card--inscrito' : ''}" id="${cardId}">
             <div class="clase-card-header">
-                <div>
+                <div style="display:flex; align-items:center; gap:8px;">
                     <div class="clase-materia">${g.materia_nombre}</div>
-                    <code class="clase-clave">${g.materia_clave}</code>
+                    <code class="clase-clave" style="margin-top:0;">${g.materia_clave}</code>
                 </div>
                 ${isFullyEnrolled ? '<span class="badge badge-success"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Completamente inscrito</span>' : isPartiallyEnrolled ? '<span class="badge badge-success"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Inscrito</span>' : ''}
             </div>
@@ -1127,7 +1127,7 @@ function renderClaseCard(g, alumnoId) {
                 <span>Profesor: ${g.profesor_nombre}</span>
                 <span>Aula: ${g.aula}</span>
                 <span>Semestre: ${g.semestre} — ${g.periodo}</span>
-                <span class="badge badge-info">Total de Alumnos: ${g.num_alumnos}</span>
+                <span style="color:var(--info); font-weight:600;">Total de Alumnos: ${g.num_alumnos}</span>
             </div>
             <div class="clase-horarios-lista">
                 ${horariosTituloHTML}
