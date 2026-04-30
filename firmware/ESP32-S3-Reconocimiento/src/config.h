@@ -2,14 +2,17 @@
 #define CONFIG_H
 
 // Credenciales WiFi (Cámbialas por las tuyas)
-const char *WIFI_SSID = "Totalplay-F3AA";
-const char *WIFI_PASSWORD = "F3AA8DA12rkzBTHF";
+// const char *WIFI_SSID = "Totalplay-F3AA";
+// const char *WIFI_PASSWORD = "F3AA8DA12rkzBTHF";
+
+const char *WIFI_SSID = "Zi";
+const char *WIFI_PASSWORD = "contraSegura";
 
 // Configuración del Servidor 1 (CachyOS)
-const char *SERVER_URL = "http://192.168.100.95:8001/api/capture";
+const char *SERVER_URL = "http://10.95.157.164:8001/api/capture";
 
 // Nombre del aula donde está instalado este dispositivo
-#define AULA_ID "Lab. Computo"
+#define AULA_ID "9"
 
 // Pines de la cámara Freenove ESP32-S3 WROOM
 #define PWDN_GPIO_NUM -1
@@ -29,8 +32,25 @@ const char *SERVER_URL = "http://192.168.100.95:8001/api/capture";
 #define HREF_GPIO_NUM 7
 #define PCLK_GPIO_NUM 13
 
-// Pines de tu pantalla OLED (Los usaremos pronto)
+// Pines de tu pantalla OLED
 #define OLED_SDA_PIN 41
 #define OLED_SCL_PIN 42
+
+// ── Nuevos periféricos: Servo + LEDs ────────────────────────────────
+// Servo Steren MOT-100 (señal PWM)
+#define SERVO_PIN     2
+
+// LED verde  = acceso permitido  (con resistencia 220Ω en serie)
+#define LED_VERDE_PIN 46
+
+// LED rojo   = acceso denegado   (con resistencia 220Ω en serie)
+#define LED_ROJO_PIN  47
+
+// Ángulo de "puerta cerrada" y "puerta abierta"
+#define SERVO_CERRADO  0
+#define SERVO_ABIERTO  90
+
+// Tiempo que la puerta permanece "abierta" (ms)
+#define PUERTA_OPEN_MS 3000
 
 #endif
