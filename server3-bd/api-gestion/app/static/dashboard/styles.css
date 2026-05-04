@@ -400,6 +400,10 @@ body {
 .stat-icon svg {
     width: 24px;
     height: 24px;
+    stroke: var(--text-primary);
+}
+
+.stat-icon[class*="grad-"] svg {
     stroke: white;
 }
 
