@@ -404,8 +404,8 @@ async function cargarInicio() {
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                    y: { beginAtZero: true, border: { display: false }, ticks: { color: '#64748b', padding: 10 }, grid: { color: '#1e2843', drawTicks: false } },
-                    x: { border: { display: false }, ticks: { color: '#94a3b8', padding: 10 }, grid: { display: false, drawTicks: false } }
+                    y: { beginAtZero: true, border: { display: false }, ticks: { color: '#64748b', padding: 10, font: { size: 14 } }, grid: { color: '#1e2843', drawTicks: false } },
+                    x: { border: { display: false }, ticks: { color: '#94a3b8', padding: 10, font: { size: 14 } }, grid: { display: false, drawTicks: false } }
                 }
             }
         });
@@ -437,9 +437,10 @@ async function cargarInicio() {
                         position: 'right',
                         labels: {
                             color: '#94a3b8',
-                            padding: 20,
+                            padding: 24,
                             usePointStyle: true,
-                            pointStyle: 'circle'
+                            pointStyle: 'circle',
+                            font: { size: 15 }
                         }
                     }
                 }
