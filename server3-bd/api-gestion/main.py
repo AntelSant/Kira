@@ -31,7 +31,6 @@ print("-- ¡Tablas listas y creadas!")
 
 # --- Crear carpetas necesarias ---
 os.makedirs("app/static/perfiles", exist_ok=True)
-os.makedirs("app/static/dashboard", exist_ok=True)
 
 # ============================================================
 #  CONFIGURACIÓN JWT & BCRYPT
@@ -212,18 +211,24 @@ app.add_middleware(
 )
 
 # --- Archivos estáticos ---
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
-
+app.mount("/static", StaticFiles(directory="app/static"), name="static") 
+app.mount("/assets", StaticFiles(directory="../dashboard/dist/assets"), name="assets")
 
 # ============================================================
 #  DASHBOARD SPA — Servir la interfaz web
 # ============================================================
+from pathlib import Path
 
 @app.get("/", include_in_schema=False)
 @app.get("/dashboard", include_in_schema=False)
-def serve_dashboard():
-    """Sirve el dashboard SPA"""
-    return FileResponse("app/static/dashboard/index.html")
+@app.get("/dashboard/{full_path:path}", include_in_schema=False)
+def serve_dashboard(full_path: str = ""):
+    """Sirve el dashboard React SPA como principal"""
+    build_dir = Path("../dashboard/dist")
+    file_path = build_dir / full_path
+    if file_path.is_file():
+        return FileResponse(str(file_path))
+    return FileResponse(str(build_dir / "index.html"))
 
 
 # ============================================================
