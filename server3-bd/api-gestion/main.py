@@ -211,8 +211,12 @@ app.add_middleware(
 )
 
 # --- Archivos estáticos ---
-app.mount("/static", StaticFiles(directory="app/static"), name="static") 
-app.mount("/assets", StaticFiles(directory="../dashboard/dist/assets"), name="assets")
+import os
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+assets_dir = "../dashboard/dist/assets"
+os.makedirs(assets_dir, exist_ok=True)
+app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
 
 # ============================================================
 #  DASHBOARD SPA — Servir la interfaz web
