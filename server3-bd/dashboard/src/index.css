@@ -45,6 +45,13 @@
     --radius-sm: 8px;
     --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
     --transition: 0.2s ease;
+
+    --bg-hover: rgba(255, 255, 255, 0.05);
+
+    --success-bg: rgba(16, 185, 129, 0.12);
+    --warning-bg: rgba(245, 158, 11, 0.12);
+    --danger-bg: rgba(239, 68, 68, 0.12);
+    --info-bg: rgba(59, 130, 246, 0.12);
 }
 
 .light-theme {
@@ -127,10 +134,39 @@ body {
     overflow-x: hidden;
 }
 
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
 /* ── Layout ─────────────────────────────────────────────── */
 .app-layout {
     display: flex;
     min-height: 100vh;
+}
+
+/* ── Sidebar Overlay (mobile) ──────────────────────────── */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 99;
+    opacity: 0;
+    transition: opacity var(--transition);
+    pointer-events: none;
+}
+
+.sidebar-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+@media (max-width: 900px) {
+    .sidebar-overlay {
+        display: block;
+    }
 }
 
 /* ── Background Blobs (Glassmorphism) ────────── */
@@ -1028,7 +1064,8 @@ select.form-control {
 }
 
 /* ── Login Screen ────────────────────────────────────────── */
-.login-screen {
+.login-screen,
+.login-container {
     position: fixed;
     inset: 0;
     background: var(--bg-primary);

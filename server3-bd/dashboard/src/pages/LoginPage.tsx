@@ -57,56 +57,60 @@ export const LoginPage: React.FC = () => {
   return (
     <div className="login-container">
       <div className="login-card">
-        <div className="login-header">
-          <h2>Bienvenido a Kira</h2>
+        <div className="login-brand">
+          <div className="login-logo">🤖</div>
+          <h1>Kira UAS</h1>
           <p>Sistema de Gestión Escolar</p>
         </div>
 
-          <form onSubmit={handleLogin} className="login-form">
-            <div className="form-group">
-              <label>Matrícula / Clave</label>
+        <form onSubmit={handleLogin}>
+          <div className="login-field">
+            <label>Matrícula / Email</label>
+            <input
+              type="text"
+              value={matricula}
+              onChange={(e) => setMatricula(e.target.value)}
+              placeholder="Ingresa tu identificador"
+              disabled={loading}
+            />
+          </div>
+
+          <div className="login-field">
+            <label>Contraseña</label>
+            <div className="password-wrapper">
               <input
-                type="text"
-                className="form-control"
-                value={matricula}
-                onChange={(e) => setMatricula(e.target.value)}
-                placeholder="Ingresa tu identificador"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
                 disabled={loading}
               />
+              <button
+                type="button"
+                className="toggle-pass"
+                onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
-            <div className="form-group">
-              <label>Contraseña</label>
-              <div className="password-wrapper">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  className="form-control"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  disabled={loading}
-                />
-                <button
-                  type="button"
-                  className="btn-icon password-toggle"
-                  onClick={() => setShowPassword(!showPassword)}
-                  tabIndex={-1}
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
+          </div>
+
+          {errorMsg && (
+            <div className="login-error">
+              {errorMsg}
             </div>
+          )}
 
-            {errorMsg && (
-              <div className="login-error visible">
-                {errorMsg}
-              </div>
-            )}
+          <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
+            {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+          </button>
+        </form>
 
-            <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
-              {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
-            </button>
-          </form>
-        </div>
+        <p className="login-hint">
+          Contacta al administrador si no tienes cuenta.
+        </p>
+      </div>
     </div>
   );
 };

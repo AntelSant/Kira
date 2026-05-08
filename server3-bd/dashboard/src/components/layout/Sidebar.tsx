@@ -1,16 +1,10 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { 
-  Home, 
-  Users, 
-  BookOpen, 
-  Layers, 
-  Clock, 
-  ClipboardList, 
-  CalendarCheck, 
-  Smile, 
-  ShieldAlert 
+  Home, Users, BookOpen, Layers, Clock, 
+  ClipboardList, CalendarCheck, Smile, ShieldAlert,
+  ListChecks, X
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -18,122 +12,111 @@ interface SidebarProps {
   onClose: () => void;
 }
 
+interface NavItemProps {
+  to: string;
+  icon: React.ReactNode;
+  label: string;
+  end?: boolean;
+  onClose: () => void;
+}
+
+const NavItem: React.FC<NavItemProps> = ({ to, icon, label, end, onClose }) => {
+  const location = useLocation();
+
+  // For "end" routes (like /admin), only match exact path
+  const isActive = end 
+    ? location.pathname === to 
+    : location.pathname.startsWith(to);
+
+  return (
+    <NavLink
+      to={to}
+      end={end}
+      className={`nav-item ${isActive ? 'active' : ''}`}
+      onClick={onClose}
+    >
+      <span className="icon">{icon}</span>
+      <span>{label}</span>
+    </NavLink>
+  );
+};
+
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
 
   return (
     <>
-      <div className={`sidebar-overlay ${isOpen ? 'active' : ''}`} onClick={onClose}></div>
-      <aside className={`sidebar ${isOpen ? 'active' : ''}`}>
-        <div className="sidebar-header">
-          <div className="logo-placeholder"></div>
-          <h2>Kira UAS</h2>
+      {/* Overlay para móvil */}
+      <div 
+        className={`sidebar-overlay ${isOpen ? 'active' : ''}`} 
+        onClick={onClose}
+      />
+
+      <aside className={`sidebar ${!isOpen ? 'collapsed' : ''}`}>
+        {/* Brand */}
+        <div className="sidebar-brand">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <h1>Kira UAS</h1>
+            <button className="sidebar-close-btn" onClick={onClose}>
+              <X size={20} />
+            </button>
+          </div>
+          <p>Sistema de Gestión Escolar</p>
         </div>
+
+        {/* Navigation */}
         <nav className="sidebar-nav">
-          <ul>
-            {/* Admin Links */}
-            {role === 'admin' && (
-              <>
-                <li>
-                  <NavLink to="/admin" className={({ isActive }) => isActive ? 'active' : ''} onClick={onClose}>
-                    <Home size={20} />
-                    <span>Inicio</span>
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink to="/admin/usuarios" className={({ isActive }) => isActive ? 'active' : ''} onClick={onClose}>
-                    <Users size={20} />
-                    <span>Usuarios</span>
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink to="/admin/materias" className={({ isActive }) => isActive ? 'active' : ''} onClick={onClose}>
-                    <BookOpen size={20} />
-                    <span>Materias</span>
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink to="/admin/grupos" className={({ isActive }) => isActive ? 'active' : ''} onClick={onClose}>
-                    <Layers size={20} />
-                    <span>Grupos</span>
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink to="/admin/horarios" className={({ isActive }) => isActive ? 'active' : ''} onClick={onClose}>
-                    <Clock size={20} />
-                    <span>Horarios</span>
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink to="/admin/inscripciones" className={({ isActive }) => isActive ? 'active' : ''} onClick={onClose}>
-                    <ClipboardList size={20} />
-                    <span>Inscripciones</span>
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink to="/admin/asistencia" className={({ isActive }) => isActive ? 'active' : ''} onClick={onClose}>
-                    <CalendarCheck size={20} />
-                    <span>Asistencia</span>
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink to="/admin/emociones" className={({ isActive }) => isActive ? 'active' : ''} onClick={onClose}>
-                    <Smile size={20} />
-                    <span>Emociones</span>
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink to="/admin/admins" className={({ isActive }) => isActive ? 'active' : ''} onClick={onClose}>
-                    <ShieldAlert size={20} />
-                    <span>Admins</span>
-                  </NavLink>
-                </li>
-              </>
-            )}
+          {/* ─── Admin Links ─── */}
+          {role === 'admin' && (
+            <>
+              <div className="nav-section-label">Principal</div>
+              <NavItem to="/admin" icon={<Home size={18} />} label="Inicio" end onClose={onClose} />
 
-            {/* Profesor Links */}
-            {role === 'profesor' && (
-              <>
-                <li>
-                  <NavLink to="/profesor" className={({ isActive }) => isActive ? 'active' : ''} onClick={onClose}>
-                    <Layers size={20} />
-                    <span>Mis Grupos</span>
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink to="/profesor/asistencia" className={({ isActive }) => isActive ? 'active' : ''} onClick={onClose}>
-                    <CalendarCheck size={20} />
-                    <span>Asistencia</span>
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink to="/profesor/emociones" className={({ isActive }) => isActive ? 'active' : ''} onClick={onClose}>
-                    <Smile size={20} />
-                    <span>Emociones</span>
-                  </NavLink>
-                </li>
-              </>
-            )}
+              <div className="nav-section-label">Gestión</div>
+              <NavItem to="/admin/usuarios" icon={<Users size={18} />} label="Usuarios" onClose={onClose} />
+              <NavItem to="/admin/materias" icon={<BookOpen size={18} />} label="Materias" onClose={onClose} />
+              <NavItem to="/admin/grupos" icon={<Layers size={18} />} label="Grupos" onClose={onClose} />
+              <NavItem to="/admin/horarios" icon={<Clock size={18} />} label="Horarios" onClose={onClose} />
+              <NavItem to="/admin/inscripciones" icon={<ClipboardList size={18} />} label="Inscripciones" onClose={onClose} />
 
-            {/* Alumno Links */}
-            {role === 'alumno' && (
-              <>
-                <li>
-                  <NavLink to="/alumno" className={({ isActive }) => isActive ? 'active' : ''} onClick={onClose}>
-                    <BookOpen size={20} />
-                    <span>Mis Clases</span>
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink to="/alumno/asistencia" className={({ isActive }) => isActive ? 'active' : ''} onClick={onClose}>
-                    <CalendarCheck size={20} />
-                    <span>Mi Asistencia</span>
-                  </NavLink>
-                </li>
-              </>
-            )}
-          </ul>
+              <div className="nav-section-label">Reportes</div>
+              <NavItem to="/admin/asistencia" icon={<CalendarCheck size={18} />} label="Asistencia" onClose={onClose} />
+              <NavItem to="/admin/lista-asistencia" icon={<ListChecks size={18} />} label="Lista Asistencia" onClose={onClose} />
+              <NavItem to="/admin/emociones" icon={<Smile size={18} />} label="Emociones" onClose={onClose} />
+
+              <div className="nav-section-label">Sistema</div>
+              <NavItem to="/admin/admins" icon={<ShieldAlert size={18} />} label="Administradores" onClose={onClose} />
+            </>
+          )}
+
+          {/* ─── Profesor Links ─── */}
+          {role === 'profesor' && (
+            <>
+              <div className="nav-section-label">Mi Panel</div>
+              <NavItem to="/profesor" icon={<Layers size={18} />} label="Mis Grupos" end onClose={onClose} />
+              <NavItem to="/profesor/asistencia" icon={<CalendarCheck size={18} />} label="Asistencia" onClose={onClose} />
+              <NavItem to="/profesor/emociones" icon={<Smile size={18} />} label="Emociones" onClose={onClose} />
+            </>
+          )}
+
+          {/* ─── Alumno Links ─── */}
+          {role === 'alumno' && (
+            <>
+              <div className="nav-section-label">Mi Panel</div>
+              <NavItem to="/alumno" icon={<BookOpen size={18} />} label="Mis Clases" end onClose={onClose} />
+              <NavItem to="/alumno/asistencia" icon={<CalendarCheck size={18} />} label="Mi Asistencia" onClose={onClose} />
+            </>
+          )}
         </nav>
+
+        {/* Footer */}
+        <div className="sidebar-footer">
+          <div className="admin-info">
+            <span className="admin-avatar">👤</span>
+            <span className="admin-name">{user?.nombre || 'Usuario'}</span>
+            <span className="admin-role-badge">{role}</span>
+          </div>
+        </div>
       </aside>
     </>
   );
