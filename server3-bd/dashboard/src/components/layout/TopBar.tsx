@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
-import { Menu, LogOut, Sun, Moon } from 'lucide-react';
-import { useAuth } from '../../hooks/useAuth';
+import { Menu, Sun, Moon } from 'lucide-react';
 
 interface TopBarProps {
   onMenuClick: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
-  const { user, logout, role } = useAuth();
   const [isDark, setIsDark] = useState(!document.body.classList.contains('light-theme'));
 
   const toggleTheme = () => {
@@ -30,15 +28,6 @@ export const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
         <button className="theme-toggle-btn" onClick={toggleTheme} title="Cambiar Tema">
           {isDark ? <Sun size={18} /> : <Moon size={18} />}
         </button>
-
-        <div className="admin-info" style={{ background: 'transparent', padding: '4px 0' }}>
-          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-            {user?.nombre} ({role})
-          </span>
-          <button className="btn-logout" style={{ width: 'auto', padding: '6px 12px' }} onClick={logout} title="Cerrar Sesión">
-            <LogOut size={16} />
-          </button>
-        </div>
       </div>
     </div>
   );

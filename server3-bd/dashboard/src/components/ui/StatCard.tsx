@@ -5,19 +5,20 @@ interface StatCardProps {
   value: string | number;
   subtitle?: string;
   icon: React.ReactNode;
+  gradient?: string;
   className?: string;
 }
 
-export const StatCard: React.FC<StatCardProps> = ({ title, value, subtitle, icon, className = '' }) => {
+export const StatCard: React.FC<StatCardProps> = ({ title, value, subtitle, icon, gradient = 'grad-cyan', className = '' }) => {
   return (
     <div className={`stat-card ${className}`}>
-      <div className="stat-content">
-        <h3>{title}</h3>
-        <p className="stat-value">{value}</p>
-        {subtitle && <p className="stat-subtitle">{subtitle}</p>}
-      </div>
-      <div className="stat-icon">
+      <div className={`stat-icon ${gradient}`}>
         {icon}
+      </div>
+      <div className="stat-info">
+        <h3>{value}</h3>
+        <p>{title}</p>
+        {subtitle && <p style={{ fontSize: '0.7rem', opacity: 0.7 }}>{subtitle}</p>}
       </div>
     </div>
   );

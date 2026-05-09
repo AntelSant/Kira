@@ -77,32 +77,43 @@ export const DashboardPage: React.FC = () => {
         <h1>Dashboard de Control</h1>
       </div>
 
-      <div className="grid grid-3">
+      <div className="stats-grid">
         <StatCard 
           title="Alumnos" 
           value={resumen?.total_alumnos || 0} 
           subtitle={`${resumen?.embeddings_registrados || 0} rostros registrados`}
-          icon={<Users size={32} />} 
+          icon={<Users size={24} />}
+          gradient="grad-cyan"
         />
         <StatCard 
           title="Profesores" 
           value={resumen?.total_profesores || 0} 
-          icon={<Users size={32} />} 
+          icon={<Users size={24} />}
+          gradient="grad-purple"
         />
         <StatCard 
           title="Asistencias Hoy" 
           value={resumen?.asistencias_hoy || 0} 
-          icon={<CheckCircle size={32} />} 
+          icon={<CheckCircle size={24} />}
+          gradient="grad-green"
         />
         <StatCard 
           title="Grupos" 
           value={resumen?.total_grupos || 0} 
-          icon={<Layers size={32} />} 
+          icon={<Layers size={24} />}
+          gradient="grad-blue-purple"
         />
         <StatCard 
           title="Materias" 
           value={resumen?.total_materias || 0} 
-          icon={<BookOpen size={32} />} 
+          icon={<BookOpen size={24} />}
+          gradient="grad-blue"
+        />
+        <StatCard 
+          title="Rostros Registrados" 
+          value={resumen?.embeddings_registrados || 0} 
+          icon={<CheckCircle size={24} />}
+          gradient="grad-green"
         />
       </div>
 
