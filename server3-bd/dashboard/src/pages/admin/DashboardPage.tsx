@@ -3,9 +3,9 @@ import { StatCard } from '../../components/ui/StatCard';
 import { ChartCard } from '../../components/ui/ChartCard';
 import { authFetch } from '../../api/client';
 import { Users, BookOpen, Layers, CheckCircle } from 'lucide-react';
-import { 
-  BarChart, Bar, XAxis, YAxis, Tooltip, 
-  PieChart, Pie, Cell, Legend 
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip,
+  PieChart, Pie, Cell, Legend
 } from 'recharts';
 
 interface ResumenData {
@@ -78,40 +78,39 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       <div className="stats-grid">
-        <StatCard 
-          title="Alumnos" 
-          value={resumen?.total_alumnos || 0} 
-          subtitle={`${resumen?.embeddings_registrados || 0} rostros registrados`}
+        <StatCard
+          title="Alumnos"
+          value={resumen?.total_alumnos || 0}
           icon={<Users size={24} />}
           gradient="grad-cyan"
         />
-        <StatCard 
-          title="Profesores" 
-          value={resumen?.total_profesores || 0} 
+        <StatCard
+          title="Profesores"
+          value={resumen?.total_profesores || 0}
           icon={<Users size={24} />}
           gradient="grad-purple"
         />
-        <StatCard 
-          title="Asistencias Hoy" 
-          value={resumen?.asistencias_hoy || 0} 
+        <StatCard
+          title="Asistencias Hoy"
+          value={resumen?.asistencias_hoy || 0}
           icon={<CheckCircle size={24} />}
           gradient="grad-green"
         />
-        <StatCard 
-          title="Grupos" 
-          value={resumen?.total_grupos || 0} 
+        <StatCard
+          title="Grupos"
+          value={resumen?.total_grupos || 0}
           icon={<Layers size={24} />}
           gradient="grad-blue-purple"
         />
-        <StatCard 
-          title="Materias" 
-          value={resumen?.total_materias || 0} 
+        <StatCard
+          title="Materias"
+          value={resumen?.total_materias || 0}
           icon={<BookOpen size={24} />}
           gradient="grad-blue"
         />
-        <StatCard 
-          title="Rostros Registrados" 
-          value={resumen?.embeddings_registrados || 0} 
+        <StatCard
+          title="Rostros Registrados"
+          value={resumen?.embeddings_registrados || 0}
           icon={<CheckCircle size={24} />}
           gradient="grad-green"
         />

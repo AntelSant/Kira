@@ -54,7 +54,8 @@
     --info-bg: rgba(59, 130, 246, 0.12);
 }
 
-.light-theme {
+.light-theme,
+html.light-theme {
     --bg-primary: #f8fafc;
     --bg-secondary: #ffffff;
     --bg-card: rgba(255, 255, 255, 0.85);
