@@ -5,25 +5,33 @@ interface TopBarProps {
   onMenuClick: () => void;
 }
 
-// Helpers que leen/escriben el tema directamente en el DOM
-function getIsDark(): boolean {
-  return !document.documentElement.classList.contains('light-theme');
+// Lee el tema guardado o devuelve 'dark' por defecto
+function getSavedIsDark(): boolean {
+  const saved = localStorage.getItem('kira-theme');
+  return saved !== 'light';
 }
 
+// Aplica la clase al DOM
 function applyTheme(dark: boolean) {
+  const cl = document.documentElement.classList;
+  const bl = document.body.classList;
   if (dark) {
-    document.documentElement.classList.remove('light-theme');
-    document.body.classList.remove('light-theme');
-    localStorage.setItem('kira-theme', 'dark');
+    cl.remove('light-theme');
+    bl.remove('light-theme');
   } else {
-    document.documentElement.classList.add('light-theme');
-    document.body.classList.add('light-theme');
-    localStorage.setItem('kira-theme', 'light');
+    cl.add('light-theme');
+    bl.add('light-theme');
   }
+  localStorage.setItem('kira-theme', dark ? 'dark' : 'light');
 }
 
 export const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
-  const [isDark, setIsDark] = React.useState<boolean>(getIsDark);
+  const [isDark, setIsDark] = React.useState<boolean>(getSavedIsDark);
+
+  // Restaurar el tema correcto al montar
+  React.useEffect(() => {
+    applyTheme(isDark);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleTheme = () => {
     const next = !isDark;
