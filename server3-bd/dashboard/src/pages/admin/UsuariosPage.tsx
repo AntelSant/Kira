@@ -172,23 +172,25 @@ export const UsuariosPage: React.FC = () => {
   };
 
   const columns: ColumnDef<Usuario>[] = [
-    { header: 'ID', accessorKey: 'id', width: '50px' },
+    { header: 'ID', accessorKey: 'id', width: '50px', align: 'center' },
     { 
       header: 'Nombre', 
+      align: 'center',
       cell: (user) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
           {user.foto_perfil && <img src={user.foto_perfil} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />}
           <span>{user.nombre} {user.apellido}</span>
         </div>
       )
     },
-    { header: 'Matrícula', cell: (u) => <code>{u.matricula}</code> },
-    { header: 'Tipo', cell: (u) => <Badge variant={u.tipo === 'alumno' ? 'info' : 'primary'}>{u.tipo}</Badge> },
-    { header: 'Estado', cell: (u) => <Badge variant={u.tiene_embedding ? 'success' : 'warning'}>{u.tiene_embedding ? 'Listo' : 'Pendiente'}</Badge> },
+    { header: 'Matrícula', align: 'center', cell: (u) => <code>{u.matricula}</code> },
+    { header: 'Tipo', align: 'center', cell: (u) => <Badge variant={u.tipo === 'alumno' ? 'info' : 'primary'}>{u.tipo}</Badge> },
+    { header: 'Estado', align: 'center', cell: (u) => <Badge variant={u.tiene_embedding ? 'success' : 'warning'}>{u.tiene_embedding ? 'Listo' : 'Pendiente'}</Badge> },
     { 
       header: 'Acciones', 
+      align: 'center',
       cell: (u) => (
-        <div style={{ display: 'flex', gap: '5px' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '5px' }}>
           <Button variant="primary" icon={<Camera size={16}/>} onClick={() => openFaceModal(u)}>Cara</Button>
           <Button variant="outline" icon={<Mail size={16}/>} title="Editar correo" onClick={() => {}} />
           <Button variant="outline" icon={<Key size={16}/>} title="Asignar contraseña" onClick={() => {}} />
@@ -206,7 +208,7 @@ export const UsuariosPage: React.FC = () => {
 
       {alert && <Alert variant={alert.type} message={alert.message} className="mb-4" />}
 
-      <div className="toolbar">
+      <div className="toolbar" style={{ marginBottom: '24px' }}>
         <select 
           className="form-control" 
           style={{ width: '200px' }}

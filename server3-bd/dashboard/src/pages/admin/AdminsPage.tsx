@@ -76,14 +76,17 @@ export const AdminsPage: React.FC = () => {
   };
 
   const columns: ColumnDef<Usuario>[] = [
-    { header: 'ID', accessorKey: 'id', width: '50px' },
-    { header: 'Nombre', accessorKey: 'nombre' },
-    { header: 'Email / Usuario', cell: (u) => <code>{u.email}</code> },
-    { header: 'Rol', cell: () => <Badge variant="primary">Admin</Badge> },
+    { header: 'ID', accessorKey: 'id', width: '50px', align: 'center' },
+    { header: 'Nombre', accessorKey: 'nombre', align: 'center' },
+    { header: 'Email / Usuario', align: 'center', cell: (u) => <code>{u.email}</code> },
+    { header: 'Rol', align: 'center', cell: () => <Badge variant="primary">Admin</Badge> },
     { 
       header: 'Acciones', 
+      align: 'center',
       cell: (u) => (
-        <Button variant="danger" icon={<Trash2 size={16}/>} onClick={() => handleDeleteAdmin(u.id)} />
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <Button variant="danger" icon={<Trash2 size={16}/>} onClick={() => handleDeleteAdmin(u.id)} />
+        </div>
       )
     }
   ];

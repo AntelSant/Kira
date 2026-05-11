@@ -80,15 +80,16 @@ export const GruposPage: React.FC = () => {
   };
 
   const columns: ColumnDef<Grupo>[] = [
-    { header: 'ID', accessorKey: 'id', width: '80px' },
+    { header: 'ID', accessorKey: 'id', width: '80px', align: 'center' },
     { 
       header: 'Materia', 
-      cell: (g) => <div><strong>{g.materia_nombre}</strong><br/><small>{g.materia_clave}</small></div> 
+      align: 'center',
+      cell: (g) => <div style={{ textAlign: 'center' }}><strong>{g.materia_nombre}</strong><br/><small>{g.materia_clave}</small></div> 
     },
-    { header: 'Profesor', accessorKey: 'profesor_nombre' },
-    { header: 'Aula', accessorKey: 'aula' },
-    { header: 'Semestre/Periodo', cell: (g) => `${g.semestre} - ${g.periodo}` },
-    { header: 'Cupo', accessorKey: 'num_alumnos' }
+    { header: 'Profesor', accessorKey: 'profesor_nombre', align: 'center' },
+    { header: 'Aula', accessorKey: 'aula', align: 'center' },
+    { header: 'Semestre/Periodo', align: 'center', cell: (g) => `${g.semestre} - ${g.periodo}` },
+    { header: 'Cupo', accessorKey: 'num_alumnos', align: 'center' }
   ];
 
   return (

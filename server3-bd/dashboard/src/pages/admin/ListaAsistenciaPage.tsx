@@ -109,12 +109,13 @@ export const ListaAsistenciaPage: React.FC = () => {
   };
 
   const columns: ColumnDef<Asistencia>[] = [
-    { header: 'Fecha', accessorKey: 'fecha' },
-    { header: 'Matrícula', cell: (a) => <code>{a.matricula}</code> },
-    { header: 'Alumno', accessorKey: 'alumno_nombre' },
-    { header: 'Llegada', accessorKey: 'hora_llegada' },
+    { header: 'Fecha', accessorKey: 'fecha', align: 'center' },
+    { header: 'Matrícula', align: 'center', cell: (a) => <code>{a.matricula}</code> },
+    { header: 'Alumno', accessorKey: 'alumno_nombre', align: 'center' },
+    { header: 'Llegada', accessorKey: 'hora_llegada', align: 'center' },
     { 
       header: 'Estado', 
+      align: 'center',
       cell: (a) => {
         let variant: 'success' | 'warning' | 'danger' | 'info' = 'info';
         if (a.estado === 'presente') variant = 'success';
@@ -126,8 +127,11 @@ export const ListaAsistenciaPage: React.FC = () => {
     },
     { 
       header: 'Acciones', 
+      align: 'center',
       cell: (a) => (
-        <Button variant="outline" icon={<Edit size={16}/>} onClick={() => openJustificarModal(a)} title="Modificar Estado / Justificar" />
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <Button variant="outline" icon={<Edit size={16}/>} onClick={() => openJustificarModal(a)} title="Modificar Estado / Justificar" />
+        </div>
       )
     }
   ];

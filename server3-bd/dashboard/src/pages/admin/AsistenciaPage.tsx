@@ -33,11 +33,12 @@ export const AsistenciaPage: React.FC = () => {
   }, [grupoId, fecha]);
 
   const columns: ColumnDef<Asistencia>[] = [
-    { header: 'Matrícula', cell: (a) => <code>{a.matricula}</code> },
-    { header: 'Alumno', accessorKey: 'alumno_nombre' },
-    { header: 'Hora Llegada', accessorKey: 'hora_llegada' },
+    { header: 'Matrícula', align: 'center', cell: (a) => <code>{a.matricula}</code> },
+    { header: 'Alumno', accessorKey: 'alumno_nombre', align: 'center' },
+    { header: 'Hora Llegada', accessorKey: 'hora_llegada', align: 'center' },
     { 
       header: 'Estado', 
+      align: 'center',
       cell: (a) => {
         let variant: 'success' | 'warning' | 'danger' | 'info' = 'info';
         if (a.estado === 'presente') variant = 'success';
@@ -48,6 +49,7 @@ export const AsistenciaPage: React.FC = () => {
     },
     { 
       header: 'Emoción', 
+      align: 'center',
       cell: (a) => {
         if (!a.emocion) return '-';
         let variant: 'success' | 'warning' | 'danger' | 'info' | 'primary' = 'info';

@@ -96,14 +96,17 @@ export const HorariosPage: React.FC = () => {
   };
 
   const columns: ColumnDef<Horario>[] = [
-    { header: 'Día', accessorKey: 'dia_nombre' },
-    { header: 'Inicio', accessorKey: 'hora_inicio' },
-    { header: 'Fin', accessorKey: 'hora_fin' },
-    { header: 'Tolerancia', cell: (h) => `${h.tolerancia_minutos} min` },
+    { header: 'Día', accessorKey: 'dia_nombre', align: 'center' },
+    { header: 'Inicio', accessorKey: 'hora_inicio', align: 'center' },
+    { header: 'Fin', accessorKey: 'hora_fin', align: 'center' },
+    { header: 'Tolerancia', align: 'center', cell: (h) => `${h.tolerancia_minutos} min` },
     { 
       header: 'Acciones', 
+      align: 'center',
       cell: (h) => (
-        <Button variant="danger" icon={<Trash2 size={16}/>} onClick={() => handleDeleteHorario(h.id)} />
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <Button variant="danger" icon={<Trash2 size={16}/>} onClick={() => handleDeleteHorario(h.id)} />
+        </div>
       )
     }
   ];

@@ -59,9 +59,9 @@ export const MateriasPage: React.FC = () => {
   };
 
   const columns: ColumnDef<Materia>[] = [
-    { header: 'ID', accessorKey: 'id', width: '80px' },
-    { header: 'Nombre', accessorKey: 'nombre' },
-    { header: 'Clave', cell: (m) => <code>{m.clave}</code> }
+    { header: 'ID', accessorKey: 'id', width: '80px', align: 'center' },
+    { header: 'Nombre', accessorKey: 'nombre', align: 'center' },
+    { header: 'Clave', align: 'center', cell: (m) => <code>{m.clave}</code> }
   ];
 
   return (
