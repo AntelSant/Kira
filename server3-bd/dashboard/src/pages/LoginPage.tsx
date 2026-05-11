@@ -37,7 +37,7 @@ export const LoginPage: React.FC = () => {
 
       if (response.ok) {
         login(data.access_token, data.role);
-        
+
         // Redirigir según el rol
         if (data.role === 'admin') navigate('/admin');
         else if (data.role === 'profesor') navigate('/profesor');
@@ -58,8 +58,7 @@ export const LoginPage: React.FC = () => {
     <div className="login-container">
       <div className="login-card">
         <div className="login-brand">
-          <div className="login-logo">🤖</div>
-          <h1>Kira UAS</h1>
+          <h1>KIRA UAS</h1>
           <p>Sistema de Gestión Escolar</p>
         </div>
 
