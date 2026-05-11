@@ -40,16 +40,23 @@ export const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
   };
 
   return (
-    <div className="top-bar">
+    <div className="top-bar" style={{ position: 'relative', zIndex: 10 }}>
       <button className="sidebar-toggle" onClick={onMenuClick}>
         <Menu size={20} />
       </button>
 
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button className="theme-toggle-btn" onClick={toggleTheme} title="Cambiar Tema">
+        <button
+          id="theme-toggle"
+          className="theme-toggle-btn"
+          onClick={toggleTheme}
+          title="Cambiar Tema"
+          type="button"
+        >
           {isDark ? <Sun size={18} /> : <Moon size={18} />}
         </button>
       </div>
     </div>
   );
 };
+
