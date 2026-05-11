@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { authFetch } from '../../api/client';
 import { ChartCard } from '../../components/ui/ChartCard';
-import { 
+import {
   PieChart, Pie, Cell, Legend, Tooltip,
   BarChart, Bar, XAxis, YAxis
 } from 'recharts';
@@ -86,6 +86,7 @@ export const EmocionesPage: React.FC = () => {
           )}
         </ChartCard>
 
+        <div style={{ marginTop: '24px' }} />
         <ChartCard title="Comparativa por Emoción" height={400}>
           {loading ? <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>Cargando...</div> : (
             <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>

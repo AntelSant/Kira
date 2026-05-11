@@ -126,6 +126,7 @@ export const DashboardPage: React.FC = () => {
           </BarChart>
         </ChartCard>
 
+        <div style={{ marginTop: '24px' }} />
         <ChartCard title="Emociones Detectadas (Últimos 7 días)">
           <PieChart>
             <Pie

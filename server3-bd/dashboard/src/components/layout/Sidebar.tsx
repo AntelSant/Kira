@@ -1,10 +1,10 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { 
-  Home, Users, BookOpen, Layers, Clock, 
+import {
+  Home, Users, BookOpen, Layers, Clock,
   ClipboardList, CalendarCheck, Smile, ShieldAlert,
-  ListChecks, X
+  ListChecks, X, User
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -23,8 +23,8 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, label, end }) => {
   const location = useLocation();
 
   // For "end" routes (like /admin), only match exact path
-  const isActive = end 
-    ? location.pathname === to 
+  const isActive = end
+    ? location.pathname === to
     : location.pathname.startsWith(to);
 
   return (
@@ -45,8 +45,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   return (
     <>
       {/* Overlay para móvil */}
-      <div 
-        className={`sidebar-overlay ${isOpen ? 'active' : ''}`} 
+      <div
+        className={`sidebar-overlay ${isOpen ? 'active' : ''}`}
         onClick={onClose}
       />
 
@@ -54,7 +54,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         {/* Brand */}
         <div className="sidebar-brand">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h1>Kira UAS</h1>
+            <h1>KIRA UAS</h1>
             <button className="sidebar-close-btn" onClick={onClose}>
               <X size={20} />
             </button>
@@ -110,7 +110,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         {/* Footer */}
         <div className="sidebar-footer">
           <div className="admin-info">
-            <span className="admin-avatar">👤</span>
+            <span className="admin-avatar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <User size={18} color="#94a3b8" />
+            </span>
             <span className="admin-name">{user?.nombre || 'Usuario'}</span>
             <span className="admin-role-badge">{role}</span>
           </div>
