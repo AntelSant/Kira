@@ -147,6 +147,21 @@ export const UsuariosPage: React.FC = () => {
     }
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      const base64Data = dataUrl.replace(/^data:image\/[a-zA-Z0-9]+;base64,/, "");
+      // Simulamos las 5 capturas repitiendo la misma imagen para que el backend la procese correctamente
+      setFotos([base64Data, base64Data, base64Data, base64Data, base64Data]);
+      setCaptureStep(5);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const submitFotos = async () => {
     if (fotos.length < 5 || !selectedUser) return;
     setIsCapturing(true);
@@ -310,6 +325,14 @@ export const UsuariosPage: React.FC = () => {
             <video ref={videoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }}></video>
           </div>
           <canvas ref={canvasRef} width={320} height={240} style={{ display: 'none' }}></canvas>
+          
+          <div style={{ marginTop: '1rem', borderTop: '1px solid #333', paddingTop: '1rem' }}>
+            <p style={{ marginBottom: '0.5rem', fontSize: '0.9rem', color: '#999' }}>¿O prefieres subir una foto desde tu dispositivo?</p>
+            <label style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '6px', border: '1px solid #4a4a4a', background: '#2a2a2a', color: '#fff', fontSize: '14px', fontWeight: 500 }}>
+              <Camera size={16} /> Subir Imagen
+              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileUpload} />
+            </label>
+          </div>
         </div>
       </Modal>
 
