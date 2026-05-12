@@ -34,8 +34,8 @@ export const HorariosPage: React.FC = () => {
     }
     setLoading(true);
     try {
-      const data = await authFetch(`/horarios/grupo/${gid}`).then(res => res.json());
-      setHorarios(data);
+      const data = await authFetch(`/horarios/${gid}`).then(res => res.json());
+      setHorarios(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error(error);
       showAlert('Error al cargar horarios', 'danger');

@@ -1163,6 +1163,28 @@ def listar_inscripciones(grupo_id: int, db: Session = Depends(get_db)):
     return resultado
 
 
+@app.get("/api/inscripciones/alumno/{alumno_id}")
+def listar_inscripciones_alumno(alumno_id: int, db: Session = Depends(get_db)):
+    """Lista las clases (grupos) en las que un alumno específico está inscrito"""
+    inscripciones = db.query(Inscripcion).filter(Inscripcion.alumno_id == alumno_id).all()
+    resultado = []
+    for ins in inscripciones:
+        grupo = db.query(Grupo).filter(Grupo.id == ins.grupo_id).first()
+        if not grupo:
+            continue
+        materia = db.query(Materia).filter(Materia.id == grupo.materia_id).first()
+        profesor = db.query(Usuario).filter(Usuario.id == grupo.profesor_id).first()
+        resultado.append({
+            "id": grupo.id,
+            "inscripcion_id": ins.id,
+            "materia_nombre": materia.nombre if materia else "Sin materia",
+            "profesor_nombre": f"{profesor.nombre} {profesor.apellido}" if profesor else "Sin profesor",
+            "aula": grupo.aula,
+            "semestre": grupo.semestre,
+        })
+    return resultado
+
+
 @app.post("/api/inscripciones/registrar")
 def registrar_inscripcion(data: InscripcionCreate, db: Session = Depends(get_db)):
     """Inscribe un alumno en un horario de grupo específico"""

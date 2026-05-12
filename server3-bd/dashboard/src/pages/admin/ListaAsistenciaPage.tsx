@@ -39,7 +39,13 @@ export const ListaAsistenciaPage: React.FC = () => {
     if (!grupoId || !fechaInicio || !fechaFin) return;
     setLoading(true);
     try {
-      const data = await authFetch(`/asistencia/lista?grupo_id=${grupoId}&fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`).then(res => res.json());
+      const rawData = await authFetch(`/asistencia/${grupoId}`).then(res => res.json());
+      let data = Array.isArray(rawData) ? rawData.map((r: any) => ({
+        ...r,
+        alumno_nombre: r.nombre,
+        hora_llegada: r.hora_registro
+      })) : [];
+      data = data.filter((a: any) => a.fecha >= fechaInicio && a.fecha <= fechaFin);
       setAsistencia(data);
     } catch (error) {
       console.error(error);

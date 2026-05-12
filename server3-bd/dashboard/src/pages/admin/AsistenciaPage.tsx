@@ -19,7 +19,12 @@ export const AsistenciaPage: React.FC = () => {
     if (!grupoId || !fecha) return;
     setLoading(true);
     try {
-      const data = await authFetch(`/asistencia/grupo/${grupoId}?fecha=${fecha}`).then(res => res.json());
+      const rawData = await authFetch(`/asistencia/${grupoId}?fecha=${fecha}`).then(res => res.json());
+      const data = Array.isArray(rawData) ? rawData.map((r: any) => ({
+        ...r,
+        alumno_nombre: r.nombre,
+        hora_llegada: r.hora_registro
+      })) : [];
       setAsistencia(data);
     } catch (error) {
       console.error(error);
