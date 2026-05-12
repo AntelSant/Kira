@@ -55,7 +55,7 @@ export const GruposPage: React.FC = () => {
 
   const handleSaveGrupo = async () => {
     try {
-      const res = await authFetch('/grupos', {
+      const res = await authFetch('/grupos/registrar', {
         method: 'POST',
         body: JSON.stringify({
           ...formData,

@@ -56,7 +56,7 @@ export const HorariosPage: React.FC = () => {
   const handleSaveHorario = async () => {
     if (!grupoId) return;
     try {
-      const res = await authFetch('/horarios', {
+      const res = await authFetch('/horarios/registrar', {
         method: 'POST',
         body: JSON.stringify({
           grupo_id: parseInt(grupoId),

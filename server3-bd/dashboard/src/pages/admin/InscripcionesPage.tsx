@@ -52,7 +52,7 @@ export const InscripcionesPage: React.FC = () => {
   const handleInscribir = async (grupoId: number) => {
     if (!alumnoId) return;
     try {
-      const res = await authFetch('/inscripciones', {
+      const res = await authFetch('/inscripciones/registrar', {
         method: 'POST',
         body: JSON.stringify({
           alumno_id: parseInt(alumnoId),

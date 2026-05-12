@@ -39,7 +39,7 @@ export const MateriasPage: React.FC = () => {
 
   const handleSaveMateria = async () => {
     try {
-      const res = await authFetch('/materias', {
+      const res = await authFetch('/materias/registrar', {
         method: 'POST',
         body: JSON.stringify(formData),
       });

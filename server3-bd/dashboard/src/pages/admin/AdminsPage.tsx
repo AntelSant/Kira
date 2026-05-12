@@ -41,7 +41,7 @@ export const AdminsPage: React.FC = () => {
 
   const handleSaveAdmin = async () => {
     try {
-      const res = await authFetch('/admins', {
+      const res = await authFetch('/admins/registrar', {
         method: 'POST',
         body: JSON.stringify(formData),
       });
