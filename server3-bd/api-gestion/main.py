@@ -512,22 +512,26 @@ async def registrar_usuario(
     apellido: str = Form(...),
     matricula: str = Form(...),
     tipo: str = Form(...),
-    foto: UploadFile = File(...),
+    foto: Optional[UploadFile] = None,
     db: Session = Depends(get_db)
 ):
-    """Registra un usuario nuevo con foto de perfil"""
+    """Registra un usuario nuevo con foto de perfil opcional"""
     try:
         tipo_enum = TipoUsuario(tipo.lower())
     except ValueError:
         raise HTTPException(status_code=400, detail="Tipo de usuario inválido. Use 'alumno' o 'profesor'.")
 
-    extension = foto.filename.split(".")[-1]
-    nombre_archivo = f"{matricula}.{extension}"
-    ruta_relativa = f"app/static/perfiles/{nombre_archivo}"
-    ruta_bd = f"/static/perfiles/{nombre_archivo}"
+    ruta_bd = None
+    ruta_relativa = None
 
-    with open(ruta_relativa, "wb") as buffer:
-        shutil.copyfileobj(foto.file, buffer)
+    if foto and foto.filename:
+        extension = foto.filename.split(".")[-1]
+        nombre_archivo = f"{matricula}.{extension}"
+        ruta_relativa = f"app/static/perfiles/{nombre_archivo}"
+        ruta_bd = f"/static/perfiles/{nombre_archivo}"
+
+        with open(ruta_relativa, "wb") as buffer:
+            shutil.copyfileobj(foto.file, buffer)
 
     nuevo_usuario = Usuario(
         nombre=nombre,
@@ -548,7 +552,7 @@ async def registrar_usuario(
         }
     except IntegrityError:
         db.rollback()
-        if os.path.exists(ruta_relativa):
+        if ruta_relativa and os.path.exists(ruta_relativa):
             os.remove(ruta_relativa)
         raise HTTPException(status_code=400, detail="La matrícula ya está registrada.")
 

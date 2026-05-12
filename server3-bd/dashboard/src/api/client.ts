@@ -34,6 +34,11 @@ export async function authFetch(endpoint: string, options: FetchOptions = {}): P
     ...options.headers,
   };
 
+  // Prevent sending application/json for FormData (browser will set multipart/form-data)
+  if (options.body instanceof FormData) {
+    delete headers['Content-Type'];
+  }
+
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }

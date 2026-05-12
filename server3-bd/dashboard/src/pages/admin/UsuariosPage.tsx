@@ -20,6 +20,7 @@ export const UsuariosPage: React.FC = () => {
   
   // Form state
   const [formData, setFormData] = useState({ nombre: '', apellido: '', matricula: '', tipo: 'alumno' });
+  const [fotoFile, setFotoFile] = useState<File | null>(null);
   const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
 
   // Face Capture State
@@ -55,9 +56,19 @@ export const UsuariosPage: React.FC = () => {
 
   const handleSaveUsuario = async () => {
     try {
-      const res = await authFetch('/usuarios', {
+      const form = new FormData();
+      form.append('nombre', formData.nombre);
+      form.append('apellido', formData.apellido);
+      form.append('matricula', formData.matricula);
+      form.append('tipo', formData.tipo);
+      
+      if (fotoFile) {
+        form.append('foto', fotoFile);
+      }
+
+      const res = await authFetch('/usuarios/registrar', {
         method: 'POST',
-        body: JSON.stringify(formData),
+        body: form,
       });
       const data = await res.json();
       
@@ -66,6 +77,7 @@ export const UsuariosPage: React.FC = () => {
         setIsModalOpen(false);
         fetchUsuarios();
         setFormData({ nombre: '', apellido: '', matricula: '', tipo: 'alumno' });
+        setFotoFile(null);
       } else {
         showAlert(data.detail || 'Error al crear usuario', 'danger');
       }
@@ -266,6 +278,12 @@ export const UsuariosPage: React.FC = () => {
               <option value="alumno">Alumno</option>
               <option value="profesor">Profesor</option>
             </select>
+          </div>
+        </div>
+        <div className="form-row">
+          <div className="form-group" style={{ width: '100%' }}>
+            <label>Foto de Perfil</label>
+            <input type="file" className="form-control" accept="image/*" onChange={e => setFotoFile(e.target.files?.[0] || null)} />
           </div>
         </div>
       </Modal>
