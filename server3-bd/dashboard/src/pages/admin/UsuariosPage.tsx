@@ -17,9 +17,13 @@ export const UsuariosPage: React.FC = () => {
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isFaceModalOpen, setIsFaceModalOpen] = useState(false);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState({ nombre: '', apellido: '', matricula: '', tipo: 'alumno' });
+  const [emailData, setEmailData] = useState('');
+  const [passwordData, setPasswordData] = useState('');
   const [fotoFile, setFotoFile] = useState<File | null>(null);
   const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
 
@@ -101,6 +105,62 @@ export const UsuariosPage: React.FC = () => {
     } catch (e) {
       showAlert('Error de conexión', 'danger');
     }
+  };
+
+  const handleSaveEmail = async () => {
+    if (!selectedUser || !emailData) return;
+    try {
+      const res = await authFetch(`/usuarios/${selectedUser.id}/set-email`, {
+        method: 'PUT',
+        body: JSON.stringify({ email: emailData })
+      });
+      if (res.ok) {
+        showAlert('Correo actualizado', 'success');
+        setIsEmailModalOpen(false);
+        fetchUsuarios();
+      } else {
+        const data = await res.json();
+        showAlert(data.detail || 'Error al actualizar correo', 'danger');
+      }
+    } catch (e) {
+      showAlert('Error de conexión', 'danger');
+    }
+  };
+
+  const handleSavePassword = async () => {
+    if (!selectedUser || !passwordData) return;
+    if (passwordData.length < 6) {
+      showAlert('La contraseña debe tener al menos 6 caracteres', 'danger');
+      return;
+    }
+    try {
+      const res = await authFetch(`/usuarios/${selectedUser.id}/set-password`, {
+        method: 'PUT',
+        body: JSON.stringify({ password: passwordData })
+      });
+      if (res.ok) {
+        showAlert('Contraseña asignada', 'success');
+        setIsPasswordModalOpen(false);
+        setPasswordData('');
+      } else {
+        const data = await res.json();
+        showAlert(data.detail || 'Error al asignar contraseña', 'danger');
+      }
+    } catch (e) {
+      showAlert('Error de conexión', 'danger');
+    }
+  };
+
+  const openEmailModal = (user: Usuario) => {
+    setSelectedUser(user);
+    setEmailData(user.email || '');
+    setIsEmailModalOpen(true);
+  };
+
+  const openPasswordModal = (user: Usuario) => {
+    setSelectedUser(user);
+    setPasswordData('');
+    setIsPasswordModalOpen(true);
   };
 
   const startCamera = async () => {
@@ -221,8 +281,8 @@ export const UsuariosPage: React.FC = () => {
       cell: (u) => (
         <div style={{ display: 'flex', justifyContent: 'center', gap: '5px' }}>
           <Button variant="primary" icon={<Camera size={16}/>} onClick={() => openFaceModal(u)}>Cara</Button>
-          <Button variant="outline" icon={<Mail size={16}/>} title="Editar correo" onClick={() => {}} />
-          <Button variant="outline" icon={<Key size={16}/>} title="Asignar contraseña" onClick={() => {}} />
+          <Button variant="outline" icon={<Mail size={16}/>} title="Editar correo" onClick={() => openEmailModal(u)} />
+          <Button variant="outline" icon={<Key size={16}/>} title="Asignar contraseña" onClick={() => openPasswordModal(u)} />
           <Button variant="danger" icon={<Trash2 size={16}/>} onClick={() => handleDeleteUsuario(u.id)} />
         </div>
       )
@@ -335,6 +395,52 @@ export const UsuariosPage: React.FC = () => {
               <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileUpload} />
             </label>
           </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isEmailModalOpen}
+        onClose={() => setIsEmailModalOpen(false)}
+        title={`Editar Correo: ${selectedUser?.nombre}`}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsEmailModalOpen(false)}>Cancelar</Button>
+            <Button variant="primary" onClick={handleSaveEmail}>Guardar</Button>
+          </>
+        }
+      >
+        <div className="form-group">
+          <label>Correo electrónico</label>
+          <input
+            type="email"
+            className="form-control"
+            value={emailData}
+            onChange={e => setEmailData(e.target.value)}
+            placeholder="correo@kira.uas.edu.mx"
+          />
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
+        title={`Asignar Contraseña: ${selectedUser?.nombre}`}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsPasswordModalOpen(false)}>Cancelar</Button>
+            <Button variant="primary" onClick={handleSavePassword}>Guardar</Button>
+          </>
+        }
+      >
+        <div className="form-group">
+          <label>Nueva contraseña</label>
+          <input
+            type="password"
+            className="form-control"
+            value={passwordData}
+            onChange={e => setPasswordData(e.target.value)}
+            placeholder="Mínimo 6 caracteres"
+          />
         </div>
       </Modal>
 

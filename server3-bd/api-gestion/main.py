@@ -226,6 +226,8 @@ from pathlib import Path
 @app.get("/", include_in_schema=False)
 @app.get("/dashboard", include_in_schema=False)
 @app.get("/dashboard/{full_path:path}", include_in_schema=False)
+@app.get("/admin", include_in_schema=False)
+@app.get("/admin/{full_path:path}", include_in_schema=False)
 def serve_dashboard(full_path: str = ""):
     """Sirve el dashboard React SPA como principal"""
     build_dir = Path("../dashboard/dist")
