@@ -55,16 +55,18 @@ export const UsuariosPage: React.FC = () => {
   };
 
   const handleSaveUsuario = async () => {
+    if (!fotoFile) {
+      showAlert('La foto de perfil es obligatoria', 'danger');
+      return;
+    }
+
     try {
       const form = new FormData();
       form.append('nombre', formData.nombre);
       form.append('apellido', formData.apellido);
       form.append('matricula', formData.matricula);
       form.append('tipo', formData.tipo);
-      
-      if (fotoFile) {
-        form.append('foto', fotoFile);
-      }
+      form.append('foto', fotoFile);
 
       const res = await authFetch('/usuarios/registrar', {
         method: 'POST',

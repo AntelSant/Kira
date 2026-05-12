@@ -512,26 +512,25 @@ async def registrar_usuario(
     apellido: str = Form(...),
     matricula: str = Form(...),
     tipo: str = Form(...),
-    foto: Optional[UploadFile] = None,
+    foto: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
-    """Registra un usuario nuevo con foto de perfil opcional"""
+    """Registra un usuario nuevo con foto de perfil obligatoria"""
     try:
         tipo_enum = TipoUsuario(tipo.lower())
     except ValueError:
         raise HTTPException(status_code=400, detail="Tipo de usuario inválido. Use 'alumno' o 'profesor'.")
 
-    ruta_bd = None
-    ruta_relativa = None
+    if not foto or not foto.filename:
+        raise HTTPException(status_code=400, detail="La foto de perfil es obligatoria.")
 
-    if foto and foto.filename:
-        extension = foto.filename.split(".")[-1]
-        nombre_archivo = f"{matricula}.{extension}"
-        ruta_relativa = f"app/static/perfiles/{nombre_archivo}"
-        ruta_bd = f"/static/perfiles/{nombre_archivo}"
+    extension = foto.filename.split(".")[-1]
+    nombre_archivo = f"{matricula}.{extension}"
+    ruta_relativa = f"app/static/perfiles/{nombre_archivo}"
+    ruta_bd = f"/static/perfiles/{nombre_archivo}"
 
-        with open(ruta_relativa, "wb") as buffer:
-            shutil.copyfileobj(foto.file, buffer)
+    with open(ruta_relativa, "wb") as buffer:
+        shutil.copyfileobj(foto.file, buffer)
 
     nuevo_usuario = Usuario(
         nombre=nombre,
