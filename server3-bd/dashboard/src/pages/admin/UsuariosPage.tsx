@@ -25,6 +25,7 @@ export const UsuariosPage: React.FC = () => {
   const [emailData, setEmailData] = useState('');
   const [passwordData, setPasswordData] = useState('');
   const [fotoFile, setFotoFile] = useState<File | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
 
   // Face Capture State
@@ -60,9 +61,10 @@ export const UsuariosPage: React.FC = () => {
 
   const handleSaveUsuario = async () => {
     if (!fotoFile) {
-      showAlert('La foto de perfil es obligatoria', 'danger');
+      setModalError('La foto de perfil es obligatoria');
       return;
     }
+    setModalError(null);
 
     try {
       const form = new FormData();
@@ -196,7 +198,7 @@ export const UsuariosPage: React.FC = () => {
   };
 
   const capturePhoto = () => {
-    if (!videoRef.current || !canvasRef.current || captureStep >= 5) return;
+    if (!videoRef.current || !canvasRef.current || captureStep >= 1) return;
     
     const context = canvasRef.current.getContext('2d');
     if (context) {
@@ -217,15 +219,15 @@ export const UsuariosPage: React.FC = () => {
     reader.onload = (event) => {
       const dataUrl = event.target?.result as string;
       const base64Data = dataUrl.replace(/^data:image\/[a-zA-Z0-9]+;base64,/, "");
-      // Simulamos las 5 capturas repitiendo la misma imagen para que el backend la procese correctamente
-      setFotos([base64Data, base64Data, base64Data, base64Data, base64Data]);
-      setCaptureStep(5);
+      // Simulamos 1 captura
+      setFotos([base64Data]);
+      setCaptureStep(1);
     };
     reader.readAsDataURL(file);
   };
 
   const submitFotos = async () => {
-    if (fotos.length < 5 || !selectedUser) return;
+    if (fotos.length < 1 || !selectedUser) return;
     setIsCapturing(true);
 
     try {
@@ -317,7 +319,7 @@ export const UsuariosPage: React.FC = () => {
         keyField="id" 
         loading={loading}
         actions={
-          <Button variant="primary" icon={<Plus size={16}/>} onClick={() => setIsModalOpen(true)}>
+          <Button variant="primary" icon={<Plus size={16}/>} onClick={() => { setIsModalOpen(true); setModalError(null); }}>
             Nuevo Usuario
           </Button>
         }
@@ -360,9 +362,16 @@ export const UsuariosPage: React.FC = () => {
         <div className="form-row">
           <div className="form-group" style={{ width: '100%' }}>
             <label>Foto de Perfil</label>
-            <input type="file" className="form-control" accept="image/*" onChange={e => setFotoFile(e.target.files?.[0] || null)} />
+            <input type="file" className="form-control" accept="image/*" onChange={e => { setFotoFile(e.target.files?.[0] || null); setModalError(null); }} />
           </div>
         </div>
+        {modalError && (
+          <div className="form-group" style={{ width: '100%' }}>
+            <div className="alert alert-danger" style={{ marginTop: '8px', padding: '10px', borderRadius: '6px', background: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca' }}>
+              {modalError}
+            </div>
+          </div>
+        )}
       </Modal>
 
       <Modal
@@ -370,19 +379,19 @@ export const UsuariosPage: React.FC = () => {
         onClose={closeFaceModal}
         title={`Captura Facial: ${selectedUser?.nombre}`}
         footer={
-          captureStep >= 5 ? (
+          captureStep >= 1 ? (
             <Button variant="success" block onClick={submitFotos} disabled={isCapturing}>
               {isCapturing ? 'Registrando...' : 'Finalizar y Guardar'}
             </Button>
           ) : (
             <Button variant="primary" block onClick={capturePhoto}>
-              Capturar Foto ({captureStep}/5)
+              Capturar Foto
             </Button>
           )
         }
       >
         <div style={{ textAlign: 'center' }}>
-          <p>Mira a la cámara y captura 5 fotos para el registro facial.</p>
+          <p>Mira a la cámara y captura 1 foto para el registro facial.</p>
           <div style={{ position: 'relative', width: '320px', height: '240px', margin: '1rem auto', borderRadius: '8px', overflow: 'hidden', background: '#000' }}>
             <video ref={videoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }}></video>
           </div>

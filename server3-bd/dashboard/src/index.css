@@ -1505,3 +1505,155 @@ select.form-control {
     color: var(--text-muted);
     font-size: 0.9rem;
 }
+
+/* ── Inscripciones Card ────────────────────────────────────── */
+.inscripciones-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.inscripcion-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-left: 4px solid var(--success);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: all 200ms ease;
+    cursor: pointer;
+    min-height: 200px;
+}
+
+.inscripcion-card:hover {
+    border-color: var(--success);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+}
+
+.inscripcion-card-body {
+    padding: 20px 18px 14px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.inscripcion-curso {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.inscripcion-clave {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: var(--bg-secondary);
+    padding: 3px 8px;
+    border-radius: 4px;
+}
+
+.inscripcion-info-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.inscripcion-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.inscripcion-alumnos {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.inscripcion-alumnos svg {
+    opacity: 0.5;
+}
+
+.inscripcion-horarios {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: auto;
+}
+
+.horario-tag-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(34, 197, 94, 0.1);
+    border-radius: 8px;
+    padding: 8px 12px;
+}
+
+.horario-tag {
+    color: var(--success);
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.inscripcion-remove-sm {
+    opacity: 0.4;
+    transition: opacity 150ms ease;
+    color: var(--danger);
+    background: none !important;
+    border: none;
+    cursor: pointer;
+}
+
+.horario-tag-wrapper:hover .inscripcion-remove-sm {
+    opacity: 1;
+}
+
+.inscripcion-remove-sm:hover {
+    opacity: 1;
+}
+
+.inscripcion-card-footer {
+    padding: 12px 18px;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.badge-inscritos {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--success);
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 8px;
+}
+
+.inscripcion-remove {
+    opacity: 0.4;
+    transition: opacity 150ms ease;
+    padding: 5px;
+    border-radius: 4px;
+}
+
+.inscripcion-card:hover .inscripcion-remove {
+    opacity: 1;
+}
+
+.inscripcion-remove:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}

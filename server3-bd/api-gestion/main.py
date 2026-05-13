@@ -798,7 +798,7 @@ def obtener_tabla_asistencia(grupo_id: int, db: Session = Depends(get_db)):
     profesor = db.query(Usuario).filter(Usuario.id == grupo.profesor_id).first()
     
     inscripciones = db.query(Inscripcion).filter(Inscripcion.grupo_id == grupo_id).all()
-    alumnos_ids = [ins.alumno_id for ins in inscripciones]
+    alumnos_ids = list(set(ins.alumno_id for ins in inscripciones))
     alumnos = db.query(Usuario).filter(Usuario.id.in_(alumnos_ids)).all()
     
     asistencias = db.query(Asistencia).filter(Asistencia.grupo_id == grupo_id).all()
@@ -1169,19 +1169,54 @@ def listar_inscripciones_alumno(alumno_id: int, db: Session = Depends(get_db)):
     """Lista las clases (grupos) en las que un alumno específico está inscrito"""
     inscripciones = db.query(Inscripcion).filter(Inscripcion.alumno_id == alumno_id).all()
     resultado = []
+    dias = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"]
+
+    inscripciones_por_grupo = {}
     for ins in inscripciones:
+        if ins.grupo_id not in inscripciones_por_grupo:
+            inscripciones_por_grupo[ins.grupo_id] = []
+        inscripciones_por_grupo[ins.grupo_id].append(ins)
+
+    grupos_ya_procesados = set()
+    for ins in inscripciones:
+        if ins.grupo_id in grupos_ya_procesados:
+            continue
+        grupos_ya_procesados.add(ins.grupo_id)
+
         grupo = db.query(Grupo).filter(Grupo.id == ins.grupo_id).first()
         if not grupo:
             continue
         materia = db.query(Materia).filter(Materia.id == grupo.materia_id).first()
         profesor = db.query(Usuario).filter(Usuario.id == grupo.profesor_id).first()
+        horarios_grupo = db.query(Horario).filter(Horario.grupo_id == grupo.id).all()
+        num_alumnos = db.query(Inscripcion).filter(Inscripcion.grupo_id == grupo.id).count()
+
+        inscripciones_del_grupo = inscripciones_por_grupo.get(grupo.id, [])
+
+        horarios_con_inscripcion = []
+        for h in horarios_grupo:
+            inscripcion_para_horario = next(
+                (i for i in inscripciones_del_grupo if i.horario_id == h.id), None
+            )
+            if inscripcion_para_horario:
+                horarios_con_inscripcion.append({
+                    "dia": dias[h.dia_semana] if h.dia_semana < len(dias) else "Sin día",
+                    "hora_inicio": str(h.hora_inicio) if h.hora_inicio else "",
+                    "hora_fin": str(h.hora_fin) if h.hora_fin else "",
+                    "inscripcion_id": inscripcion_para_horario.id,
+                })
+
         resultado.append({
             "id": grupo.id,
             "inscripcion_id": ins.id,
             "materia_nombre": materia.nombre if materia else "Sin materia",
+            "materia_clave": materia.clave if materia else "",
             "profesor_nombre": f"{profesor.nombre} {profesor.apellido}" if profesor else "Sin profesor",
             "aula": grupo.aula,
             "semestre": grupo.semestre,
+            "periodo": grupo.periodo,
+            "num_alumnos": num_alumnos,
+            "horarios": horarios_con_inscripcion,
         })
     return resultado
 
@@ -1438,8 +1473,9 @@ def profesor_tabla_asistencia(
 
     profesor = db.query(Usuario).filter(Usuario.id == grupo.profesor_id).first()
     inscripciones = db.query(Inscripcion).filter(Inscripcion.grupo_id == grupo_id).all()
+    alumnos_ids = list(set(ins.alumno_id for ins in inscripciones))
     alumnos = db.query(Usuario).filter(
-        Usuario.id.in_([ins.alumno_id for ins in inscripciones])
+        Usuario.id.in_(alumnos_ids)
     ).all()
 
     def estructurar_usuario(u):
