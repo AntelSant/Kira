@@ -9,7 +9,7 @@ export const ProfesorGruposPage: React.FC = () => {
   useEffect(() => {
     const fetchGrupos = async () => {
       try {
-        const res = await authFetch('/profesor/grupos');
+        const res = await authFetch('/profesor/mis-grupos');
         if (res.ok) {
           setGrupos(await res.json());
         }

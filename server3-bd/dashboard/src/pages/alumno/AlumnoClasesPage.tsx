@@ -9,7 +9,7 @@ export const AlumnoClasesPage: React.FC = () => {
   useEffect(() => {
     const fetchClases = async () => {
       try {
-        const res = await authFetch('/alumno/clases');
+        const res = await authFetch('/alumno/mis-clases');
         if (res.ok) {
           setClases(await res.json());
         }

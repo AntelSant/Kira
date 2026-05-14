@@ -900,6 +900,30 @@ def profesor_excluir_dia(
         return {"mensaje": "Día excluido del conteo"}
 
 
+class ActualizarEstadoRequest(BaseModel):
+    estado: str
+
+@app.put("/api/asistencia/{asistencia_id}/estado")
+def actualizar_estado_asistencia(
+    asistencia_id: int,
+    data: ActualizarEstadoRequest,
+    db: Session = Depends(get_db)
+):
+    """Actualiza el estado de un registro de asistencia (presente, retardo, justificado, ausente)"""
+    asistencia = db.query(Asistencia).filter(Asistencia.id == asistencia_id).first()
+    if not asistencia:
+        raise HTTPException(status_code=404, detail="Registro de asistencia no encontrado")
+
+    try:
+        estado_enum = EstadoAsistencia(data.estado)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Estado inválido. Use: presente, retardo, justificado, ausente")
+
+    asistencia.estado = estado_enum
+    db.commit()
+    return {"mensaje": f"Estado actualizado a {estado_enum.value}"}
+
+
 @app.post("/api/asistencia/justificar")
 def justificar_ausencia(request: JustificarRequest, db: Session = Depends(get_db)):
     fecha_obj = datetime.strptime(request.fecha, "%Y-%m-%d").date()

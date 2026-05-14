@@ -244,16 +244,8 @@ export const UsuariosPage: React.FC = () => {
         throw new Error(err.detail || 'Error en Server1');
       }
 
-      const res3 = await authFetch(`/usuarios/${selectedUser.id}/embedding`, {
-        method: 'PUT'
-      });
-
-      if (res3.ok) {
-        showAlert('Rostro registrado exitosamente', 'success');
-        fetchUsuarios();
-      } else {
-        throw new Error('Error al actualizar BD');
-      }
+      showAlert('Rostro registrado exitosamente', 'success');
+      fetchUsuarios();
     } catch (error) {
       console.error(error);
       showAlert('Error en el registro facial', 'danger');

@@ -65,12 +65,10 @@ export const ListaAsistenciaPage: React.FC = () => {
 
   const handleExcluirDia = async () => {
     try {
-      const res = await authFetch('/asistencia/excluir-dia', {
+      const res = await authFetch(`/asistencia/grupo/${grupoId}/excluir_dia`, {
         method: 'POST',
         body: JSON.stringify({
-          grupo_id: parseInt(grupoId),
           fecha: excluirDiaData.fecha,
-          motivo: excluirDiaData.motivo
         }),
       });
       if (res.ok) {
@@ -89,11 +87,10 @@ export const ListaAsistenciaPage: React.FC = () => {
 
   const handleJustificar = async () => {
     try {
-      const res = await authFetch(`/asistencia/${justificarData.id}/justificar`, {
+      const res = await authFetch(`/asistencia/${justificarData.id}/estado`, {
         method: 'PUT',
         body: JSON.stringify({
           estado: justificarData.estado,
-          motivo: justificarData.motivo
         }),
       });
       if (res.ok) {
