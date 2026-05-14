@@ -1,5 +1,7 @@
 import React from 'react';
-import { Menu, Sun, Moon } from 'lucide-react';
+import { Menu, Sun, Moon, LogOut } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 
 interface TopBarProps {
   onMenuClick: () => void;
@@ -27,6 +29,8 @@ function applyTheme(dark: boolean) {
 
 export const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
   const [isDark, setIsDark] = React.useState<boolean>(getSavedIsDark);
+  const { logout } = useAuth();
+  const navigate = useNavigate();
 
   // Restaurar el tema correcto al montar
   React.useEffect(() => {
@@ -54,6 +58,15 @@ export const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
           type="button"
         >
           {isDark ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
+        <button
+          id="logout-btn"
+          className="theme-toggle-btn"
+          onClick={() => { logout(); navigate('/login'); }}
+          title="Cerrar Sesión"
+          type="button"
+        >
+          <LogOut size={18} />
         </button>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { authFetch, apiServer1 } from '../../api/client';
+import { authFetch } from '../../api/client';
 import { Usuario } from '../../types';
 import { DataTable, ColumnDef } from '../../components/ui/DataTable';
 import { Button } from '../../components/ui/Button';
@@ -231,18 +231,19 @@ export const UsuariosPage: React.FC = () => {
     setIsCapturing(true);
 
     try {
-      // 1. Enviar fotos a Server 1 (Reconocimiento Facial)
-      const res1 = await apiServer1('/register_user', {
+      const res1 = await authFetch('/proxy/registrar-cara', {
         method: 'POST',
         body: JSON.stringify({
-          id_empleado: selectedUser.matricula,
-          fotos: fotos
+          matricula: selectedUser.matricula,
+          foto_base64: fotos[0]
         })
       });
 
-      if (!res1.ok) throw new Error('Error en Server1');
+      if (!res1.ok) {
+        const err = await res1.json();
+        throw new Error(err.detail || 'Error en Server1');
+      }
 
-      // 2. Actualizar estado en Server 3 (DB)
       const res3 = await authFetch(`/usuarios/${selectedUser.id}/embedding`, {
         method: 'PUT'
       });

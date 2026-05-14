@@ -1534,7 +1534,7 @@ select.form-control {
     padding: 20px 18px 14px;
     display: flex;
     flex-direction: column;
-    flex: 1;
+    min-height: 100%;
 }
 
 .inscripcion-curso {
@@ -1647,6 +1647,39 @@ select.form-control {
     transition: opacity 150ms ease;
     padding: 5px;
     border-radius: 4px;
+}
+
+.inscripcion-card--disponible {
+    border-left-color: var(--accent);
+    min-height: 260px;
+}
+.inscripcion-card--disponible:hover {
+    border-color: var(--accent);
+}
+
+.inscripcion-card--seleccionado {
+    border-left-color: var(--warning);
+}
+.inscripcion-card--seleccionado:hover {
+    border-color: var(--warning);
+}
+
+.inscripcion-card-action {
+    margin-top: auto;
+    padding-top: 12px;
+}
+
+.inscripcion-select-sm {
+    opacity: 0.4;
+    transition: opacity 150ms ease;
+    color: var(--accent);
+    background: none !important;
+    border: none;
+    cursor: pointer;
+}
+
+.inscripcion-select-sm:hover {
+    opacity: 1;
 }
 
 .inscripcion-card:hover .inscripcion-remove {

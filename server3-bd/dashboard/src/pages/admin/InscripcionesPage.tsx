@@ -174,19 +174,11 @@ export const InscripcionesPage: React.FC = () => {
                       {clase.materia_nombre}
                       <span className="inscripcion-clave">{clase.materia_clave}</span>
                     </div>
-                    <div className="inscripcion-info-grid">
-                      <div className="inscripcion-info-row">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                         <span><strong>Profesor:</strong> {clase.profesor_nombre}</span>
+                        <span><strong>Semestre:</strong> {clase.semestre}</span>
                         <span><strong>Aula:</strong> {clase.aula}</span>
                       </div>
-                      <div className="inscripcion-info-row">
-                        <span><strong>Semestre:</strong> {clase.semestre}</span>
-                        <span className="inscripcion-alumnos">
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-                          Alumnos: {clase.num_alumnos}
-                        </span>
-                      </div>
-                    </div>
                     {clase.horarios && clase.horarios.length > 0 && (
                       <div className="inscripcion-horarios">
                         {clase.horarios.map((h, i) => (
@@ -218,56 +210,56 @@ export const InscripcionesPage: React.FC = () => {
             </div>
           )}
 
-          <h2 style={{ marginTop: '3rem', marginBottom: '1rem', color: 'var(--text-primary)' }}>Grupos Disponibles</h2>
+          <h2 style={{ marginTop: '3rem', marginBottom: '1rem', color: 'var(--text-primary)' }}>Clases Disponibles</h2>
           <div className="clases-grid">
             {gruposDisponibles.map(grupo => {
+              const isSelected = selectedHorario?.grupoId === grupo.id;
               return (
-                <div key={`disp-${grupo.id}`} className="clase-card">
-                  <div className="clase-header">
-                    <h3>{grupo.materia_nombre}</h3>
-                  </div>
-                  <div className="clase-body">
-                    <p><strong>Profesor:</strong> {grupo.profesor_nombre}</p>
-                    <p><strong>Aula:</strong> {grupo.aula}</p>
-                    <p><strong>Semestre:</strong> {grupo.semestre}</p>
+                <div key={`disp-${grupo.id}`} className={`inscripcion-card${isSelected ? ' inscripcion-card--seleccionado' : ' inscripcion-card--disponible'}`}>
+                  <div className="inscripcion-card-body">
+                    <div className="inscripcion-curso">
+                      {grupo.materia_nombre}
+                      {grupo.materia_clave && <span className="inscripcion-clave">{grupo.materia_clave}</span>}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        <span><strong>Profesor:</strong> {grupo.profesor_nombre}</span>
+                        <span><strong>Semestre:</strong> {grupo.semestre}</span>
+                        <span><strong>Aula:</strong> {grupo.aula}</span>
+                      </div>
                     {grupo.horarios && grupo.horarios.length > 0 && (
-                      <div style={{ marginTop: '10px' }}>
-                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '6px' }}>Horarios:</p>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          {grupo.horarios.map(h => (
-                            <div key={h.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', background: h.alumno_inscrito ? 'rgba(34, 197, 94, 0.1)' : selectedHorario?.horarioId === h.id ? 'rgba(59, 130, 246, 0.15)' : 'var(--bg-tertiary)', borderRadius: '6px', border: h.alumno_inscrito ? '1px solid rgba(34, 197, 94, 0.3)' : selectedHorario?.horarioId === h.id ? '1px solid rgba(59, 130, 246, 0.5)' : '1px solid var(--border-subtle)' }}>
-                              <span style={{ fontSize: '0.9rem' }}>{h.dia_nombre} {h.hora_inicio?.slice(0, 5)}-{h.hora_fin?.slice(0, 5)}</span>
-                              {h.alumno_inscrito ? (
-                                <span style={{ fontSize: '0.75rem', color: 'var(--success)', fontWeight: 600 }}>Ya inscrito</span>
-                              ) : (
-                                <button
-                                  className="btn-icon"
-                                  onClick={() => setSelectedHorario({ grupoId: grupo.id, horarioId: h.id })}
-                                  style={{ background: selectedHorario?.horarioId === h.id ? 'var(--accent)' : 'var(--bg-secondary)', color: selectedHorario?.horarioId === h.id ? '#fff' : 'var(--text-primary)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer' }}
-                                >
-                                  Seleccionar
-                                </button>
-                              )}
-                            </div>
-                          ))}
-                        </div>
+                      <div className="inscripcion-horarios">
+                        {grupo.horarios.map(h => (
+                          <div key={h.id} className="horario-tag-wrapper" style={{ background: h.alumno_inscrito ? 'rgba(34, 197, 94, 0.1)' : 'var(--bg-secondary)', border: h.alumno_inscrito ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid var(--border-subtle)' }}>
+                            <span className="horario-tag" style={{ color: h.alumno_inscrito ? 'var(--success)' : 'var(--accent)' }}>
+                              {h.dia_nombre} {h.hora_inicio?.slice(0, 5)}-{h.hora_fin?.slice(0, 5)}
+                              {h.alumno_inscrito && ' · Ya inscrito'}
+                            </span>
+                            {!h.alumno_inscrito && (
+                              <button
+                                className="inscripcion-select-sm"
+                                onClick={() => setSelectedHorario({ grupoId: grupo.id, horarioId: h.id })}
+                                title="Seleccionar"
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
+                              </button>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     )}
-                  </div>
-                  <div style={{ marginTop: '15px' }}>
-                    {selectedHorario?.grupoId === grupo.id ? (
-                      <>
-                        {selectedHorario && grupo.horarios?.find(h => h.id === selectedHorario.horarioId)?.alumno_inscrito ? (
+                    <div className="inscripcion-card-action">
+                      {selectedHorario?.grupoId === grupo.id ? (
+                        selectedHorario && grupo.horarios?.find(h => h.id === selectedHorario.horarioId)?.alumno_inscrito ? (
                           <Button variant="success" block disabled>Ya inscrito en este horario</Button>
                         ) : (
                           <Button variant="primary" block onClick={() => handleInscribir(grupo.id, selectedHorario.horarioId)} disabled={loading}>
                             {loading ? 'Inscribiendo...' : 'Confirmar Inscripción'}
                           </Button>
-                        )}
-                      </>
-                    ) : (
-                      <Button variant="secondary" block disabled>Selecciona un horario</Button>
-                    )}
+                        )
+                      ) : (
+                        <Button variant="outline" block disabled>Selecciona un horario</Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
