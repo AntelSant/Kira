@@ -1,7 +1,7 @@
 import os
 import shutil
 import httpx
-from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException, Query, status
+from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException, Query, status, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -24,6 +24,7 @@ from database import get_db, engine
 
 # URL de Server1 — se resuelve internamente (localhost), nunca pasa por el navegador
 SERVER1_INTERNAL_URL = os.getenv("SERVER1_URL", "http://127.0.0.1:8001")
+API_KEY = os.getenv("API_KEY", "kira_default_secret_key")
 
 print("--Espere-- Verificando y construyendo tablas en la base de datos...")
 Base.metadata.create_all(bind=engine)
@@ -128,6 +129,11 @@ def get_current_user_any(
     if not obj:
         raise HTTPException(status_code=401, detail="Usuario no encontrado o inactivo")
     return {"role": role, "user": obj, "id": user_id}
+
+def verificar_api_key_m2m(x_api_key: str = Header(...)):
+    """Auth guard para M2M — verifica que la petición contenga el API_KEY correcto."""
+    if x_api_key != API_KEY:
+        raise HTTPException(status_code=401, detail="API Key inválida o faltante")
 
 # --- App ---
 import asyncio
@@ -566,7 +572,7 @@ def eliminar_usuario(usuario_id: int, db: Session = Depends(get_db)):
 #  EMBEDDING FACIAL (IA)
 # ============================================================
 
-@app.put("/api/usuarios/{matricula}/embedding")
+@app.put("/api/usuarios/{matricula}/embedding", dependencies=[Depends(verificar_api_key_m2m)])
 def actualizar_embedding_facial(
     matricula: str,
     data: EmbeddingUpdate,
@@ -594,7 +600,7 @@ def actualizar_embedding_facial(
 #  RECONOCIMIENTO FACIAL (PGVECTOR)
 # ============================================================
 
-@app.post("/api/usuarios/reconocer")
+@app.post("/api/usuarios/reconocer", dependencies=[Depends(verificar_api_key_m2m)])
 def reconocer_usuario(data: ReconocerRequest, db: Session = Depends(get_db)):
     """Busca en PostgreSQL el rostro más parecido usando Distancia Coseno (pgvector)"""
 
@@ -637,7 +643,7 @@ def reconocer_usuario(data: ReconocerRequest, db: Session = Depends(get_db)):
 #  ASISTENCIA — REGISTRO
 # ============================================================
 
-@app.post("/api/asistencia/registrar")
+@app.post("/api/asistencia/registrar", dependencies=[Depends(verificar_api_key_m2m)])
 def registrar_asistencia(data: RegistroAsistenciaRequest, db: Session = Depends(get_db)):
     """Guarda la asistencia y la emoción detectada. Encuentra el grupo por aula y calcula estado según horario."""
     print(f"-- Registrando asistencia — Usuario {data.usuario_id}, Aula: {data.aula}")

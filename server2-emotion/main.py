@@ -5,7 +5,7 @@ import base64
 import torch
 import io
 from PIL import Image
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header, Depends
 from pydantic import BaseModel
 from facenet_pytorch import MTCNN
 
@@ -28,6 +28,7 @@ app = FastAPI(
 
 # --- CONFIGURACIÓN DE IA (PYTORCH) ---
 CUDA_DEVICE = os.getenv("CUDA_DEVICE", "cuda:0")
+API_KEY = os.getenv("API_KEY", "kira_default_secret_key")
 device = CUDA_DEVICE if torch.cuda.is_available() else 'cpu'
 print(f"-- Iniciando IA de Emociones en: {device}...")
 
@@ -60,7 +61,12 @@ def clasificar_emocion(emocion_ingles: str) -> str:
     else:
         return "neutro"
 
-@app.post("/api/emociones/analizar")
+def verificar_api_key(x_api_key: str = Header(...)):
+    """Verifica que la petición contenga el API_KEY correcto."""
+    if x_api_key != API_KEY:
+        raise HTTPException(status_code=401, detail="API Key inválida o faltante")
+
+@app.post("/api/emociones/analizar", dependencies=[Depends(verificar_api_key)])
 async def analizar_emocion(data: EmocionRequest):
     try:
         # 1. Decodificar Base64 a imagen de PIL

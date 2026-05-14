@@ -1,3 +1,4 @@
+import os
 import base64
 import requests
 import json
@@ -9,6 +10,7 @@ import uvicorn
 
 # --- CONFIGURACIÓN ---
 SERVER_URL = "http://127.0.0.1:8001/api/capture"
+API_KEY = os.getenv("API_KEY", "kira_default_secret_key")
 
 app = FastAPI(title="Simulador Web ESP32")
 
@@ -348,7 +350,7 @@ async def simular_peticion(aula: str = Form(...), foto: UploadFile = File(...)):
             "hora":  ahora.strftime("%H:%M:%S")
         }
 
-        response = requests.post(SERVER_URL, json=payload, timeout=30)
+        response = requests.post(SERVER_URL, json=payload, headers={"X-API-Key": API_KEY}, timeout=30)
         try:
             resp_json = response.json()
         except Exception:
@@ -380,7 +382,7 @@ async def simular_b64(data: SimularB64Request):
             "hora":  ahora.strftime("%H:%M:%S")
         }
 
-        response = requests.post(SERVER_URL, json=payload, timeout=30)
+        response = requests.post(SERVER_URL, json=payload, headers={"X-API-Key": API_KEY}, timeout=30)
         try:
             resp_json = response.json()
         except Exception:
