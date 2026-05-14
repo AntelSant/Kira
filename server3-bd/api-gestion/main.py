@@ -224,13 +224,23 @@ app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
 from pathlib import Path
 
 @app.get("/", include_in_schema=False)
+@app.get("/login", include_in_schema=False)
 @app.get("/dashboard", include_in_schema=False)
 @app.get("/dashboard/{full_path:path}", include_in_schema=False)
 @app.get("/admin", include_in_schema=False)
 @app.get("/admin/{full_path:path}", include_in_schema=False)
+@app.get("/profesor", include_in_schema=False)
+@app.get("/profesor/{full_path:path}", include_in_schema=False)
+@app.get("/alumno", include_in_schema=False)
+@app.get("/alumno/{full_path:path}", include_in_schema=False)
+@app.get("/favicon.ico", include_in_schema=False)
 def serve_dashboard(full_path: str = ""):
     """Sirve el dashboard React SPA como principal"""
     build_dir = Path("../dashboard/dist")
+    if full_path == "favicon.ico":
+        favicon_path = build_dir / "favicon.ico"
+        if favicon_path.is_file():
+            return FileResponse(str(favicon_path))
     file_path = build_dir / full_path
     if file_path.is_file():
         return FileResponse(str(file_path))
@@ -985,6 +995,17 @@ def registrar_materia(data: MateriaCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="La clave de la materia ya existe")
 
 
+@app.delete("/api/materias/{materia_id}")
+def eliminar_materia(materia_id: int, db: Session = Depends(get_db)):
+    """Elimina una materia"""
+    materia = db.query(Materia).filter(Materia.id == materia_id).first()
+    if not materia:
+        raise HTTPException(status_code=404, detail="Materia no encontrada")
+    db.delete(materia)
+    db.commit()
+    return {"mensaje": "Materia eliminada"}
+
+
 # ============================================================
 #  GRUPOS — CRUD
 # ============================================================
@@ -1034,6 +1055,17 @@ def registrar_grupo(data: GrupoCreate, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Error al crear grupo: {str(e)}")
+
+
+@app.delete("/api/grupos/{grupo_id}")
+def eliminar_grupo(grupo_id: int, db: Session = Depends(get_db)):
+    """Elimina un grupo"""
+    grupo = db.query(Grupo).filter(Grupo.id == grupo_id).first()
+    if not grupo:
+        raise HTTPException(status_code=404, detail="Grupo no encontrado")
+    db.delete(grupo)
+    db.commit()
+    return {"mensaje": "Grupo eliminado"}
 
 
 @app.get("/api/grupos/con-horarios")

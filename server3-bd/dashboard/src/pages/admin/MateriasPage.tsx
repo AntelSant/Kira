@@ -5,7 +5,7 @@ import { DataTable, ColumnDef } from '../../components/ui/DataTable';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { Alert } from '../../components/ui/Alert';
-import { Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 
 export const MateriasPage: React.FC = () => {
   const [materias, setMaterias] = useState<Materia[]>([]);
@@ -58,10 +58,34 @@ export const MateriasPage: React.FC = () => {
     }
   };
 
+  const handleDeleteMateria = async (id: number) => {
+    if (!confirm('¿Seguro que deseas eliminar esta materia?')) return;
+    try {
+      const res = await authFetch(`/materias/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        showAlert('Materia eliminada', 'success');
+        fetchMaterias();
+      } else {
+        showAlert('Error al eliminar', 'danger');
+      }
+    } catch (e) {
+      showAlert('Error de conexión', 'danger');
+    }
+  };
+
   const columns: ColumnDef<Materia>[] = [
     { header: 'ID', accessorKey: 'id', width: '80px', align: 'center' },
     { header: 'Nombre', accessorKey: 'nombre', align: 'center' },
-    { header: 'Clave', align: 'center', cell: (m) => <code>{m.clave}</code> }
+    { header: 'Clave', align: 'center', cell: (m) => <code>{m.clave}</code> },
+    {
+      header: 'Acciones',
+      align: 'center',
+      cell: (m) => (
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <Button variant="danger" icon={<Trash2 size={16}/>} onClick={() => handleDeleteMateria(m.id)} />
+        </div>
+      )
+    }
   ];
 
   return (

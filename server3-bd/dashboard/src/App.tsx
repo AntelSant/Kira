@@ -20,7 +20,10 @@ import { AdminsPage } from './pages/admin/AdminsPage';
 
 // Profesor & Alumno Pages
 import { ProfesorGruposPage } from './pages/profesor/ProfesorGruposPage';
+import { ProfesorAsistenciaPage } from './pages/profesor/ProfesorAsistenciaPage';
+import { ProfesorEmocionesPage } from './pages/profesor/ProfesorEmocionesPage';
 import { AlumnoClasesPage } from './pages/alumno/AlumnoClasesPage';
+import { AlumnoAsistenciaPage } from './pages/alumno/AlumnoAsistenciaPage';
 
 // Rutas protegidas basadas en roles
 const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles: string[] }) => {
@@ -60,14 +63,14 @@ function AppRoutes() {
       {/* Rutas para Profesor */}
       <Route path="/profesor" element={<ProtectedRoute allowedRoles={['profesor']}><AppLayout /></ProtectedRoute>}>
         <Route index element={<ProfesorGruposPage />} />
-        <Route path="asistencia" element={<div>Profesor Asistencia (TODO)</div>} />
-        <Route path="emociones" element={<div>Profesor Emociones (TODO)</div>} />
+        <Route path="asistencia" element={<ProfesorAsistenciaPage />} />
+        <Route path="emociones" element={<ProfesorEmocionesPage />} />
       </Route>
 
       {/* Rutas para Alumno */}
       <Route path="/alumno" element={<ProtectedRoute allowedRoles={['alumno']}><AppLayout /></ProtectedRoute>}>
         <Route index element={<AlumnoClasesPage />} />
-        <Route path="asistencia" element={<div>Alumno Asistencia (TODO)</div>} />
+        <Route path="asistencia" element={<AlumnoAsistenciaPage />} />
       </Route>
 
       {/* Default Redirect */}

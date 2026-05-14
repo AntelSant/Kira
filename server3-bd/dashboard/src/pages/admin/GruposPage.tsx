@@ -5,7 +5,8 @@ import { DataTable, ColumnDef } from '../../components/ui/DataTable';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { Alert } from '../../components/ui/Alert';
-import { Plus } from 'lucide-react';
+import { Plus, Users, ClipboardList, Trash2 } from 'lucide-react';
+import { Badge } from '../../components/ui/Badge';
 
 export const GruposPage: React.FC = () => {
   const [grupos, setGrupos] = useState<Grupo[]>([]);
@@ -16,6 +17,13 @@ export const GruposPage: React.FC = () => {
   const [alert, setAlert] = useState<{ message: string, type: 'success' | 'danger' } | null>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAlumnosModalOpen, setIsAlumnosModalOpen] = useState(false);
+  const [isInscripcionesModalOpen, setIsInscripcionesModalOpen] = useState(false);
+  const [, setSelectedGrupoId] = useState<number | null>(null);
+  const [alumnosDelGrupo, setAlumnosDelGrupo] = useState<Usuario[]>([]);
+  const [inscripcionesDelGrupo, setInscripcionesDelGrupo] = useState<any[]>([]);
+  const [loadingAlumnos, setLoadingAlumnos] = useState(false);
+  const [loadingInscripciones, setLoadingInscripciones] = useState(false);
   const [formData, setFormData] = useState({ 
     materia_id: '', 
     profesor_id: '',
@@ -79,6 +87,21 @@ export const GruposPage: React.FC = () => {
     }
   };
 
+  const handleDeleteGrupo = async (id: number) => {
+    if (!confirm('¿Seguro que deseas eliminar este grupo?')) return;
+    try {
+      const res = await authFetch(`/grupos/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        showAlert('Grupo eliminado', 'success');
+        fetchData();
+      } else {
+        showAlert('Error al eliminar', 'danger');
+      }
+    } catch (e) {
+      showAlert('Error de conexión', 'danger');
+    }
+  };
+
   const columns: ColumnDef<Grupo>[] = [
     { header: 'ID', accessorKey: 'id', width: '80px', align: 'center' },
     { 
@@ -89,7 +112,61 @@ export const GruposPage: React.FC = () => {
     { header: 'Profesor', accessorKey: 'profesor_nombre', align: 'center' },
     { header: 'Aula', accessorKey: 'aula', align: 'center' },
     { header: 'Semestre/Periodo', align: 'center', cell: (g) => `${g.semestre} - ${g.periodo}` },
-    { header: 'Cupo', accessorKey: 'num_alumnos', align: 'center' }
+    { header: 'Cupo', accessorKey: 'num_alumnos', align: 'center' },
+    {
+      header: 'Acciones',
+      align: 'center',
+      cell: (g) => (
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+          <Button variant="outline" icon={<Users size={14}/>} title="Ver alumnos" onClick={() => openAlumnosModal(g.id)} />
+          <Button variant="outline" icon={<ClipboardList size={14}/>} title="Ver inscripciones" onClick={() => openInscripcionesModal(g.id)} />
+          <Button variant="danger" icon={<Trash2 size={14}/>} title="Eliminar" onClick={() => handleDeleteGrupo(g.id)} />
+        </div>
+      )
+    }
+  ];
+
+  const openAlumnosModal = async (grupoId: number) => {
+    setSelectedGrupoId(grupoId);
+    setIsAlumnosModalOpen(true);
+    setLoadingAlumnos(true);
+    try {
+      const data = await authFetch(`/grupos/${grupoId}/alumnos`).then(r => r.json());
+      setAlumnosDelGrupo(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingAlumnos(false);
+    }
+  };
+
+  const openInscripcionesModal = async (grupoId: number) => {
+    setSelectedGrupoId(grupoId);
+    setIsInscripcionesModalOpen(true);
+    setLoadingInscripciones(true);
+    try {
+      const data = await authFetch(`/inscripciones/${grupoId}`).then(r => r.json());
+      setInscripcionesDelGrupo(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingInscripciones(false);
+    }
+  };
+
+  const alumnoColumns: ColumnDef<Usuario>[] = [
+    { header: 'ID', accessorKey: 'id', align: 'center' },
+    { header: 'Nombre', cell: (u) => `${u.nombre} ${u.apellido}`, align: 'center' },
+    { header: 'Matrícula', cell: (u) => <code>{u.matricula}</code>, align: 'center' },
+    { header: 'Tipo', cell: (u) => <Badge variant={u.tipo === 'alumno' ? 'info' : 'primary'}>{u.tipo}</Badge>, align: 'center' },
+    { header: 'Email', accessorKey: 'email', align: 'center' },
+  ];
+
+  const inscripcionColumns: ColumnDef<any>[] = [
+    { header: 'ID', accessorKey: 'inscripcion_id', align: 'center' },
+    { header: 'Alumno ID', accessorKey: 'alumno_id', align: 'center' },
+    { header: 'Nombre', accessorKey: 'nombre', align: 'center' },
+    { header: 'Matrícula', cell: (r) => <code>{r.matricula}</code>, align: 'center' },
   ];
 
   return (
@@ -167,6 +244,43 @@ export const GruposPage: React.FC = () => {
         </div>
       </Modal>
 
+      <Modal
+        isOpen={isAlumnosModalOpen}
+        onClose={() => setIsAlumnosModalOpen(false)}
+        title="Alumnos del Grupo"
+        size="large"
+        footer={
+          <Button variant="outline" onClick={() => setIsAlumnosModalOpen(false)}>Cerrar</Button>
+        }
+      >
+        <DataTable
+          title={`Alumnos (${alumnosDelGrupo.length})`}
+          columns={alumnoColumns}
+          data={alumnosDelGrupo}
+          keyField="id"
+          loading={loadingAlumnos}
+          emptyMessage="No hay alumnos en este grupo"
+        />
+      </Modal>
+
+      <Modal
+        isOpen={isInscripcionesModalOpen}
+        onClose={() => setIsInscripcionesModalOpen(false)}
+        title="Inscripciones del Grupo"
+        size="large"
+        footer={
+          <Button variant="outline" onClick={() => setIsInscripcionesModalOpen(false)}>Cerrar</Button>
+        }
+      >
+        <DataTable
+          title={`Inscripciones (${inscripcionesDelGrupo.length})`}
+          columns={inscripcionColumns}
+          data={inscripcionesDelGrupo}
+          keyField="inscripcion_id"
+          loading={loadingInscripciones}
+          emptyMessage="No hay inscripciones en este grupo"
+        />
+      </Modal>
     </div>
   );
 };

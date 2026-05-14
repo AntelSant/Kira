@@ -167,7 +167,7 @@ export const InscripcionesPage: React.FC = () => {
             <div className="empty-state"><p>El alumno no está inscrito en ninguna clase.</p></div>
           ) : (
             <div className="inscripciones-grid">
-              {clasesActuales.map(clase => (
+              {clasesActuales.filter(c => c.materia_nombre !== 'Sin materia').map(clase => (
                 <div key={`inscripcion-${clase.inscripcion_id}`} className="inscripcion-card">
                   <div className="inscripcion-card-body">
                     <div className="inscripcion-curso">
@@ -212,7 +212,7 @@ export const InscripcionesPage: React.FC = () => {
 
           <h2 style={{ marginTop: '3rem', marginBottom: '1rem', color: 'var(--text-primary)' }}>Clases Disponibles</h2>
           <div className="clases-grid">
-            {gruposDisponibles.map(grupo => {
+            {gruposDisponibles.filter(g => g.materia_nombre !== 'Sin materia').map(grupo => {
               const isSelected = selectedHorario?.grupoId === grupo.id;
               return (
                 <div key={`disp-${grupo.id}`} className={`inscripcion-card${isSelected ? ' inscripcion-card--seleccionado' : ' inscripcion-card--disponible'}`}>
