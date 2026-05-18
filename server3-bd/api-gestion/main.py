@@ -40,7 +40,7 @@ os.makedirs("app/static/dashboard", exist_ok=True)
 
 JWT_SECRET = os.getenv("JWT_SECRET", "kira_secret_2026_cambiar_en_produccion")
 JWT_ALGORITHM = "HS256"
-JWT_EXPIRE_HOURS = 8
+JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", 3))
 
 http_bearer = HTTPBearer()
 
@@ -57,7 +57,7 @@ def verify_password(password: str, hashed: str) -> bool:
 
 def crear_token(data: dict) -> str:
     payload = data.copy()
-    payload["exp"] = datetime.utcnow() + timedelta(hours=JWT_EXPIRE_HOURS)
+    payload["exp"] = datetime.utcnow() + timedelta(minutes=JWT_EXPIRE_MINUTES)
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 

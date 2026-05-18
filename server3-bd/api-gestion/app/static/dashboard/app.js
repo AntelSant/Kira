@@ -32,6 +32,53 @@ function clearRole() {
     sessionStorage.removeItem('kira_role');
 }
 
+let sessionTimer = null;
+
+function parseJwt(token) {
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+    } catch(e) {
+        return null;
+    }
+}
+
+function setupSessionTimer(token) {
+    if (sessionTimer) clearTimeout(sessionTimer);
+    const payload = parseJwt(token);
+    if (!payload || !payload.exp) return;
+    
+    // exp is in seconds, convert to ms
+    const expTime = payload.exp * 1000;
+    const timeRemaining = expTime - Date.now();
+    
+    if (timeRemaining <= 0) {
+        logoutExpirado();
+        return;
+    }
+    
+    sessionTimer = setTimeout(() => {
+        logoutExpirado();
+    }, timeRemaining);
+}
+
+function logoutExpirado() {
+    clearToken();
+    clearRole();
+    showLoginScreen();
+    const errorEl = document.getElementById('login-error');
+    if (errorEl) {
+        errorEl.textContent = 'Tu sesión ha expirado automáticamente. Por favor vuelve a iniciar sesión.';
+        errorEl.style.display = 'block';
+    } else {
+        alert('Sesión expirada. Por favor vuelve a iniciar sesión.');
+    }
+}
+
 /**
  * Auth-aware fetch — auth guard for every protected request.
  * Automatically injects Authorization: Bearer header.
@@ -71,6 +118,7 @@ async function init() {
         if (!resp.ok) throw new Error('Token inválido');
         const user = await resp.json();
         setRole(user.role || 'admin');
+        setupSessionTimer(token);
         showDashboard(user);
     } catch {
         clearToken();
@@ -152,6 +200,7 @@ async function handleLogin(event) {
         if (resp.ok) {
             setToken(data.access_token);
             setRole(data.role || 'admin');
+            setupSessionTimer(data.access_token);
             showDashboard({ nombre: data.nombre, role: data.role || 'admin' });
         } else {
             errorEl.textContent = data.detail || 'Credenciales incorrectas';
@@ -168,6 +217,7 @@ async function handleLogin(event) {
 
 function logout() {
     if (!confirm('¿Cerrar sesión?')) return;
+    if (sessionTimer) clearTimeout(sessionTimer);
     clearToken();
     clearRole();
     showLoginScreen();
