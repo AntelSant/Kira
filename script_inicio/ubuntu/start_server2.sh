@@ -48,7 +48,7 @@ else
 fi
 
 # 4. Forzar actualización manual (Uso: ./start.sh --update)
-if [[ "$1" == "--update" ]]; then
+if [[ "$*" == *"--update"* ]]; then
     echo -e "${YELLOW}Actualizando dependencias (flag --update detectado)...${NC}"
     pip install -r requirements.txt
 fi
@@ -58,4 +58,10 @@ PORT=$(grep -oP '^SERVER2_PORT=\K.*' .env 2>/dev/null || echo "8002")
 
 # 6. Levantar Uvicorn de forma limpia
 echo -e "${GREEN}Servidor de emociones listo en el puerto $PORT. Levantando Uvicorn...${NC}"
-exec uvicorn main:app --host 0.0.0.0 --port "$PORT" --reload
+if [[ "$*" == *"--daemon"* ]]; then
+    echo -e "${YELLOW}Ejecutando en segundo plano. Logs en server2.log${NC}"
+    nohup uvicorn main:app --host 0.0.0.0 --port "$PORT" --reload > server2.log 2>&1 &
+    echo $! > server2.pid
+else
+    exec uvicorn main:app --host 0.0.0.0 --port "$PORT" --reload
+fi

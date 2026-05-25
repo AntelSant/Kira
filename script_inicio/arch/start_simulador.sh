@@ -40,11 +40,17 @@ else
 fi
 
 # 3. Forzar actualización manual (Uso: ./start.sh --update)
-if [[ "$1" == "--update" ]]; then
+if [[ "$*" == *"--update"* ]]; then
     echo -e "${YELLOW}Actualizando dependencias (flag --update detectado)...${NC}"
     pip install -r requirements.txt
 fi
 
 # 4. Levantar Uvicorn de forma limpia
 echo -e "${GREEN} Servidor de simulación listo. Abre tu navegador en: http://localhost:8080${NC}"
-exec uvicorn simular_esp32_web:app --host 0.0.0.0 --port 8080 --reload
+if [[ "$*" == *"--daemon"* ]]; then
+    echo -e "${YELLOW}Ejecutando en segundo plano. Logs en simulador.log${NC}"
+    nohup uvicorn simular_esp32_web:app --host 0.0.0.0 --port 8080 --reload > simulador.log 2>&1 &
+    echo $! > simulador.pid
+else
+    exec uvicorn simular_esp32_web:app --host 0.0.0.0 --port 8080 --reload
+fi
