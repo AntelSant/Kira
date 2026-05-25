@@ -14,7 +14,9 @@ from typing import List, Optional
 from datetime import datetime, date, timedelta
 import bcrypt
 from jose import jwt, JWTError, ExpiredSignatureError
+import numpy as np
 
+from crypto_utils import cifrar_embedding, descifrar_embedding
 from models import (
     Base, Usuario, TipoUsuario, Materia, Grupo, Horario, Inscripcion,
     Asistencia, Emocion, EstadoAsistencia, TipoRegistro, CategoriaEmocion,
@@ -361,7 +363,7 @@ def serializar_usuario(u: Usuario) -> dict:
         "email": u.email,
         "foto_perfil": u.foto_perfil,
         "activo": u.activo,
-        "tiene_embedding": u.embedding_facial is not None,
+        "tiene_embedding": u.embedding_cifrado is not None,
         "fecha_registro": str(u.fecha_registro) if u.fecha_registro else None,
     }
 
@@ -610,7 +612,8 @@ def actualizar_embedding_facial(
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
-    usuario.embedding_facial = data.vector_facial
+    # Cifrar el embedding antes de almacenarlo en la base de datos
+    usuario.embedding_cifrado = cifrar_embedding(data.vector_facial)
 
     try:
         db.commit()
@@ -626,39 +629,59 @@ def actualizar_embedding_facial(
 
 @app.post("/api/usuarios/reconocer", dependencies=[Depends(verificar_api_key_m2m)])
 def reconocer_usuario(data: ReconocerRequest, db: Session = Depends(get_db)):
-    """Busca en PostgreSQL el rostro más parecido usando Distancia Coseno (pgvector)"""
+    """Busca el rostro más parecido descifrando los embeddings y usando Distancia Coseno en NumPy"""
 
     if len(data.vector_facial) != 512:
         raise HTTPException(status_code=400, detail="El vector debe tener exactamente 512 dimensiones")
 
-    resultado = db.query(
-        Usuario,
-        Usuario.embedding_facial.cosine_distance(data.vector_facial).label("distancia")
-    ).filter(
-        Usuario.embedding_facial.isnot(None)
-    ).order_by("distancia").first()
+    # Obtener todos los usuarios con embedding cifrado
+    usuarios = db.query(Usuario).filter(
+        Usuario.embedding_cifrado.isnot(None)
+    ).all()
 
-    if not resultado:
+    if not usuarios:
         return {"encontrado": False, "mensaje": "Base de datos de rostros vacía."}
 
-    usuario, distancia = resultado
+    # Descifrar y comparar con distancia coseno en NumPy
+    vector_input = np.array(data.vector_facial)
+    mejor_usuario = None
+    mejor_distancia = float('inf')
 
-    if distancia <= data.umbral:
+    for u in usuarios:
+        try:
+            vector_db = np.array(descifrar_embedding(u.embedding_cifrado))
+            # Distancia coseno: 1 - (a·b / (||a|| * ||b||))
+            norm_a = np.linalg.norm(vector_input)
+            norm_b = np.linalg.norm(vector_db)
+            if norm_a == 0 or norm_b == 0:
+                continue
+            cos_sim = np.dot(vector_input, vector_db) / (norm_a * norm_b)
+            distancia = 1.0 - cos_sim
+
+            if distancia < mejor_distancia:
+                mejor_distancia = distancia
+                mejor_usuario = u
+        except Exception as e:
+            # Ignorar usuarios con blobs inválidos
+            print(f"Error descifrando embedding para usuario {u.id}: {e}")
+            continue
+
+    if mejor_usuario and mejor_distancia <= data.umbral:
         return {
             "encontrado": True,
-            "distancia": float(distancia),
+            "distancia": float(mejor_distancia),
             "usuario": {
-                "id": usuario.id,
-                "nombre": usuario.nombre,
-                "apellido": usuario.apellido,
-                "matricula": usuario.matricula_o_num_empleado,
-                "tipo": usuario.tipo.value if usuario.tipo else None
+                "id": mejor_usuario.id,
+                "nombre": mejor_usuario.nombre,
+                "apellido": mejor_usuario.apellido,
+                "matricula": mejor_usuario.matricula_o_num_empleado,
+                "tipo": mejor_usuario.tipo.value if mejor_usuario.tipo else None
             }
         }
     else:
         return {
             "encontrado": False,
-            "distancia": float(distancia),
+            "distancia": float(mejor_distancia) if mejor_distancia != float('inf') else None,
             "mensaje": "Es un rostro desconocido."
         }
 
@@ -1327,7 +1350,7 @@ def dashboard_resumen(db: Session = Depends(get_db)):
     asistencias_hoy = db.query(Asistencia).filter(Asistencia.fecha == hoy).count()
 
     embeddings_registrados = db.query(Usuario).filter(
-        Usuario.embedding_facial.isnot(None)
+        Usuario.embedding_cifrado.isnot(None)
     ).count()
 
     return {

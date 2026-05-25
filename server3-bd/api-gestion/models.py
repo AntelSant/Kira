@@ -3,6 +3,7 @@ from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, Date
 from sqlalchemy.sql import func
 from sqlalchemy.orm import declarative_base, relationship
 from pgvector.sqlalchemy import Vector
+from sqlalchemy import LargeBinary
 
 Base = declarative_base()
 
@@ -61,8 +62,8 @@ class Usuario(Base, TimestampMixin):
     email = Column(String(100), unique=True)
     password_hash = Column(String(255), nullable=True)
     
-    # pgvector: 512 dimensiones para el modelo InceptionResnetV1
-    embedding_facial = Column(Vector(512))
+    # Embedding facial cifrado con AES-256-GCM (dato biométrico protegido)
+    embedding_cifrado = Column(LargeBinary, nullable=True)
     foto_perfil = Column(String(255)) 
     
     activo = Column(Boolean, default=True)

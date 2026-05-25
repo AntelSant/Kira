@@ -11,3 +11,5 @@ bcrypt
 passlib[bcrypt]
 python-jose[cryptography]
 httpx
+cryptography
+numpy
