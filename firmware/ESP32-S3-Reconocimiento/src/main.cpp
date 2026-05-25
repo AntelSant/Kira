@@ -567,6 +567,7 @@ void loop() {
   http.begin(client, SERVER_URL);
   http.setTimeout(20000);
   http.addHeader("Content-Type", "application/json");
+  http.addHeader("X-API-Key", API_KEY);
 
   BufferStream jsonStream(jpegBuffer, totalLen);
   int httpResponseCode = http.sendRequest("POST", &jsonStream, totalLen);

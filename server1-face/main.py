@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import base64
@@ -17,6 +17,7 @@ import httpx
 # --- VARIABLES DE ENTORNO ---
 SERVER3_URL = os.getenv("SERVER3_URL", "http://127.0.0.1:8003")
 SERVER2_URL = os.getenv("SERVER2_URL", "http://127.0.0.1:8002")
+API_KEY = os.getenv("API_KEY", "kira_default_secret_key")
 CUDA_DEVICE = os.getenv("CUDA_DEVICE", "cuda:0")
 
 app = FastAPI(title="Servidor 1 - Orquestador de Asistencia IA (Kira)")
@@ -59,8 +60,13 @@ class RegisterRequest(BaseModel):
 
 
 # ============================================================
-#  FUNCIONES AUXILIARES
+#  FUNCIONES AUXILIARES Y MIDDLEWARES
 # ============================================================
+
+def verificar_api_key(x_api_key: str = Header(...)):
+    """Verifica que la petición contenga el API_KEY correcto."""
+    if x_api_key != API_KEY:
+        raise HTTPException(status_code=401, detail="API Key inválida o faltante")
 
 def extraer_embedding(image: Image.Image):
     """Detecta rostro con MTCNN y extrae embedding con ResNet. Retorna (vector, face_img) o (None, None)."""
@@ -99,7 +105,8 @@ async def analizar_y_guardar_emocion(
             try:
                 resp_emocion = await client.post(
                     f"{SERVER2_URL}/api/emociones/analizar",
-                    json={"foto_base64": foto_b64}
+                    json={"foto_base64": foto_b64},
+                    headers={"X-API-Key": API_KEY}
                 )
                 if resp_emocion.status_code == 200:
                     datos_emocion = resp_emocion.json()
@@ -120,7 +127,8 @@ async def analizar_y_guardar_emocion(
             }
             resp_asistencia = await client.post(
                 f"{SERVER3_URL}/api/asistencia/registrar",
-                json=payload
+                json=payload,
+                headers={"X-API-Key": API_KEY}
             )
             if resp_asistencia.status_code == 200:
                 print("💾 Asistencia registrada en Server3")
@@ -135,7 +143,7 @@ async def analizar_y_guardar_emocion(
 #  ENDPOINT: /api/capture  —  Flujo principal desde ESP32
 # ============================================================
 
-@app.post("/api/capture")
+@app.post("/api/capture", dependencies=[Depends(verificar_api_key)])
 async def procesar_asistencia(data: CapturaRequest, background_tasks: BackgroundTasks):
     try:
         # 1. Decodificar imagen
@@ -161,7 +169,8 @@ async def procesar_asistencia(data: CapturaRequest, background_tasks: Background
         async with httpx.AsyncClient(timeout=10) as client:
             resp_reconocer = await client.post(
                 f"{SERVER3_URL}/api/usuarios/reconocer",
-                json={"vector_facial": vector_facial, "umbral": 0.40}
+                json={"vector_facial": vector_facial, "umbral": 0.40},
+                headers={"X-API-Key": API_KEY}
             )
 
         datos_id = resp_reconocer.json()
@@ -203,7 +212,7 @@ async def procesar_asistencia(data: CapturaRequest, background_tasks: Background
 #  ENDPOINT: /api/register  —  Registrar cara desde Dashboard
 # ============================================================
 
-@app.post("/api/register")
+@app.post("/api/register", dependencies=[Depends(verificar_api_key)])
 async def registrar_embedding(data: RegisterRequest):
     """Genera el embedding facial y lo envía a Server3"""
     try:
@@ -221,7 +230,8 @@ async def registrar_embedding(data: RegisterRequest):
         async with httpx.AsyncClient(timeout=10) as client:
             resp = await client.put(
                 f"{SERVER3_URL}/api/usuarios/{data.matricula}/embedding",
-                json={"vector_facial": vector_facial}
+                json={"vector_facial": vector_facial},
+                headers={"X-API-Key": API_KEY}
             )
 
         if resp.status_code == 200:

@@ -7,6 +7,8 @@ const char* WIFI_PASSWORD = "F3AA8DA12rkzBTHF";
 
 // Configuración del Servidor 1 (CachyOS)
 const char* SERVER_URL = "http://192.168.100.95:8001/api/capture";
+const char* API_KEY = "kira_default_secret_key";
+
 
 // Pines de la cámara Freenove ESP32-S3 WROOM
 #define PWDN_GPIO_NUM  -1
