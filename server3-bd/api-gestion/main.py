@@ -32,7 +32,6 @@ print("-- ¡Tablas listas y creadas!")
 
 # --- Crear carpetas necesarias ---
 os.makedirs("app/static/perfiles", exist_ok=True)
-os.makedirs("app/static/dashboard", exist_ok=True)
 
 # ============================================================
 #  CONFIGURACIÓN JWT & BCRYPT
@@ -218,18 +217,40 @@ app.add_middleware(
 )
 
 # --- Archivos estáticos ---
+import os
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
+assets_dir = "../dashboard/dist/assets"
+os.makedirs(assets_dir, exist_ok=True)
+app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
 
 # ============================================================
 #  DASHBOARD SPA — Servir la interfaz web
 # ============================================================
+from pathlib import Path
 
 @app.get("/", include_in_schema=False)
+@app.get("/login", include_in_schema=False)
 @app.get("/dashboard", include_in_schema=False)
-def serve_dashboard():
-    """Sirve el dashboard SPA"""
-    return FileResponse("app/static/dashboard/index.html")
+@app.get("/dashboard/{full_path:path}", include_in_schema=False)
+@app.get("/admin", include_in_schema=False)
+@app.get("/admin/{full_path:path}", include_in_schema=False)
+@app.get("/profesor", include_in_schema=False)
+@app.get("/profesor/{full_path:path}", include_in_schema=False)
+@app.get("/alumno", include_in_schema=False)
+@app.get("/alumno/{full_path:path}", include_in_schema=False)
+@app.get("/favicon.ico", include_in_schema=False)
+def serve_dashboard(full_path: str = ""):
+    """Sirve el dashboard React SPA como principal"""
+    build_dir = Path("../dashboard/dist")
+    if full_path == "favicon.ico":
+        favicon_path = build_dir / "favicon.ico"
+        if favicon_path.is_file():
+            return FileResponse(str(favicon_path))
+    file_path = build_dir / full_path
+    if file_path.is_file():
+        return FileResponse(str(file_path))
+    return FileResponse(str(build_dir / "index.html"))
 
 
 # ============================================================
@@ -512,11 +533,14 @@ async def registrar_usuario(
     foto: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
-    """Registra un usuario nuevo con foto de perfil"""
+    """Registra un usuario nuevo con foto de perfil obligatoria"""
     try:
         tipo_enum = TipoUsuario(tipo.lower())
     except ValueError:
         raise HTTPException(status_code=400, detail="Tipo de usuario inválido. Use 'alumno' o 'profesor'.")
+
+    if not foto or not foto.filename:
+        raise HTTPException(status_code=400, detail="La foto de perfil es obligatoria.")
 
     extension = foto.filename.split(".")[-1]
     nombre_archivo = f"{matricula}.{extension}"
@@ -545,7 +569,7 @@ async def registrar_usuario(
         }
     except IntegrityError:
         db.rollback()
-        if os.path.exists(ruta_relativa):
+        if ruta_relativa and os.path.exists(ruta_relativa):
             os.remove(ruta_relativa)
         raise HTTPException(status_code=400, detail="La matrícula ya está registrada.")
 
@@ -790,7 +814,7 @@ def obtener_tabla_asistencia(grupo_id: int, db: Session = Depends(get_db)):
     profesor = db.query(Usuario).filter(Usuario.id == grupo.profesor_id).first()
     
     inscripciones = db.query(Inscripcion).filter(Inscripcion.grupo_id == grupo_id).all()
-    alumnos_ids = [ins.alumno_id for ins in inscripciones]
+    alumnos_ids = list(set(ins.alumno_id for ins in inscripciones))
     alumnos = db.query(Usuario).filter(Usuario.id.in_(alumnos_ids)).all()
     
     asistencias = db.query(Asistencia).filter(Asistencia.grupo_id == grupo_id).all()
@@ -892,6 +916,30 @@ def profesor_excluir_dia(
         return {"mensaje": "Día excluido del conteo"}
 
 
+class ActualizarEstadoRequest(BaseModel):
+    estado: str
+
+@app.put("/api/asistencia/{asistencia_id}/estado")
+def actualizar_estado_asistencia(
+    asistencia_id: int,
+    data: ActualizarEstadoRequest,
+    db: Session = Depends(get_db)
+):
+    """Actualiza el estado de un registro de asistencia (presente, retardo, justificado, ausente)"""
+    asistencia = db.query(Asistencia).filter(Asistencia.id == asistencia_id).first()
+    if not asistencia:
+        raise HTTPException(status_code=404, detail="Registro de asistencia no encontrado")
+
+    try:
+        estado_enum = EstadoAsistencia(data.estado)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Estado inválido. Use: presente, retardo, justificado, ausente")
+
+    asistencia.estado = estado_enum
+    db.commit()
+    return {"mensaje": f"Estado actualizado a {estado_enum.value}"}
+
+
 @app.post("/api/asistencia/justificar")
 def justificar_ausencia(request: JustificarRequest, db: Session = Depends(get_db)):
     fecha_obj = datetime.strptime(request.fecha, "%Y-%m-%d").date()
@@ -953,6 +1001,17 @@ def registrar_materia(data: MateriaCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="La clave de la materia ya existe")
 
 
+@app.delete("/api/materias/{materia_id}")
+def eliminar_materia(materia_id: int, db: Session = Depends(get_db)):
+    """Elimina una materia"""
+    materia = db.query(Materia).filter(Materia.id == materia_id).first()
+    if not materia:
+        raise HTTPException(status_code=404, detail="Materia no encontrada")
+    db.delete(materia)
+    db.commit()
+    return {"mensaje": "Materia eliminada"}
+
+
 # ============================================================
 #  GRUPOS — CRUD
 # ============================================================
@@ -1002,6 +1061,17 @@ def registrar_grupo(data: GrupoCreate, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Error al crear grupo: {str(e)}")
+
+
+@app.delete("/api/grupos/{grupo_id}")
+def eliminar_grupo(grupo_id: int, db: Session = Depends(get_db)):
+    """Elimina un grupo"""
+    grupo = db.query(Grupo).filter(Grupo.id == grupo_id).first()
+    if not grupo:
+        raise HTTPException(status_code=404, detail="Grupo no encontrado")
+    db.delete(grupo)
+    db.commit()
+    return {"mensaje": "Grupo eliminado"}
 
 
 @app.get("/api/grupos/con-horarios")
@@ -1152,6 +1222,63 @@ def listar_inscripciones(grupo_id: int, db: Session = Depends(get_db)):
             "nombre": f"{alumno.nombre} {alumno.apellido}" if alumno else "Desconocido",
             "matricula": alumno.matricula_o_num_empleado if alumno else "",
             "grupo_id": ins.grupo_id,
+        })
+    return resultado
+
+
+@app.get("/api/inscripciones/alumno/{alumno_id}")
+def listar_inscripciones_alumno(alumno_id: int, db: Session = Depends(get_db)):
+    """Lista las clases (grupos) en las que un alumno específico está inscrito"""
+    inscripciones = db.query(Inscripcion).filter(Inscripcion.alumno_id == alumno_id).all()
+    resultado = []
+    dias = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"]
+
+    inscripciones_por_grupo = {}
+    for ins in inscripciones:
+        if ins.grupo_id not in inscripciones_por_grupo:
+            inscripciones_por_grupo[ins.grupo_id] = []
+        inscripciones_por_grupo[ins.grupo_id].append(ins)
+
+    grupos_ya_procesados = set()
+    for ins in inscripciones:
+        if ins.grupo_id in grupos_ya_procesados:
+            continue
+        grupos_ya_procesados.add(ins.grupo_id)
+
+        grupo = db.query(Grupo).filter(Grupo.id == ins.grupo_id).first()
+        if not grupo:
+            continue
+        materia = db.query(Materia).filter(Materia.id == grupo.materia_id).first()
+        profesor = db.query(Usuario).filter(Usuario.id == grupo.profesor_id).first()
+        horarios_grupo = db.query(Horario).filter(Horario.grupo_id == grupo.id).all()
+        num_alumnos = db.query(Inscripcion).filter(Inscripcion.grupo_id == grupo.id).count()
+
+        inscripciones_del_grupo = inscripciones_por_grupo.get(grupo.id, [])
+
+        horarios_con_inscripcion = []
+        for h in horarios_grupo:
+            inscripcion_para_horario = next(
+                (i for i in inscripciones_del_grupo if i.horario_id == h.id), None
+            )
+            if inscripcion_para_horario:
+                horarios_con_inscripcion.append({
+                    "dia": dias[h.dia_semana] if h.dia_semana < len(dias) else "Sin día",
+                    "hora_inicio": str(h.hora_inicio) if h.hora_inicio else "",
+                    "hora_fin": str(h.hora_fin) if h.hora_fin else "",
+                    "inscripcion_id": inscripcion_para_horario.id,
+                })
+
+        resultado.append({
+            "id": grupo.id,
+            "inscripcion_id": ins.id,
+            "materia_nombre": materia.nombre if materia else "Sin materia",
+            "materia_clave": materia.clave if materia else "",
+            "profesor_nombre": f"{profesor.nombre} {profesor.apellido}" if profesor else "Sin profesor",
+            "aula": grupo.aula,
+            "semestre": grupo.semestre,
+            "periodo": grupo.periodo,
+            "num_alumnos": num_alumnos,
+            "horarios": horarios_con_inscripcion,
         })
     return resultado
 
@@ -1408,8 +1535,9 @@ def profesor_tabla_asistencia(
 
     profesor = db.query(Usuario).filter(Usuario.id == grupo.profesor_id).first()
     inscripciones = db.query(Inscripcion).filter(Inscripcion.grupo_id == grupo_id).all()
+    alumnos_ids = list(set(ins.alumno_id for ins in inscripciones))
     alumnos = db.query(Usuario).filter(
-        Usuario.id.in_([ins.alumno_id for ins in inscripciones])
+        Usuario.id.in_(alumnos_ids)
     ).all()
 
     def estructurar_usuario(u):
