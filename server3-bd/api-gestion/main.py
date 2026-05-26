@@ -1,6 +1,7 @@
 import os
 import shutil
 import httpx
+import asyncio
 from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException, Query, status, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
@@ -20,9 +21,10 @@ from crypto_utils import cifrar_embedding, descifrar_embedding
 from models import (
     Base, Usuario, TipoUsuario, Materia, Grupo, Horario, Inscripcion,
     Asistencia, Emocion, EstadoAsistencia, TipoRegistro, CategoriaEmocion,
-    Administrador
+    Administrador, DiaExcluido, AlertaDesercion, EstadoAlerta
 )
 from database import get_db, engine
+from email_service import enviar_alerta_desercion
 
 # URL de Server1 — se resuelve internamente (localhost), nunca pasa por el navegador
 SERVER1_INTERNAL_URL = os.getenv("SERVER1_URL", "http://127.0.0.1:8001")
@@ -151,22 +153,6 @@ def verificar_api_key_m2m(x_api_key: str = Header(...)):
         raise HTTPException(status_code=401, detail="API Key inválida o faltante")
 
 # --- App ---
-import asyncio
-from datetime import date, time, datetime, timedelta
-from typing import List, Optional
-from passlib.context import CryptContext
-from fastapi import FastAPI, Depends, HTTPException, status
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from sqlalchemy.orm import Session
-from sqlalchemy import func as sql_func
-from sqlalchemy.exc import IntegrityError
-
-from models import Base, Usuario, Materia, Grupo, Horario, Inscripcion, Asistencia, Emocion, DiaExcluido
-from models import TipoUsuario, EstadoAsistencia, CategoriaEmocion, TipoRegistro, AlertaDesercion, EstadoAlerta
-from database import engine, get_db
-from email_service import enviar_alerta_desercion
-
 # Base.metadata.create_all(bind=engine) ya se ejecuta en la línea 32
 
 app = FastAPI(

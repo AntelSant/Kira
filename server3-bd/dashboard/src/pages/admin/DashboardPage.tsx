@@ -122,14 +122,16 @@ export const DashboardPage: React.FC = () => {
         <div 
           className="stat-card" 
           onClick={() => navigate('/admin/alertas')}
-          style={{ cursor: 'pointer', borderLeft: alertasActivas > 0 ? '4px solid #ef4444' : '4px solid #10b981' }}
+          style={{ cursor: 'pointer' }}
         >
           <div className="stat-icon" style={{ background: alertasActivas > 0 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)' }}>
             <ShieldAlert color={alertasActivas > 0 ? '#ef4444' : '#10b981'} size={24} />
           </div>
           <div className="stat-info">
             <h3>Alertas Activas</h3>
-            <p className="stat-value" style={{ color: alertasActivas > 0 ? '#ef4444' : '#10b981' }}>{alertasActivas}</p>
+            <p className="stat-value" style={{ color: alertasActivas > 0 ? '#ef4444' : '#10b981', fontSize: '1.5rem' }}>
+              {alertasActivas} alerta{alertasActivas !== 1 ? 's' : ''} activa{alertasActivas !== 1 ? 's' : ''}
+            </p>
           </div>
         </div>
       </div>
