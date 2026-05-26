@@ -81,6 +81,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <NavItem to="/admin/asistencia" icon={<CalendarCheck size={18} />} label="Asistencia" />
               <NavItem to="/admin/lista-asistencia" icon={<ListChecks size={18} />} label="Lista Asistencia" />
               <NavItem to="/admin/emociones" icon={<Smile size={18} />} label="Emociones" />
+              <NavItem to="/admin/alertas" icon={<ShieldAlert size={18} />} label="Alertas" />
 
               <div className="nav-section-label">Sistema</div>
               <NavItem to="/admin/admins" icon={<ShieldAlert size={18} />} label="Administradores" />

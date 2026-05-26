@@ -30,6 +30,11 @@ class CategoriaEmocion(enum.Enum):
     neutro = "neutro"
     negativo = "negativo"
 
+class EstadoAlerta(enum.Enum):
+    activa = "activa"
+    revisada = "revisada"
+    resuelta = "resuelta"
+
 # ==========================================
 # 2. MIXIN DE TIMESTAMPS
 # ==========================================
@@ -176,3 +181,23 @@ class Emocion(Base, TimestampMixin):
     asistencia_rel = relationship("Asistencia", back_populates="detalle_emocion")
     usuario = relationship("Usuario", back_populates="emociones")
     grupo = relationship("Grupo", back_populates="emociones")
+
+class AlertaDesercion(Base, TimestampMixin):
+    __tablename__ = 'alertas_desercion'
+    __table_args__ = (
+        UniqueConstraint('alumno_id', 'grupo_id', 'estado',
+                         name='_alerta_activa_uc'),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    alumno_id = Column(Integer, ForeignKey('usuarios.id', ondelete='CASCADE'), index=True)
+    grupo_id = Column(Integer, ForeignKey('grupos.id', ondelete='CASCADE'), index=True)
+    faltas_consecutivas = Column(Integer, nullable=False)
+    ultima_emocion = Column(Enum(CategoriaEmocion), nullable=True)
+    estado = Column(Enum(EstadoAlerta), default=EstadoAlerta.activa)
+    correo_enviado = Column(Boolean, default=False)
+    fecha_deteccion = Column(Date, nullable=False)
+    notas = Column(String(500), nullable=True)
+
+    alumno = relationship("Usuario")
+    grupo = relationship("Grupo")

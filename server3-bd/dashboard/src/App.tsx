@@ -17,6 +17,8 @@ import { AsistenciaPage } from './pages/admin/AsistenciaPage';
 import { ListaAsistenciaPage } from './pages/admin/ListaAsistenciaPage';
 import { EmocionesPage } from './pages/admin/EmocionesPage';
 import { AdminsPage } from './pages/admin/AdminsPage';
+import { AlertasPage } from './pages/admin/AlertasPage';
+import { ReporteAlumnoPage } from './pages/admin/ReporteAlumnoPage';
 
 // Profesor & Alumno Pages
 import { ProfesorGruposPage } from './pages/profesor/ProfesorGruposPage';
@@ -58,6 +60,8 @@ function AppRoutes() {
         <Route path="lista-asistencia" element={<ListaAsistenciaPage />} />
         <Route path="emociones" element={<EmocionesPage />} />
         <Route path="admins" element={<AdminsPage />} />
+        <Route path="alertas" element={<AlertasPage />} />
+        <Route path="alertas/reporte/:alumnoId" element={<ReporteAlumnoPage />} />
       </Route>
 
       {/* Rutas para Profesor */}
