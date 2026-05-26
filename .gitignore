@@ -3,7 +3,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 venv/
+.venv/
 
+# Logs y procesos en segundo plano
+*.log
+*.pid
 # Variables de entorno (archivos con datos sensibles)
 .env
 !.env.example
