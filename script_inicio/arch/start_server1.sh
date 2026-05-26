@@ -51,6 +51,11 @@ if [[ "$*" == *"--update"* ]]; then
     pip install -r requirements.txt
 fi
 
+if [ ! -d "antispoof_models" ]; then
+    echo -e "${YELLOW}Descargando modelos Anti-Spoofing...${NC}"
+    venv/bin/python download_antispoof_models.py
+fi
+
 # 5. Leer el puerto desde .env
 PORT=$(grep -oP '^SERVER1_PORT=\K.*' .env 2>/dev/null || echo "8001")
 

@@ -19,6 +19,11 @@ SERVER3_URL = os.getenv("SERVER3_URL", "http://127.0.0.1:8003")
 SERVER2_URL = os.getenv("SERVER2_URL", "http://127.0.0.1:8002")
 API_KEY = os.getenv("API_KEY", "kira_default_secret_key")
 CUDA_DEVICE = os.getenv("CUDA_DEVICE", "cuda:0")
+ANTISPOOF_ENABLED = os.getenv("ANTISPOOF_ENABLED", "true").lower() == "true"
+ANTISPOOF_THRESHOLD = float(os.getenv("ANTISPOOF_THRESHOLD", "0.80"))
+
+# Importar anti-spoofing
+from antispoof import cargar_modelos_antispoof, verificar_liveness
 
 app = FastAPI(title="Servidor 1 - Orquestador de Asistencia IA (Kira)")
 
@@ -37,6 +42,19 @@ print(f"[] Dispositivo de procesamiento: {device}")
 
 mtcnn = MTCNN(keep_all=False, device=device)
 resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
+
+if ANTISPOOF_ENABLED:
+    print("-- Cargando modelos Anti-Spoofing...")
+    antispoof_models = cargar_modelos_antispoof(device)
+    if antispoof_models:
+        print(f"-- Anti-Spoofing listo (umbral: {ANTISPOOF_THRESHOLD})")
+    else:
+        print("!! -- Error al cargar modelos Anti-Spoofing. Descarga los pesos primero.")
+        ANTISPOOF_ENABLED = False
+else:
+    antispoof_models = None
+    print("-- Anti-Spoofing DESACTIVADO")
+
 print("-- Modelos de IA listos.")
 
 # --- CARPETAS ---
@@ -150,7 +168,25 @@ async def procesar_asistencia(data: CapturaRequest, background_tasks: Background
         image_bytes = base64.b64decode(data.foto_base64)
         image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
 
-        # 2. Detectar rostro y extraer embedding
+        # 2. Detección de vida (Anti-Spoofing)
+        if ANTISPOOF_ENABLED and antispoof_models:
+            boxes, probs = mtcnn.detect(image)
+            if boxes is None or len(boxes) == 0:
+                print("!! -- No se detectó ningún rostro en la imagen.")
+                return {"status": "error", "mensaje": "No se detectó rostro"}
+            
+            is_real, spoof_score = verificar_liveness(
+                image, boxes[0], antispoof_models, device, ANTISPOOF_THRESHOLD
+            )
+            if not is_real:
+                print(f"🚫 SPOOF DETECTADO (score: {spoof_score:.2f}, umbral: {ANTISPOOF_THRESHOLD})")
+                return {
+                    "status": "error",
+                    "mensaje": "Intento de suplantación detectado"
+                }
+            print(f"✅ Liveness verificado (score: {spoof_score:.2f})")
+
+        # 3. Extraer embedding facial
         vector_facial, face_img = extraer_embedding(image)
 
         if vector_facial is None:
