@@ -146,21 +146,21 @@ export const AlertasPage: React.FC = () => {
       </div>
 
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', marginBottom: '20px' }}>
-        <div className="stat-card" style={{ borderLeft: '4px solid #ef4444' }}>
+        <div className="stat-card">
           <div className="stat-icon" style={{ background: 'rgba(239, 68, 68, 0.2)' }}><ShieldAlert color="#ef4444" /></div>
           <div className="stat-info">
             <h3>Activas</h3>
             <p className="stat-value">{resumen.activas}</p>
           </div>
         </div>
-        <div className="stat-card" style={{ borderLeft: '4px solid #f59e0b' }}>
+        <div className="stat-card">
           <div className="stat-icon" style={{ background: 'rgba(245, 158, 11, 0.2)' }}><Clock color="#f59e0b" /></div>
           <div className="stat-info">
             <h3>Revisadas</h3>
             <p className="stat-value">{resumen.revisadas}</p>
           </div>
         </div>
-        <div className="stat-card" style={{ borderLeft: '4px solid #10b981' }}>
+        <div className="stat-card">
           <div className="stat-icon" style={{ background: 'rgba(16, 185, 129, 0.2)' }}><CheckCircle color="#10b981" /></div>
           <div className="stat-info">
             <h3>Resueltas</h3>
