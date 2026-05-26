@@ -32,7 +32,7 @@ export const AlertasPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [filtroEstado, setFiltroEstado] = useState<string>('todas');
   const [ejecutando, setEjecutando] = useState(false);
-  
+
   // Modal de actualización
   const [alertaSeleccionada, setAlertaSeleccionada] = useState<Alerta | null>(null);
   const [nuevoEstado, setNuevoEstado] = useState<string>('');
@@ -44,12 +44,12 @@ export const AlertasPage: React.FC = () => {
     try {
       setLoading(true);
       const url = filtroEstado === 'todas' ? '/alertas' : `/alertas?estado=${filtroEstado}`;
-      
+
       const [resAlertas, resResumen] = await Promise.all([
         authFetch(url),
         authFetch('/alertas/resumen')
       ]);
-      
+
       if (resAlertas.ok && resResumen.ok) {
         setAlertas(await resAlertas.json());
         setResumen(await resResumen.json());
@@ -127,18 +127,17 @@ export const AlertasPage: React.FC = () => {
 
   return (
     <div className="page-section active">
-      <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="page-header">
         <div>
-          <h1>Smart Alerts (Riesgo de Deserción)</h1>
-          <p style={{ color: '#94a3b8', marginTop: '5px' }}>
-            Detección automática de alumnos con 4+ faltas consecutivas y estado emocional negativo.
+          <h1>Smart Alerts</h1>
+          <p style={{ margin: '4px 0 0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+            Monitoreo de riesgo de deserción escolar
           </p>
         </div>
-        <button 
-          className="btn btn-primary" 
+        <button
+          className="btn btn-primary"
           onClick={handleEjecutarAhora}
           disabled={ejecutando}
-          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
         >
           <Play size={18} />
           {ejecutando ? "Ejecutando..." : "Forzar Análisis Ahora"}
@@ -170,13 +169,13 @@ export const AlertasPage: React.FC = () => {
       </div>
 
       <div className="card">
-        <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="card-header">
           <h2>Historial de Alertas</h2>
-          <select 
-            value={filtroEstado} 
+          <select
+            value={filtroEstado}
             onChange={(e) => setFiltroEstado(e.target.value)}
             className="form-control"
-            style={{ width: '200px' }}
+            style={{ width: 'auto', minWidth: '140px' }}
           >
             <option value="todas">Todas</option>
             <option value="activa">Activas</option>
@@ -227,19 +226,19 @@ export const AlertasPage: React.FC = () => {
                       </span>
                     </td>
                     <td style={{ display: 'flex', gap: '8px' }}>
-                      <button 
-                        className="btn btn-secondary" 
+                      <button
+                        className="btn btn-secondary"
                         onClick={() => handleAbrirModal(a)}
                         style={{ padding: '4px 8px', fontSize: '0.85rem' }}
                       >
                         Gestionar
                       </button>
-                      <button 
-                        className="btn" 
+                      <button
+                        className="btn"
                         style={{ padding: '4px 8px', fontSize: '0.85rem', background: '#3b82f6', color: 'white' }}
                         onClick={() => navigate(`/admin/alertas/reporte/${a.alumno_id}`)}
                       >
-                        <FileText size={14} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'text-bottom' }}/>
+                        <FileText size={14} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'text-bottom' }} />
                         Ver Reporte
                       </button>
                     </td>
@@ -260,16 +259,16 @@ export const AlertasPage: React.FC = () => {
             </div>
             <div className="modal-body">
               <div style={{ marginBottom: '15px' }}>
-                <strong>Alumno:</strong> {alertaSeleccionada.alumno_nombre} ({alertaSeleccionada.alumno_matricula})<br/>
-                <strong>Materia:</strong> {alertaSeleccionada.materia_nombre}<br/>
+                <strong>Alumno:</strong> {alertaSeleccionada.alumno_nombre} ({alertaSeleccionada.alumno_matricula})<br />
+                <strong>Materia:</strong> {alertaSeleccionada.materia_nombre}<br />
                 <strong>Fecha Detección:</strong> {alertaSeleccionada.fecha_deteccion}
               </div>
-              
+
               <div className="form-group">
                 <label>Cambiar Estado</label>
-                <select 
-                  className="form-control" 
-                  value={nuevoEstado} 
+                <select
+                  className="form-control"
+                  value={nuevoEstado}
                   onChange={(e) => setNuevoEstado(e.target.value)}
                 >
                   <option value="activa">Activa (Pendiente)</option>
@@ -280,9 +279,9 @@ export const AlertasPage: React.FC = () => {
 
               <div className="form-group">
                 <label>Notas de seguimiento</label>
-                <textarea 
-                  className="form-control" 
-                  value={notas} 
+                <textarea
+                  className="form-control"
+                  value={notas}
                   onChange={(e) => setNotas(e.target.value)}
                   placeholder="Ej: Se contactó a los padres, el alumno se reincorpora mañana..."
                   rows={4}

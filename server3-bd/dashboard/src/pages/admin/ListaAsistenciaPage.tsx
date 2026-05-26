@@ -5,7 +5,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Alert } from '../../components/ui/Alert';
 import { Modal } from '../../components/ui/Modal';
-import { AlertTriangle, Edit } from 'lucide-react';
+import { AlertTriangle, Edit, FileSpreadsheet } from 'lucide-react';
 
 interface TablaAsistenciaData {
   teacher: { id: number; nombre: string; apellido: string; total_asistencias: number; total_faltas: number } | null;
@@ -35,6 +35,7 @@ export const ListaAsistenciaPage: React.FC = () => {
 
   const [isJustificarModalOpen, setIsJustificarModalOpen] = useState(false);
   const [justificarData, setJustificarData] = useState<{ id: number; estado: string; nombre: string }>({ id: 0, estado: 'justificado', nombre: '' });
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     authFetch('/grupos').then(res => res.json()).then(setGrupos).catch(console.error);
@@ -108,6 +109,32 @@ export const ListaAsistenciaPage: React.FC = () => {
     setIsJustificarModalOpen(true);
   };
 
+  const handleExportExcel = async () => {
+    if (!grupoId || exporting) return;
+    setExporting(true);
+    try {
+      const res = await authFetch(`/asistencia/grupo/${grupoId}/exportar`);
+      if (!res.ok) throw new Error('Error en la respuesta');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const contentDisposition = res.headers.get('Content-Disposition');
+      const filename = contentDisposition?.match(/filename=(.+\.xlsx)/)?.[1] || `asistencia_${grupoId}.xlsx`;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      showAlert('Exportación iniciada', 'success');
+    } catch (error) {
+      console.error(error);
+      showAlert('Error al exportar', 'danger');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const getBadgeVariant = (estado: string): 'success' | 'warning' | 'danger' | 'info' => {
     if (estado === 'a_tiempo' || estado === 'justificado') return 'success';
     if (estado === 'retardo') return 'warning';
@@ -138,6 +165,13 @@ export const ListaAsistenciaPage: React.FC = () => {
             ))}
           </select>
         </div>
+        {grupoId && (
+          <div className="form-group">
+            <Button variant="success" icon={<FileSpreadsheet size={16}/>} onClick={handleExportExcel} disabled={exporting}>
+              {exporting ? 'Exportando...' : 'Exportar Excel'}
+            </Button>
+          </div>
+        )}
         {grupoId && (
           <div className="form-group">
             <Button variant="danger" icon={<AlertTriangle size={16}/>} onClick={() => setIsExcluirModalOpen(true)}>
