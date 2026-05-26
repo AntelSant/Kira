@@ -5,7 +5,7 @@ import asyncio
 from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException, Query, status, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -16,6 +16,10 @@ from datetime import datetime, date, timedelta
 import bcrypt
 from jose import jwt, JWTError, ExpiredSignatureError
 import numpy as np
+from io import BytesIO
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from openpyxl.utils import get_column_letter
 
 from crypto_utils import cifrar_embedding, descifrar_embedding
 from models import (
@@ -989,6 +993,173 @@ def obtener_tabla_asistencia(grupo_id: int, db: Session = Depends(get_db)):
         "excluded_dates": dias_excluidos,
         "total_class_days": dias_totales_clase
     }
+
+@app.get("/api/asistencia/grupo/{grupo_id}/exportar")
+def exportar_asistencia_excel(grupo_id: int, db: Session = Depends(get_db)):
+    """Exporta la tabla de asistencia a un archivo Excel con colores por estado."""
+    grupo = db.query(Grupo).filter(Grupo.id == grupo_id).first()
+    if not grupo:
+        raise HTTPException(status_code=404, detail="Grupo no encontrado")
+
+    profesor = db.query(Usuario).filter(Usuario.id == grupo.profesor_id).first()
+    inscripciones = db.query(Inscripcion).filter(Inscripcion.grupo_id == grupo_id).all()
+    alumnos_ids = list(set(ins.alumno_id for ins in inscripciones))
+    alumnos = db.query(Usuario).filter(Usuario.id.in_(alumnos_ids)).all()
+    materias = db.query(Materia).filter(Materia.id == grupo.materia_id).first()
+
+    respuestas = db.query(Asistencia).filter(Asistencia.grupo_id == grupo_id).all()
+    dias_excluidos_db = db.query(DiaExcluido).filter(DiaExcluido.grupo_id == grupo_id).all()
+    dias_excluidos = [str(d.fecha) for d in dias_excluidos_db]
+
+    fechas_ordenadas = sorted(list(set(str(a.fecha) for a in respuestas)))
+    dias_totales = len([f for f in fechas_ordenadas if f not in dias_excluidos])
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Asistencia"
+
+    verde_fill = PatternFill(start_color="22c55e", end_color="22c55e", fill_type="solid")
+    amarillo_fill = PatternFill(start_color="eab308", end_color="eab308", fill_type="solid")
+    azul_fill = PatternFill(start_color="3b82f6", end_color="3b82f6", fill_type="solid")
+    rojo_fill = PatternFill(start_color="ef4444", end_color="ef4444", fill_type="solid")
+    header_fill = PatternFill(start_color="1e293b", end_color="1e293b", fill_type="solid")
+    gray_fill = PatternFill(start_color="f1f5f9", end_color="f1f5f9", fill_type="solid")
+    excluded_fill = PatternFill(start_color="fee2e2", end_color="fee2e2", fill_type="solid")
+
+    thin_border = Border(
+        left=Side(style='thin'), right=Side(style='thin'),
+        top=Side(style='thin'), bottom=Side(style='thin')
+    )
+
+    ws.merge_cells('A1:F1')
+    ws['A1'] = f"REPORTE DE ASISTENCIA - {materias.nombre if materias else 'N/A'}"
+    ws['A1'].font = Font(bold=True, size=14, color="FFFFFF")
+    ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
+    ws['A1'].fill = header_fill
+    ws.row_dimensions[1].height = 25
+
+    ws.merge_cells('A2:F2')
+    ws['A2'] = f"Grupo: {grupo.semestre or 'N/A'} | Aula: {grupo.aula or 'N/A'} | Período: {grupo.periodo or 'N/A'}"
+    ws['A2'].font = Font(bold=True, size=11)
+    ws['A2'].alignment = Alignment(horizontal='center')
+
+    teacher_name = f"{profesor.nombre} {profesor.apellido}" if profesor else "N/A"
+    ws.merge_cells('A3:F3')
+    ws['A3'] = f"Profesor: {teacher_name} | Asistencias: {sum(1 for r in respuestas if r.usuario_id == profesor.id and r.estado.value in ['a_tiempo','retardo','justificado']) if profesor else 0} | Faltas: {sum(1 for r in respuestas if r.usuario_id == profesor.id and r.estado.value in ['ausente','fuera_de_horario']) if profesor else 0}"
+    ws['A3'].font = Font(size=10)
+    ws['A3'].alignment = Alignment(horizontal='center')
+
+    ws.merge_cells('A4:F4')
+    ws['A4'] = f"Total días de clase: {dias_totales} | Días excluidos: {len(dias_excluidos)} | Alumnos: {len(alumnos)}"
+    ws['A4'].font = Font(size=10, italic=True)
+    ws['A4'].alignment = Alignment(horizontal='center')
+
+    ws.merge_cells('A5:F5')
+    ws['A5'] = f"Generado: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+    ws['A5'].font = Font(size=9, italic=True)
+    ws['A5'].alignment = Alignment(horizontal='center')
+
+    header_row = 7
+    headers = ["Alumno", "Matrícula"] + [datetime.strptime(f, "%Y-%m-%d").strftime("%d/%m") for f in fechas_ordenadas] + ["Asistencias", "Faltas"]
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=header_row, column=col, value=header)
+        cell.font = Font(bold=True, color="FFFFFF", size=10)
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+        cell.fill = header_fill
+        cell.border = thin_border
+    ws.row_dimensions[header_row].height = 20
+
+    for col in range(1, len(headers) + 1):
+        ws.column_dimensions[get_column_letter(col)].width = 12
+    ws.column_dimensions['A'].width = 25
+    ws.column_dimensions['B'].width = 14
+
+    for idx, alumno in enumerate(sorted(alumnos, key=lambda x: x.apellido)):
+        row = header_row + 1 + idx
+        alum_asistencias = [a for a in respuestas if a.usuario_id == alumno.id]
+
+        ws.cell(row=row, column=1, value=f"{alumno.nombre} {alumno.apellido}").border = thin_border
+        ws.cell(row=row, column=2, value=alumno.matricula_o_num_empleado).border = thin_border
+
+        total_asis = 0
+        total_faltas = 0
+
+        for col_idx, fecha in enumerate(fechas_ordenadas, 3):
+            registros = [a for a in alum_asistencias if str(a.fecha) == fecha]
+            cell = ws.cell(row=row, column=col_idx)
+            cell.border = thin_border
+            cell.alignment = Alignment(horizontal='center')
+
+            if fecha in dias_excluidos:
+                cell.value = "—"
+                cell.fill = excluded_fill
+            elif not registros:
+                cell.value = "✗"
+                cell.fill = rojo_fill
+                total_faltas += 1
+            else:
+                estado = registros[0].estado.value if registros[0].estado else "ausente"
+                if estado == "a_tiempo":
+                    cell.value = "✓"
+                    cell.fill = verde_fill
+                    total_asis += 1
+                elif estado == "retardo":
+                    cell.value = "~"
+                    cell.fill = amarillo_fill
+                    total_asis += 1
+                elif estado == "justificado":
+                    cell.value = "J"
+                    cell.fill = azul_fill
+                    total_asis += 1
+                else:
+                    cell.value = "✗"
+                    cell.fill = rojo_fill
+                    total_faltas += 1
+
+        cell_asis = ws.cell(row=row, column=len(fechas_ordenadas) + 3, value=total_asis)
+        cell_asis.border = thin_border
+        cell_asis.alignment = Alignment(horizontal='center')
+        cell_asis.font = Font(bold=True, color="166534")
+
+        cell_faltas = ws.cell(row=row, column=len(fechas_ordenadas) + 4, value=total_faltas)
+        cell_faltas.border = thin_border
+        cell_faltas.alignment = Alignment(horizontal='center')
+        cell_faltas.font = Font(bold=True, color="991b1b")
+
+    last_data_row = header_row + len(alumnos)
+    for col in range(1, len(headers) + 1):
+        ws.cell(row=last_data_row + 1, column=col).border = thin_border
+
+    ws.cell(row=last_data_row + 3, column=1, value="LEYENDA:").font = Font(bold=True, size=9)
+    legend_items = [
+        ("✓ A tiempo", verde_fill), ("~ Retardo", amarillo_fill),
+        ("J Justificado", azul_fill), ("✗ Ausente", rojo_fill), ("— Excluido", excluded_fill)
+    ]
+    for i, (text, fill) in enumerate(legend_items, 2):
+        cell = ws.cell(row=last_data_row + 3, column=i, value=text)
+        cell.fill = fill
+        cell.font = Font(size=9, bold=True)
+        cell.alignment = Alignment(horizontal='center')
+        cell.border = thin_border
+
+    for col in range(1, len(headers) + 1):
+        ws.column_dimensions[get_column_letter(col)].width = max(
+            ws.column_dimensions[get_column_letter(col)].width,
+            12
+        )
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    fecha_str = datetime.now().strftime("%Y%m%d")
+    filename = f"asistencia_g{grupo_id}_{fecha_str}.xlsx"
+
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 @app.post("/api/asistencia/grupo/{grupo_id}/excluir_dia")
 def excluir_dia(grupo_id: int, request: ExcluirDiaRequest, db: Session = Depends(get_db)):
