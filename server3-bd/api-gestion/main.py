@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import func as sql_func
+from sqlalchemy import func as sql_func, inspect, text
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime, date, timedelta
@@ -31,6 +31,20 @@ API_KEY = os.getenv("API_KEY", "kira_default_secret_key")
 print("--Espere-- Verificando y construyendo tablas en la base de datos...")
 Base.metadata.create_all(bind=engine)
 print("-- ¡Tablas listas y creadas!")
+
+print("-- Verificando columnas faltantes en tablas existentes...")
+inspector = inspect(engine)
+with engine.connect() as conn:
+    for table_name, table in Base.metadata.tables.items():
+        if inspector.has_table(table_name):
+            existing_columns = {col['name'] for col in inspector.get_columns(table_name)}
+            for column in table.columns:
+                if column.name not in existing_columns:
+                    col_type = column.type.compile(engine.dialect)
+                    print(f"Agregando columna faltante: {table_name}.{column.name} de tipo {col_type}")
+                    conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column.name} {col_type}"))
+    conn.commit()
+print("-- ¡Verificación de columnas completada!")
 
 # --- Crear carpetas necesarias ---
 os.makedirs("app/static/perfiles", exist_ok=True)
@@ -152,7 +166,7 @@ from models import Base, Usuario, Materia, Grupo, Horario, Inscripcion, Asistenc
 from models import TipoUsuario, EstadoAsistencia, CategoriaEmocion, TipoRegistro
 from database import engine, get_db
 
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine) ya se ejecuta en la línea 32
 
 app = FastAPI(
     title="API de Gestión y Asistencia - UAS (Kira)",

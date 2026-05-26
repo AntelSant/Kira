@@ -60,8 +60,8 @@ PORT=$(grep -oP '^SERVER3_PORT=\K.*' .env 2>/dev/null || echo "8003")
 echo -e "${GREEN}Servidor de BD/Gestión listo en el puerto $PORT. Levantando Uvicorn...${NC}"
 if [[ "$*" == *"--daemon"* ]]; then
     echo -e "${YELLOW}Ejecutando en segundo plano. Logs en server3.log${NC}"
-    nohup uvicorn main:app --host 0.0.0.0 --port "$PORT" --reload > server3.log 2>&1 &
+    nohup venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port "$PORT" --reload > server3.log 2>&1 &
     echo $! > server3.pid
 else
-    exec uvicorn main:app --host 0.0.0.0 --port "$PORT" --reload
+    exec venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port "$PORT" --reload
 fi

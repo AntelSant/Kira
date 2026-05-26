@@ -29,7 +29,7 @@ cd server2-emotion
 if [ ! -d "venv" ]; then
     echo -e "${YELLOW}Creando entorno virtual por primera vez...${NC}"
     python3 -m venv venv
-    source venv/bin/activate.fish
+    source venv/bin/activate
     
     echo -e "${YELLOW}Instalando dependencias...${NC}"
     pip install --upgrade pip setuptools wheel
@@ -52,8 +52,8 @@ PORT=$(grep -oP '^SERVER2_PORT=\K.*' .env 2>/dev/null || echo "8002")
 echo -e "${GREEN}Servidor de emociones listo en el puerto $PORT. Levantando Uvicorn...${NC}"
 if [[ "$*" == *"--daemon"* ]]; then
     echo -e "${YELLOW}Ejecutando en segundo plano. Logs en server2.log${NC}"
-    nohup uvicorn main:app --host 0.0.0.0 --port "$PORT" --reload > server2.log 2>&1 &
+    nohup venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port "$PORT" --reload > server2.log 2>&1 &
     echo $! > server2.pid
 else
-    exec uvicorn main:app --host 0.0.0.0 --port "$PORT" --reload
+    exec venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port "$PORT" --reload
 fi

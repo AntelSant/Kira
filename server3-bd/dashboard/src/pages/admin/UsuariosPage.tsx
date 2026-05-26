@@ -35,6 +35,8 @@ export const UsuariosPage: React.FC = () => {
   const [captureStep, setCaptureStep] = useState(0);
   const [fotos, setFotos] = useState<string[]>([]);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [isFrozen, setIsFrozen] = useState(false);
+  const [faceError, setFaceError] = useState<string | null>(null);
 
   const fetchUsuarios = async () => {
     setLoading(true);
@@ -188,12 +190,16 @@ export const UsuariosPage: React.FC = () => {
     setSelectedUser(user);
     setCaptureStep(0);
     setFotos([]);
+    setIsFrozen(false);
+    setFaceError(null);
     setIsFaceModalOpen(true);
     startCamera();
   };
 
   const closeFaceModal = () => {
     stopCamera();
+    setIsFrozen(false);
+    setFaceError(null);
     setIsFaceModalOpen(false);
   };
 
@@ -208,7 +214,16 @@ export const UsuariosPage: React.FC = () => {
       
       setFotos(prev => [...prev, base64Data]);
       setCaptureStep(prev => prev + 1);
+      setIsFrozen(true);
+      setFaceError(null);
     }
+  };
+
+  const retakePhoto = () => {
+    setFotos([]);
+    setCaptureStep(0);
+    setIsFrozen(false);
+    setFaceError(null);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -222,6 +237,16 @@ export const UsuariosPage: React.FC = () => {
       // Simulamos 1 captura
       setFotos([base64Data]);
       setCaptureStep(1);
+      setIsFrozen(true);
+      setFaceError(null);
+      
+      // Dibujar la imagen subida en el canvas para mostrarla
+      const img = new window.Image();
+      img.onload = () => {
+        const ctx = canvasRef.current?.getContext('2d');
+        if (ctx) ctx.drawImage(img, 0, 0, 320, 240);
+      };
+      img.src = dataUrl;
     };
     reader.readAsDataURL(file);
   };
@@ -229,6 +254,7 @@ export const UsuariosPage: React.FC = () => {
   const submitFotos = async () => {
     if (fotos.length < 1 || !selectedUser) return;
     setIsCapturing(true);
+    setFaceError(null);
 
     try {
       const res1 = await authFetch('/proxy/registrar-cara', {
@@ -241,17 +267,26 @@ export const UsuariosPage: React.FC = () => {
 
       if (!res1.ok) {
         const err = await res1.json();
-        throw new Error(err.detail || 'Error en Server1');
+        const errorMsg = err.detail || 'Error en el registro facial';
+        setFaceError(errorMsg);
+        setFotos([]);
+        setCaptureStep(0);
+        setIsFrozen(false);
+        setIsCapturing(false);
+        return; // No cerramos el modal
       }
 
       showAlert('Rostro registrado exitosamente', 'success');
       fetchUsuarios();
+      closeFaceModal();
     } catch (error) {
       console.error(error);
-      showAlert('Error en el registro facial', 'danger');
+      setFaceError('Error de conexión con el servidor');
+      setFotos([]);
+      setCaptureStep(0);
+      setIsFrozen(false);
     } finally {
       setIsCapturing(false);
-      closeFaceModal();
     }
   };
 
@@ -373,9 +408,14 @@ export const UsuariosPage: React.FC = () => {
         title={`Captura Facial: ${selectedUser?.nombre}`}
         footer={
           captureStep >= 1 ? (
-            <Button variant="success" block onClick={submitFotos} disabled={isCapturing}>
-              {isCapturing ? 'Registrando...' : 'Finalizar y Guardar'}
-            </Button>
+            <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+              <Button variant="outline" onClick={retakePhoto} disabled={isCapturing}>
+                Reintentar
+              </Button>
+              <Button variant="success" block onClick={submitFotos} disabled={isCapturing}>
+                {isCapturing ? 'Registrando...' : 'Finalizar y Guardar'}
+              </Button>
+            </div>
           ) : (
             <Button variant="primary" block onClick={capturePhoto}>
               Capturar Foto
@@ -385,18 +425,36 @@ export const UsuariosPage: React.FC = () => {
       >
         <div style={{ textAlign: 'center' }}>
           <p>Mira a la cámara y captura 1 foto para el registro facial.</p>
-          <div style={{ position: 'relative', width: '320px', height: '240px', margin: '1rem auto', borderRadius: '8px', overflow: 'hidden', background: '#000' }}>
-            <video ref={videoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }}></video>
-          </div>
-          <canvas ref={canvasRef} width={320} height={240} style={{ display: 'none' }}></canvas>
           
-          <div style={{ marginTop: '1rem', borderTop: '1px solid #333', paddingTop: '1rem' }}>
-            <p style={{ marginBottom: '0.5rem', fontSize: '0.9rem', color: '#999' }}>¿O prefieres subir una foto desde tu dispositivo?</p>
-            <label style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '6px', border: '1px solid #4a4a4a', background: '#2a2a2a', color: '#fff', fontSize: '14px', fontWeight: 500 }}>
-              <Camera size={16} /> Subir Imagen
-              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileUpload} />
-            </label>
+          {faceError && (
+            <div style={{
+              margin: '0.5rem auto 1rem',
+              padding: '10px 16px',
+              borderRadius: '8px',
+              background: '#fee2e2',
+              color: '#dc2626',
+              border: '1px solid #fecaca',
+              maxWidth: '320px',
+              fontSize: '14px'
+            }}>
+              ⚠️ {faceError}
+            </div>
+          )}
+          
+          <div style={{ position: 'relative', width: '320px', height: '240px', margin: '1rem auto', borderRadius: '8px', overflow: 'hidden', background: '#000' }}>
+            <video ref={videoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', display: isFrozen ? 'none' : 'block' }}></video>
+            <canvas ref={canvasRef} width={320} height={240} style={{ width: '100%', height: '100%', objectFit: 'cover', display: isFrozen ? 'block' : 'none' }}></canvas>
           </div>
+          
+          {!isFrozen && (
+            <div style={{ marginTop: '1rem', borderTop: '1px solid #333', paddingTop: '1rem' }}>
+              <p style={{ marginBottom: '0.5rem', fontSize: '0.9rem', color: '#999' }}>¿O prefieres subir una foto desde tu dispositivo?</p>
+              <label style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '6px', border: '1px solid #4a4a4a', background: '#2a2a2a', color: '#fff', fontSize: '14px', fontWeight: 500 }}>
+                <Camera size={16} /> Subir Imagen
+                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileUpload} />
+              </label>
+            </div>
+          )}
         </div>
       </Modal>
 

@@ -57,8 +57,8 @@ fi
 echo -e "${GREEN} Servidor de simulación listo. Abre tu navegador en: http://localhost:8080${NC}"
 if [[ "$*" == *"--daemon"* ]]; then
     echo -e "${YELLOW}Ejecutando en segundo plano. Logs en simulador.log${NC}"
-    nohup uvicorn simular_esp32_web:app --host 0.0.0.0 --port 8080 --reload > simulador.log 2>&1 &
+    nohup .venv/bin/python -m uvicorn simular_esp32_web:app --host 0.0.0.0 --port 8080 --reload > simulador.log 2>&1 &
     echo $! > simulador.pid
 else
-    exec uvicorn simular_esp32_web:app --host 0.0.0.0 --port 8080 --reload
+    exec .venv/bin/python -m uvicorn simular_esp32_web:app --host 0.0.0.0 --port 8080 --reload
 fi

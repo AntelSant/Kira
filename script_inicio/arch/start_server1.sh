@@ -35,7 +35,7 @@ fi
 if [ ! -d "venv" ]; then
     echo -e "${YELLOW}Creando entorno virtual por primera vez...${NC}"
     python3.11 -m venv venv
-    source venv/bin/activate.fish
+    source venv/bin/activate
     
     echo -e "${YELLOW}Instalando dependencias pesadas...${NC}"
     pip install --upgrade pip setuptools wheel
@@ -58,8 +58,8 @@ PORT=$(grep -oP '^SERVER1_PORT=\K.*' .env 2>/dev/null || echo "8001")
 echo -e "${GREEN}Servidor listo en el puerto $PORT. Levantando Uvicorn...${NC}"
 if [[ "$*" == *"--daemon"* ]]; then
     echo -e "${YELLOW}Ejecutando en segundo plano. Logs en server1.log${NC}"
-    nohup uvicorn main:app --host 0.0.0.0 --port "$PORT" --reload > server1.log 2>&1 &
+    nohup venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port "$PORT" --reload > server1.log 2>&1 &
     echo $! > server1.pid
 else
-    exec uvicorn main:app --host 0.0.0.0 --port "$PORT" --reload
+    exec venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port "$PORT" --reload
 fi
