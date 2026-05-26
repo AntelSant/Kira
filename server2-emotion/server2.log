@@ -1,6 +1,6 @@
-INFO:     Will watch for changes in these directories: ['/home/antelsant/Documentos/Kira/server2-emotion']
+INFO:     Will watch for changes in these directories: ['/home/tilin/Kira/server2-emotion']
 INFO:     Uvicorn running on http://0.0.0.0:8002 (Press CTRL+C to quit)
-INFO:     Started reloader process [11019] using StatReload
-INFO:     Started server process [11022]
+INFO:     Started reloader process [21450] using StatReload
+INFO:     Started server process [21453]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.

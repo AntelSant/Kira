@@ -1815,11 +1815,18 @@ async def proxy_registrar_cara(data: RegistrarCaraRequest):
             resp = await client.post(
                 f"{SERVER1_INTERNAL_URL}/api/register",
                 json={"matricula": data.matricula, "foto_base64": data.foto_base64},
+                headers={"X-API-Key": API_KEY},
             )
-        try:
-            return resp.json()
-        except Exception:
-            raise HTTPException(status_code=502, detail="Respuesta inválida de Server1")
+        if resp.status_code >= 400:
+            try:
+                detail = resp.json().get("detail", "Error en Server1")
+            except Exception:
+                detail = resp.text or "Error desconocido en Server1"
+            raise HTTPException(status_code=resp.status_code, detail=detail)
+        data = resp.json()
+        if data.get("status") == "error":
+            raise HTTPException(status_code=422, detail=data.get("mensaje", "Error en Server1"))
+        return data
     except httpx.ConnectError:
         raise HTTPException(
             status_code=503,
@@ -1827,5 +1834,7 @@ async def proxy_registrar_cara(data: RegistrarCaraRequest):
         )
     except httpx.TimeoutException:
         raise HTTPException(status_code=504, detail="Server1 tardó demasiado en responder")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
