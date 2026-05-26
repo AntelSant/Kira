@@ -163,8 +163,9 @@ from sqlalchemy import func as sql_func
 from sqlalchemy.exc import IntegrityError
 
 from models import Base, Usuario, Materia, Grupo, Horario, Inscripcion, Asistencia, Emocion, DiaExcluido
-from models import TipoUsuario, EstadoAsistencia, CategoriaEmocion, TipoRegistro
+from models import TipoUsuario, EstadoAsistencia, CategoriaEmocion, TipoRegistro, AlertaDesercion, EstadoAlerta
 from database import engine, get_db
+from email_service import enviar_alerta_desercion
 
 # Base.metadata.create_all(bind=engine) ya se ejecuta en la línea 32
 
@@ -222,6 +223,106 @@ async def check_ausencias_bg():
 @app.on_event("startup")
 async def startup_event():
     asyncio.create_task(check_ausencias_bg())
+    asyncio.create_task(check_alertas_desercion_bg())
+
+ALERTA_HORA_EJECUCION = os.getenv("ALERTA_HORA_EJECUCION", "22:00")
+ALERTA_MIN_FALTAS = int(os.getenv("ALERTA_MIN_FALTAS", 4))
+
+def run_alertas_logic(db: Session):
+    hoy = date.today()
+    inscripciones = db.query(Inscripcion).all()
+    pares_evaluados = set()
+    
+    for ins in inscripciones:
+        par = (ins.alumno_id, ins.grupo_id)
+        if par in pares_evaluados:
+            continue
+        pares_evaluados.add(par)
+        
+        alumno_id = ins.alumno_id
+        grupo_id = ins.grupo_id
+        
+        alerta_existente = db.query(AlertaDesercion).filter(
+            AlertaDesercion.alumno_id == alumno_id,
+            AlertaDesercion.grupo_id == grupo_id,
+            AlertaDesercion.estado.in_([EstadoAlerta.activa, EstadoAlerta.revisada])
+        ).first()
+        
+        if alerta_existente:
+            continue
+            
+        asistencias = db.query(Asistencia).filter(
+            Asistencia.usuario_id == alumno_id,
+            Asistencia.grupo_id == grupo_id
+        ).order_by(Asistencia.fecha.desc()).limit(ALERTA_MIN_FALTAS).all()
+        
+        if len(asistencias) < ALERTA_MIN_FALTAS:
+            continue
+            
+        es_desercion = all(a.estado == EstadoAsistencia.ausente for a in asistencias)
+        
+        if es_desercion:
+            ultima_asistencia_con_emocion = db.query(Asistencia).filter(
+                Asistencia.usuario_id == alumno_id,
+                Asistencia.emocion_detectada.isnot(None)
+            ).order_by(Asistencia.fecha.desc(), Asistencia.hora_registro.desc()).first()
+            
+            ultima_emocion = ultima_asistencia_con_emocion.emocion_detectada if ultima_asistencia_con_emocion else None
+            
+            if ultima_emocion == CategoriaEmocion.negativo:
+                alumno = db.query(Usuario).filter(Usuario.id == alumno_id).first()
+                grupo = db.query(Grupo).filter(Grupo.id == grupo_id).first()
+                materia = db.query(Materia).filter(Materia.id == grupo.materia_id).first()
+                
+                nueva_alerta = AlertaDesercion(
+                    alumno_id=alumno_id,
+                    grupo_id=grupo_id,
+                    faltas_consecutivas=ALERTA_MIN_FALTAS,
+                    ultima_emocion=ultima_emocion,
+                    fecha_deteccion=hoy
+                )
+                
+                admins = db.query(Administrador).filter(Administrador.activo == True).all()
+                destinatarios = [admin.email for admin in admins if admin.email]
+                
+                if destinatarios:
+                    exito = enviar_alerta_desercion(
+                        destinatarios=destinatarios,
+                        alumno_nombre=f"{alumno.nombre} {alumno.apellido}",
+                        alumno_matricula=alumno.matricula_o_num_empleado,
+                        grupo_nombre=grupo.aula,
+                        materia=materia.nombre if materia else "Sin materia",
+                        faltas=ALERTA_MIN_FALTAS,
+                        emocion=ultima_emocion.value
+                    )
+                    nueva_alerta.correo_enviado = exito
+                
+                db.add(nueva_alerta)
+                db.commit()
+                print(f"⚠️ Alerta generada para alumno ID {alumno_id} en grupo {grupo_id}")
+
+async def check_alertas_desercion_bg():
+    while True:
+        ahora = datetime.now()
+        try:
+            hora_ejecucion = datetime.strptime(ALERTA_HORA_EJECUCION, "%H:%M").time()
+        except ValueError:
+            hora_ejecucion = time(22, 0)
+            
+        proxima_ejecucion = datetime.combine(ahora.date(), hora_ejecucion)
+        if ahora.time() >= hora_ejecucion:
+            proxima_ejecucion += timedelta(days=1)
+            
+        espera_segundos = (proxima_ejecucion - ahora).total_seconds()
+        print(f"--Proceso Automatico-- [Alertas] Próxima verificación en {espera_segundos/3600:.1f} horas")
+        await asyncio.sleep(espera_segundos)
+        
+        print("--Proceso Automatico-- [Alertas] Verificando posibles deserciones escolares...")
+        try:
+            with Session(bind=engine) as db:
+                run_alertas_logic(db)
+        except Exception as e:
+            print(f"!! -- Error en tarea de fondo (alertas): {e}")
 
 
 # --- CORS ---
@@ -1807,6 +1908,164 @@ def alumno_resumen(
         ],
     }
 
+
+# ============================================================
+#  ALERTAS DESERCION — Gestión de Alertas
+# ============================================================
+
+class ActualizarAlertaRequest(BaseModel):
+    estado: str
+    notas: Optional[str] = None
+
+@app.get("/api/alertas")
+def listar_alertas(
+    estado: Optional[str] = None,
+    admin: Administrador = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    query = db.query(AlertaDesercion)
+    if estado:
+        try:
+            estado_enum = EstadoAlerta(estado)
+            query = query.filter(AlertaDesercion.estado == estado_enum)
+        except ValueError:
+            pass
+            
+    alertas = query.order_by(AlertaDesercion.fecha_deteccion.desc(), AlertaDesercion.id.desc()).all()
+    resultado = []
+    
+    for a in alertas:
+        alumno = db.query(Usuario).filter(Usuario.id == a.alumno_id).first()
+        grupo = db.query(Grupo).filter(Grupo.id == a.grupo_id).first()
+        materia = db.query(Materia).filter(Materia.id == grupo.materia_id).first() if grupo else None
+        
+        resultado.append({
+            "id": a.id,
+            "alumno_id": a.alumno_id,
+            "alumno_nombre": f"{alumno.nombre} {alumno.apellido}" if alumno else "Desconocido",
+            "alumno_matricula": alumno.matricula_o_num_empleado if alumno else "",
+            "grupo_id": a.grupo_id,
+            "grupo_aula": grupo.aula if grupo else "",
+            "materia_nombre": materia.nombre if materia else "",
+            "faltas_consecutivas": a.faltas_consecutivas,
+            "ultima_emocion": a.ultima_emocion.value if a.ultima_emocion else None,
+            "estado": a.estado.value,
+            "correo_enviado": a.correo_enviado,
+            "fecha_deteccion": str(a.fecha_deteccion),
+            "notas": a.notas
+        })
+        
+    return resultado
+
+@app.get("/api/alertas/resumen")
+def resumen_alertas(admin: Administrador = Depends(get_current_admin), db: Session = Depends(get_db)):
+    activas = db.query(AlertaDesercion).filter(AlertaDesercion.estado == EstadoAlerta.activa).count()
+    revisadas = db.query(AlertaDesercion).filter(AlertaDesercion.estado == EstadoAlerta.revisada).count()
+    resueltas = db.query(AlertaDesercion).filter(AlertaDesercion.estado == EstadoAlerta.resuelta).count()
+    return {"activas": activas, "revisadas": revisadas, "resueltas": resueltas, "total": activas + revisadas + resueltas}
+
+@app.put("/api/alertas/{alerta_id}/estado")
+def actualizar_estado_alerta(
+    alerta_id: int,
+    data: ActualizarAlertaRequest,
+    admin: Administrador = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    alerta = db.query(AlertaDesercion).filter(AlertaDesercion.id == alerta_id).first()
+    if not alerta:
+        raise HTTPException(status_code=404, detail="Alerta no encontrada")
+        
+    try:
+        estado_enum = EstadoAlerta(data.estado)
+        alerta.estado = estado_enum
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Estado inválido")
+        
+    if data.notas is not None:
+        alerta.notas = data.notas
+        
+    db.commit()
+    return {"mensaje": f"Alerta actualizada a {estado_enum.value}"}
+
+@app.post("/api/alertas/ejecutar-ahora")
+async def ejecutar_alertas_ahora(admin: Administrador = Depends(get_current_admin)):
+    try:
+        with Session(bind=engine) as db:
+            run_alertas_logic(db)
+        return {"mensaje": "Chequeo de alertas ejecutado manualmente. Revisa la consola."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/alertas/reporte/{alumno_id}")
+def reporte_alumno_desercion(
+    alumno_id: int,
+    admin: Administrador = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    alumno = db.query(Usuario).filter(Usuario.id == alumno_id).first()
+    if not alumno:
+        raise HTTPException(status_code=404, detail="Alumno no encontrado")
+        
+    hoy = date.today()
+    hace_7_dias = hoy - timedelta(days=6)
+    
+    asistencias_7d = db.query(Asistencia).filter(
+        Asistencia.usuario_id == alumno_id,
+        Asistencia.fecha >= hace_7_dias
+    ).order_by(Asistencia.fecha, Asistencia.hora_registro).all()
+    
+    emociones_7d_db = db.query(Asistencia.fecha, Asistencia.emocion_detectada, sql_func.count(Asistencia.id)).filter(
+        Asistencia.usuario_id == alumno_id,
+        Asistencia.fecha >= hace_7_dias,
+        Asistencia.emocion_detectada.isnot(None)
+    ).group_by(Asistencia.fecha, Asistencia.emocion_detectada).all()
+    
+    asistencia_lista = []
+    total_asis = 0
+    total_faltas = 0
+    total_retardos = 0
+    
+    for a in asistencias_7d:
+        grupo = db.query(Grupo).filter(Grupo.id == a.grupo_id).first()
+        materia = db.query(Materia).filter(Materia.id == grupo.materia_id).first() if grupo else None
+        asistencia_lista.append({
+            "fecha": str(a.fecha),
+            "grupo_id": a.grupo_id,
+            "materia": materia.nombre if materia else "Sin materia",
+            "estado": a.estado.value if a.estado else "ausente",
+            "emocion": a.emocion_detectada.value if a.emocion_detectada else None,
+            "hora": str(a.hora_registro) if a.hora_registro else ""
+        })
+        if a.estado == EstadoAsistencia.a_tiempo or a.estado == EstadoAsistencia.justificado:
+            total_asis += 1
+        elif a.estado == EstadoAsistencia.ausente or a.estado == EstadoAsistencia.fuera_de_horario:
+            total_faltas += 1
+        elif a.estado == EstadoAsistencia.retardo:
+            total_retardos += 1
+            total_asis += 1
+            
+    emociones_lista = [{"fecha": str(r[0]), "emocion": r[1].value, "cantidad": r[2]} for r in emociones_7d_db]
+    
+    emociones_conteo = {"positivo": 0, "neutro": 0, "negativo": 0}
+    for r in emociones_7d_db:
+        emociones_conteo[r[1].value] += r[2]
+
+    return {
+        "alumno": {
+            "id": alumno.id,
+            "nombre": f"{alumno.nombre} {alumno.apellido}",
+            "matricula": alumno.matricula_o_num_empleado,
+            "foto_perfil": alumno.foto_perfil
+        },
+        "asistencia_7d": asistencia_lista,
+        "emociones_7d": emociones_lista,
+        "resumen": {
+            "total_asistencias": total_asis,
+            "total_faltas": total_faltas,
+            "total_retardos": total_retardos,
+            "emociones_conteo": emociones_conteo
+        }
+    }
 
 # ============================================================
 #  PROXY — Registro de cara (redirige a Server1 internamente)

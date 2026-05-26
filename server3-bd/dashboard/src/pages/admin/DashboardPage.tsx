@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { StatCard } from '../../components/ui/StatCard';
 import { ChartCard } from '../../components/ui/ChartCard';
+import { useNavigate } from 'react-router-dom';
 import { authFetch } from '../../api/client';
-import { Users, BookOpen, Layers, CheckCircle } from 'lucide-react';
+import { Users, BookOpen, Layers, CheckCircle, ShieldAlert } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip,
   PieChart, Pie, Cell, Legend
@@ -37,20 +38,24 @@ export const DashboardPage: React.FC = () => {
   const [resumen, setResumen] = useState<ResumenData | null>(null);
   const [asistencia, setAsistencia] = useState<AsistenciaSemanalData[]>([]);
   const [emociones, setEmociones] = useState<EmocionData[]>([]);
+  const [alertasActivas, setAlertasActivas] = useState(0);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [resResumen, resAsistencia, resEmociones] = await Promise.all([
+        const [resResumen, resAsistencia, resEmociones, resAlertas] = await Promise.all([
           authFetch('/dashboard/resumen').then(r => r.json()),
           authFetch('/dashboard/asistencia-semanal').then(r => r.json()),
-          authFetch('/dashboard/emociones?dias=7').then(r => r.json())
+          authFetch('/dashboard/emociones?dias=7').then(r => r.json()),
+          authFetch('/alertas/resumen').then(r => r.json()).catch(() => ({ activas: 0 }))
         ]);
 
         setResumen(resResumen);
         setAsistencia(resAsistencia);
         setEmociones(resEmociones.datos || []);
+        setAlertasActivas(resAlertas.activas || 0);
       } catch (error) {
         console.error("Error cargando el dashboard", error);
       } finally {
@@ -114,6 +119,19 @@ export const DashboardPage: React.FC = () => {
           icon={<CheckCircle size={24} />}
           gradient="grad-green"
         />
+        <div 
+          className="stat-card" 
+          onClick={() => navigate('/admin/alertas')}
+          style={{ cursor: 'pointer', borderLeft: alertasActivas > 0 ? '4px solid #ef4444' : '4px solid #10b981' }}
+        >
+          <div className="stat-icon" style={{ background: alertasActivas > 0 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)' }}>
+            <ShieldAlert color={alertasActivas > 0 ? '#ef4444' : '#10b981'} size={24} />
+          </div>
+          <div className="stat-info">
+            <h3>Alertas Activas</h3>
+            <p className="stat-value" style={{ color: alertasActivas > 0 ? '#ef4444' : '#10b981' }}>{alertasActivas}</p>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-2" style={{ marginTop: '30px' }}>
