@@ -43,7 +43,7 @@ echo -e "\n${YELLOW}[2/5] Levantando Servidor 3 (Base de Datos y Gestión)...${N
 bash script_inicio/$OS/start_server3.sh --daemon
 sleep 3 # Damos un margen para que la BD esté lista
 
-echo -e "\n${YELLOW}[3/5] Levantando Servidor 1 (Face/Cámara)...${NC}"
+echo -e "\n${YELLOW}[3/5] Levantando Servidor 1 (Face/Cámara y Anti-Spoofing)...${NC}"
 bash script_inicio/$OS/start_server1.sh --daemon
 sleep 1
 

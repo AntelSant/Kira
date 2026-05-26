@@ -20,6 +20,9 @@ server3-db/api-gestion/app/static/perfiles/*
 server1-face/capturas_temp/*
 server1-face/caras_recortadas/*
 
+# Modelos Anti-Spoofing (se descargan automáticamente)
+server1-face/antispoof_models/
+
 #Mejoras
 ANALISIS_MEJORAS_KIRA.md
 
