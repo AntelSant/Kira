@@ -210,12 +210,12 @@ export const AlertasPage: React.FC = () => {
                   <tr key={a.id}>
                     <td>{a.fecha_deteccion}</td>
                     <td>
-                      <div style={{ fontWeight: 500 }}>{a.alumno_nombre}</div>
-                      <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{a.alumno_matricula}</div>
+                      <div style={{ fontWeight: 500 }}>Nombre: {a.alumno_nombre}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Matricula: {a.alumno_matricula}</div>
                     </td>
                     <td>
-                      <div>{a.materia_nombre}</div>
-                      <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{a.grupo_aula}</div>
+                      <div style={{ fontWeight: 500 }}>Materia: {a.materia_nombre}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Aula: {a.grupo_aula}</div>
                     </td>
                     <td style={{ color: '#ef4444', fontWeight: 'bold' }}>{a.faltas_consecutivas}</td>
                     <td>{getEmocionBadge(a.ultima_emocion)}</td>
