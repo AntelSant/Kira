@@ -23,6 +23,7 @@ export const UsuariosPage: React.FC = () => {
   // Form state
   const [formData, setFormData] = useState({ nombre: '', apellido: '', matricula: '', tipo: 'alumno' });
   const [emailData, setEmailData] = useState('');
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordData, setPasswordData] = useState('');
   const [fotoFile, setFotoFile] = useState<File | null>(null);
   const [modalError, setModalError] = useState<string | null>(null);
@@ -113,6 +114,7 @@ export const UsuariosPage: React.FC = () => {
 
   const handleSaveEmail = async () => {
     if (!selectedUser || !emailData) return;
+    setEmailError(null);
     try {
       const res = await authFetch(`/usuarios/${selectedUser.id}/set-email`, {
         method: 'PUT',
@@ -124,10 +126,10 @@ export const UsuariosPage: React.FC = () => {
         fetchUsuarios();
       } else {
         const data = await res.json();
-        showAlert(data.detail || 'Error al actualizar correo', 'danger');
+        setEmailError(data.detail || 'Error al actualizar correo');
       }
     } catch (e) {
-      showAlert('Error de conexión', 'danger');
+      setEmailError('Error de conexión');
     }
   };
 
@@ -158,6 +160,7 @@ export const UsuariosPage: React.FC = () => {
   const openEmailModal = (user: Usuario) => {
     setSelectedUser(user);
     setEmailData(user.email || '');
+    setEmailError(null);
     setIsEmailModalOpen(true);
   };
 
@@ -464,6 +467,11 @@ export const UsuariosPage: React.FC = () => {
         title={`Editar Correo: ${selectedUser?.nombre}`}
         footer={
           <>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+              {emailError && (
+                <span style={{ color: '#ef4444', fontSize: '0.85rem' }}>{emailError}</span>
+              )}
+            </div>
             <Button variant="outline" onClick={() => setIsEmailModalOpen(false)}>Cancelar</Button>
             <Button variant="primary" onClick={handleSaveEmail}>Guardar</Button>
           </>

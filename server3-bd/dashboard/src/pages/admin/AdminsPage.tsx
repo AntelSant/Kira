@@ -15,6 +15,7 @@ export const AdminsPage: React.FC = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({ email: '', password: '', nombre: '' });
+  const [adminError, setAdminError] = useState<string | null>(null);
 
   const fetchAdmins = async () => {
     setLoading(true);
@@ -40,23 +41,24 @@ export const AdminsPage: React.FC = () => {
   };
 
   const handleSaveAdmin = async () => {
+    setAdminError(null);
     try {
       const res = await authFetch('/admins/registrar', {
         method: 'POST',
         body: JSON.stringify(formData),
       });
       const data = await res.json();
-      
+
       if (res.ok) {
         showAlert('Administrador creado exitosamente', 'success');
         setIsModalOpen(false);
         fetchAdmins();
         setFormData({ email: '', password: '', nombre: '' });
       } else {
-        showAlert(data.detail || 'Error al crear administrador', 'danger');
+        setAdminError(data.detail || 'Error al crear administrador');
       }
     } catch (e) {
-      showAlert('Error de conexión', 'danger');
+      setAdminError('Error de conexión');
     }
   };
 
@@ -106,7 +108,7 @@ export const AdminsPage: React.FC = () => {
         keyField="id" 
         loading={loading}
         actions={
-          <Button variant="primary" icon={<Plus size={16}/>} onClick={() => setIsModalOpen(true)}>
+          <Button variant="primary" icon={<Plus size={16}/>} onClick={() => { setIsModalOpen(true); setAdminError(null); }}>
             Nuevo Admin
           </Button>
         }
@@ -118,6 +120,11 @@ export const AdminsPage: React.FC = () => {
         title="Nuevo Administrador"
         footer={
           <>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+              {adminError && (
+                <span style={{ color: '#ef4444', fontSize: '0.85rem' }}>{adminError}</span>
+              )}
+            </div>
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
             <Button variant="primary" onClick={handleSaveAdmin}>Guardar</Button>
           </>

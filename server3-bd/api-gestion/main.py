@@ -29,6 +29,7 @@ from models import (
 )
 from database import get_db, engine
 from email_service import enviar_alerta_desercion
+from validators import debe_ser_email, check_email_no_existe
 
 # URL de Server1 — se resuelve internamente (localhost), nunca pasa por el navegador
 SERVER1_INTERNAL_URL = os.getenv("SERVER1_URL", "http://127.0.0.1:8001")
@@ -537,6 +538,7 @@ def crear_primer_admin(data: AdminCreate, db: Session = Depends(get_db)):
             status_code=403,
             detail="Ya existen administradores. Use el endpoint protegido para crear más."
         )
+    debe_ser_email(data.email)
     nuevo = Administrador(
         nombre=data.nombre,
         email=data.email,
@@ -569,6 +571,9 @@ def registrar_admin(
     db: Session = Depends(get_db)
 ):
     """Registra un nuevo administrador (requiere sesión activa)"""
+    debe_ser_email(data.email)
+    check_email_no_existe(db, Administrador, data.email)
+
     nuevo = Administrador(
         nombre=data.nombre,
         email=data.email,
@@ -1747,12 +1752,9 @@ def set_user_email(
     db: Session = Depends(get_db)
 ):
     """Permite a un admin asignar o cambiar el correo de un usuario"""
-    if not data.email or "@" not in data.email:
-        raise HTTPException(status_code=400, detail="Correo electrónico inválido")
-    # Verificar que el email no esté ya en uso
-    existente = db.query(Usuario).filter(Usuario.email == data.email, Usuario.id != usuario_id).first()
-    if existente:
-        raise HTTPException(status_code=400, detail="Ese correo ya está registrado en otro usuario")
+    debe_ser_email(data.email)
+    check_email_no_existe(db, Usuario, data.email, exclude_id=usuario_id)
+
     usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
