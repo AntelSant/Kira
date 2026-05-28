@@ -69,7 +69,7 @@ export const LoginPage: React.FC = () => {
               type="text"
               value={matricula}
               onChange={(e) => setMatricula(e.target.value)}
-              placeholder="Ingresa tu identificador"
+              placeholder="Ingresa tu correo electronico"
               disabled={loading}
             />
           </div>
