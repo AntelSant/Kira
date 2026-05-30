@@ -27,7 +27,6 @@ using eloq::face::detection;
 #define I2C_SDA 41
 #define I2C_SCL 42
 #define COOLDOWN_MS 8000
-#define COUNTDOWN_SEC 5
 
 static uint8_t *jpegBuffer = nullptr;
 static size_t jpegBufLen = 150 * 1024;
@@ -330,7 +329,7 @@ void setup() {
   Serial.printf("Buffers OK | PSRAM libre: %d bytes\n", ESP.getFreePsram());
 
   // WiFi
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  WiFi.begin(WIFI_SSID_STR, WIFI_PASSWORD_STR);
   Serial.print("Conectando WiFi");
   mostrarMensaje("Conectando WiFi...");
   int wifiRetries = 0;
@@ -542,7 +541,7 @@ void loop() {
   const char *prefix = "{\"foto_base64\":\"";
   char suffix[140];
   snprintf(suffix, sizeof(suffix),
-           "\",\"aula\":\"%s\",\"fecha\":\"%s\",\"hora\":\"%s\"}", AULA_ID,
+           "\",\"aula\":\"%s\",\"fecha\":\"%s\",\"hora\":\"%s\"}", AULA_ID_STR,
            fechaStr, horaStr);
 
   size_t prefixLen = strlen(prefix);
@@ -564,10 +563,10 @@ void loop() {
   // ── Enviar por HTTP ─────────────────────────────────────────────
   WiFiClient client;
   HTTPClient http;
-  http.begin(client, SERVER_URL);
+  http.begin(client, SERVER_URL_STR);
   http.setTimeout(20000);
   http.addHeader("Content-Type", "application/json");
-  http.addHeader("X-API-Key", API_KEY);
+  http.addHeader("X-API-Key", API_KEY_STR);
 
   BufferStream jsonStream(jpegBuffer, totalLen);
   int httpResponseCode = http.sendRequest("POST", &jsonStream, totalLen);
