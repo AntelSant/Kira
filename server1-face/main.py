@@ -21,6 +21,7 @@ API_KEY = os.getenv("API_KEY", "kira_default_secret_key")
 CUDA_DEVICE = os.getenv("CUDA_DEVICE", "cuda:0")
 ANTISPOOF_ENABLED = os.getenv("ANTISPOOF_ENABLED", "true").lower() == "true"
 ANTISPOOF_THRESHOLD = float(os.getenv("ANTISPOOF_THRESHOLD", "0.80"))
+CLEANUP_MAX_AGE_MINUTES = int(os.getenv("CLEANUP_MAX_AGE_MINUTES", "10"))
 
 # Importar anti-spoofing
 from antispoof import cargar_modelos_antispoof, verificar_liveness
@@ -103,6 +104,22 @@ def extraer_embedding(image: Image.Image):
 
     vector = embedding[0].cpu().numpy().tolist()
     return vector, face_img
+
+
+def limpiar_caras_recortadas(max_age_minutes: int = 10):
+    carpeta = "caras_recortadas"
+    if not os.path.exists(carpeta):
+        return 0
+    now = datetime.now()
+    count = 0
+    for filename in os.listdir(carpeta):
+        filepath = os.path.join(carpeta, filename)
+        if os.path.isfile(filepath):
+            file_age = now - datetime.fromtimestamp(os.path.getmtime(filepath))
+            if file_age.total_seconds() > (max_age_minutes * 60):
+                os.remove(filepath)
+                count += 1
+    return count
 
 
 async def analizar_y_guardar_emocion(
@@ -280,3 +297,10 @@ async def registrar_embedding(data: RegisterRequest):
     except Exception as e:
         print(f"!! -- Error al registrar embedding: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.on_event("startup")
+async def startup_cleanup():
+    print(f"-- Limpiando rostros temporales ({CLEANUP_MAX_AGE_MINUTES}+ minutos)...")
+    eliminados = limpiar_caras_recortadas(CLEANUP_MAX_AGE_MINUTES)
+    print(f"-- {eliminados} rostros temporales eliminados.")
