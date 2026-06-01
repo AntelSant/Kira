@@ -25,6 +25,7 @@ export const UsuariosPage: React.FC = () => {
   const [emailData, setEmailData] = useState('');
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordData, setPasswordData] = useState('');
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const [fotoFile, setFotoFile] = useState<File | null>(null);
   const [modalError, setModalError] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
@@ -136,7 +137,7 @@ export const UsuariosPage: React.FC = () => {
   const handleSavePassword = async () => {
     if (!selectedUser || !passwordData) return;
     if (passwordData.length < 6) {
-      showAlert('La contraseña debe tener al menos 6 caracteres', 'danger');
+      setPasswordError('La contraseña debe tener al menos 6 caracteres');
       return;
     }
     try {
@@ -150,10 +151,10 @@ export const UsuariosPage: React.FC = () => {
         setPasswordData('');
       } else {
         const data = await res.json();
-        showAlert(data.detail || 'Error al asignar contraseña', 'danger');
+        setPasswordError(data.detail || 'Error al asignar contraseña');
       }
     } catch (e) {
-      showAlert('Error de conexión', 'danger');
+      setPasswordError('Error de conexión');
     }
   };
 
@@ -167,6 +168,7 @@ export const UsuariosPage: React.FC = () => {
   const openPasswordModal = (user: Usuario) => {
     setSelectedUser(user);
     setPasswordData('');
+    setPasswordError(null);
     setIsPasswordModalOpen(true);
   };
 
@@ -467,11 +469,11 @@ export const UsuariosPage: React.FC = () => {
         title={`Editar Correo: ${selectedUser?.nombre}`}
         footer={
           <>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-              {emailError && (
-                <span style={{ color: '#ef4444', fontSize: '0.85rem' }}>{emailError}</span>
-              )}
-            </div>
+{emailError && (
+              <span style={{ color: 'red', marginRight: 'auto', fontSize: '0.85rem' }}>
+                {emailError}
+              </span>
+            )}
             <Button variant="outline" onClick={() => setIsEmailModalOpen(false)}>Cancelar</Button>
             <Button variant="primary" onClick={handleSaveEmail}>Guardar</Button>
           </>
@@ -495,6 +497,11 @@ export const UsuariosPage: React.FC = () => {
         title={`Asignar Contraseña: ${selectedUser?.nombre}`}
         footer={
           <>
+            {passwordError && (
+              <span style={{ color: 'red', marginRight: 'auto', fontSize: '0.85rem' }}>
+                {passwordError}
+              </span>
+            )}
             <Button variant="outline" onClick={() => setIsPasswordModalOpen(false)}>Cancelar</Button>
             <Button variant="primary" onClick={handleSavePassword}>Guardar</Button>
           </>
@@ -506,11 +513,11 @@ export const UsuariosPage: React.FC = () => {
             type="password"
             className="form-control"
             value={passwordData}
-            onChange={e => setPasswordData(e.target.value)}
+            onChange={e => { setPasswordData(e.target.value); setPasswordError(null); }}
             placeholder="Mínimo 6 caracteres"
           />
         </div>
-      </Modal>
+</Modal>
 
     </div>
   );
