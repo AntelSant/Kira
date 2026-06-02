@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { authFetch } from '../../api/client';
 import { ArrowLeft, User, CalendarCheck, XCircle, AlertTriangle, Smile } from 'lucide-react';
-import { 
+import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell,
   LineChart, Line
@@ -98,7 +98,7 @@ export const ReporteAlumnoPage: React.FC = () => {
     if (!emocPorFecha[e.fecha]) {
       emocPorFecha[e.fecha] = { fecha: e.fecha, positivo: 0, neutro: 0, negativo: 0 };
     }
-    const key = e.emocion as 'positivo'|'neutro'|'negativo';
+    const key = e.emocion as 'positivo' | 'neutro' | 'negativo';
     emocPorFecha[e.fecha][key] += e.cantidad;
   });
   const dataLineChart = Object.values(emocPorFecha).sort((a: any, b: any) => a.fecha.localeCompare(b.fecha));
@@ -131,24 +131,24 @@ export const ReporteAlumnoPage: React.FC = () => {
   return (
     <div className="page-section active">
       <div className="section-header" style={{ marginBottom: '20px' }}>
-        <button 
-          className="btn btn-secondary" 
+        <button
+          className="btn btn-secondary"
           onClick={() => navigate('/admin/alertas')}
           style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px' }}
         >
           <ArrowLeft size={16} /> Volver a Alertas
         </button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-             {data.alumno.foto_perfil ? (
-               <img src={`http://localhost:8003${data.alumno.foto_perfil}`} alt="Perfil" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-             ) : (
-               <User size={40} color="#94a3b8" />
-             )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', background: 'var(--bg-card)', padding: '20px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+          <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            {data.alumno.foto_perfil ? (
+              <img src={`http://localhost:8003${data.alumno.foto_perfil}`} alt="Perfil" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <User size={40} color="#94a3b8" />
+            )}
           </div>
           <div>
-            <h1 style={{ margin: 0, fontSize: '24px', color: '#1e293b' }}>{data.alumno.nombre}</h1>
-            <p style={{ margin: '4px 0', color: '#64748b' }}>Matrícula: {data.alumno.matricula}</p>
+            <h1 style={{ margin: 0, fontSize: '24px', color: 'var(--text-primary)' }}>{data.alumno.nombre}</h1>
+            <p style={{ margin: '4px 0', color: 'var(--text-secondary)' }}>Matrícula: {data.alumno.matricula}</p>
             <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
               <span className="badge bg-red-500 text-white" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <AlertTriangle size={14} /> En riesgo de deserción
@@ -190,7 +190,7 @@ export const ReporteAlumnoPage: React.FC = () => {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-        
+
         {/* Gráfica 1: Asistencia */}
         <div className="card">
           <div className="card-header">
@@ -200,7 +200,7 @@ export const ReporteAlumnoPage: React.FC = () => {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={dataBarChart} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="fecha" tick={{fontSize: 12}} />
+                <XAxis dataKey="fecha" tick={{ fontSize: 12 }} />
                 <YAxis allowDecimals={false} />
                 <Tooltip />
                 <Legend wrapperStyle={{ paddingTop: '20px' }} />
@@ -241,11 +241,11 @@ export const ReporteAlumnoPage: React.FC = () => {
               </ResponsiveContainer>
             </div>
             <div style={{ flex: 1, padding: '20px 20px 20px 0' }}>
-               <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={dataLineChart} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="fecha" tick={{fontSize: 10}} />
-                  <YAxis allowDecimals={false} tick={{fontSize: 10}} />
+                  <XAxis dataKey="fecha" tick={{ fontSize: 10 }} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
                   <Tooltip />
                   <Line type="monotone" dataKey="positivo" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
                   <Line type="monotone" dataKey="neutro" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />
