@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func as sql_func, inspect, text
 from pydantic import BaseModel
 from typing import List, Optional
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, time, timedelta
 import bcrypt
 from jose import jwt, JWTError, ExpiredSignatureError
 import numpy as np

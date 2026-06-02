@@ -1,6 +1,1 @@
-INFO:     Will watch for changes in these directories: ['/home/tilin/Kira/simuladorESP32']
-INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
-INFO:     Started reloader process [21480] using StatReload
-INFO:     Started server process [21482]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
+nohup: failed to run command '.venv/bin/python': No such file or directory

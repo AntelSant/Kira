@@ -1,20 +1,6 @@
 INFO:     Will watch for changes in these directories: ['/home/tilin/Kira/server1-face']
 INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     Started reloader process [21429] using StatReload
-INFO:     Started server process [21432]
+INFO:     Started reloader process [7687] using StatReload
+INFO:     Started server process [7690]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
--- Cargando modelos de IA en GPU...
-[] Dispositivo de procesamiento: cpu
--- Modelos de IA listos.
--- Embedding guardado para matrícula 23432432
-INFO:     127.0.0.1:47418 - "POST /api/register HTTP/1.1" 200 OK
--- Embedding guardado para matrícula 4354
-INFO:     127.0.0.1:53104 - "POST /api/register HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52886 - "POST /api/register HTTP/1.1" 200 OK
-INFO:     127.0.0.1:46830 - "POST /api/register HTTP/1.1" 200 OK
-INFO:     127.0.0.1:33562 - "POST /api/register HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53098 - "POST /api/register HTTP/1.1" 200 OK
--- Embedding guardado para matrícula 73467392
-INFO:     127.0.0.1:43764 - "POST /api/register HTTP/1.1" 200 OK
-INFO:     127.0.0.1:49030 - "POST /api/register HTTP/1.1" 200 OK
