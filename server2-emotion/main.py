@@ -1,4 +1,7 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()  # Cargar variables de entorno desde .env
+
 import cv2
 import numpy as np
 import base64
@@ -28,7 +31,10 @@ app = FastAPI(
 
 # --- CONFIGURACIÓN DE IA (PYTORCH) ---
 CUDA_DEVICE = os.getenv("CUDA_DEVICE", "cuda:0")
-API_KEY = os.getenv("API_KEY", "kira_default_secret_key")
+API_KEY = os.getenv("API_KEY")
+if not API_KEY or API_KEY == "CAMBIAR_POR_UNA_CLAVE_SEGURA":
+    raise RuntimeError("❌ API_KEY no está configurada en .env o usa el valor por defecto inseguro.")
+
 device = CUDA_DEVICE if torch.cuda.is_available() else 'cpu'
 print(f"-- Iniciando IA de Emociones en: {device}...")
 

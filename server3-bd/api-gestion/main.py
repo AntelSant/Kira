@@ -1,4 +1,6 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()  # Cargar variables de entorno desde .env
 import shutil
 import httpx
 import asyncio
@@ -33,7 +35,9 @@ from validators import debe_ser_email, check_email_no_existe
 
 # URL de Server1 — se resuelve internamente (localhost), nunca pasa por el navegador
 SERVER1_INTERNAL_URL = os.getenv("SERVER1_URL", "http://127.0.0.1:8001")
-API_KEY = os.getenv("API_KEY", "kira_default_secret_key")
+API_KEY = os.getenv("API_KEY")
+if not API_KEY or API_KEY == "CAMBIAR_POR_UNA_CLAVE_SEGURA":
+    raise RuntimeError("❌ API_KEY no está configurada en .env o usa el valor por defecto inseguro.")
 
 print("--Espere-- Verificando y construyendo tablas en la base de datos...")
 Base.metadata.create_all(bind=engine)
@@ -60,9 +64,15 @@ os.makedirs("app/static/perfiles", exist_ok=True)
 #  CONFIGURACIÓN JWT & BCRYPT
 # ============================================================
 
-JWT_SECRET = os.getenv("JWT_SECRET", "kira_secret_2026_cambiar_en_produccion")
+JWT_SECRET = os.getenv("JWT_SECRET")
+if not JWT_SECRET or JWT_SECRET == "CAMBIAR_POR_UNA_CLAVE_JWT_SEGURA":
+    raise RuntimeError(
+        "❌ JWT_SECRET no está configurado. "
+        "Agrega 'JWT_SECRET=<clave>' en server3-bd/api-gestion/.env\n"
+        "Genera una clave con: python -c \"import secrets; print(secrets.token_hex(32))\""
+    )
 JWT_ALGORITHM = "HS256"
-JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", 3))
+JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", 15))
 
 http_bearer = HTTPBearer()
 

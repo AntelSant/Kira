@@ -17,7 +17,11 @@ import httpx
 # --- VARIABLES DE ENTORNO ---
 SERVER3_URL = os.getenv("SERVER3_URL", "http://127.0.0.1:8003")
 SERVER2_URL = os.getenv("SERVER2_URL", "http://127.0.0.1:8002")
-API_KEY = os.getenv("API_KEY", "kira_default_secret_key")
+
+API_KEY = os.getenv("API_KEY")
+if not API_KEY or API_KEY == "CAMBIAR_POR_UNA_CLAVE_SEGURA":
+    raise RuntimeError("❌ API_KEY no está configurada en .env o usa el valor por defecto inseguro.")
+
 CUDA_DEVICE = os.getenv("CUDA_DEVICE", "cuda:0")
 ANTISPOOF_ENABLED = os.getenv("ANTISPOOF_ENABLED", "true").lower() == "true"
 ANTISPOOF_THRESHOLD = float(os.getenv("ANTISPOOF_THRESHOLD", "0.80"))
