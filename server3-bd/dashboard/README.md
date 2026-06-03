@@ -1,73 +1,36 @@
-# React + TypeScript + Vite
+# 💻 Kira — Dashboard (React + Vite)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Interfaz gráfica web para administrar el sistema Kira. Provee vistas diferentes según el rol de usuario (Administrador, Profesor, Alumno).
 
-Currently, two official plugins are available:
+## Tecnologías Principales
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **React 18** y **Vite** para desarrollo y construcción ultrarrápida.
+- **TypeScript** para seguridad de tipos y mayor robustez.
+- **Tailwind CSS** para estilos ágiles o CSS puro usando variables de tema (soporte nativo de Dark Mode).
+- **React Router** para navegación SPA (Single Page Application).
+- **Axios** para comunicación con la API (Server 3).
 
-## React Compiler
+## Características
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Diseño Responsivo y Temas**: Soporte para Modo Oscuro y paleta de colores adaptable vía variables CSS (`index.css`).
+- **Autenticación Segura**: Interceptores de Axios para inyectar y manejar expiración de tokens JWT.
+- **Gestión de Usuarios**: Registro de alumnos desde webcam con guía visual y validación antes de envío al Server 1.
+- **Monitoreo de Alertas**: Panel de control para que los administradores verifiquen alertas de deserción temprana o cambios emocionales bruscos.
+- **Panel de Asistencia**: Interfaz de tablas detalladas para ver retrasos, asistencias y ausencias de forma filtrada.
 
-## Expanding the ESLint configuration
+## Desarrollo Local
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Si deseas modificar la UI sin utilizar Docker, necesitas Node.js instalado (v18+).
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+cd server3-bd/dashboard
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+El dashboard requerirá que la API de Gestión (`server3-bd/api-gestion`) esté corriendo localmente en el puerto `8003`. Para esto, asegúrate de tener el `.env` (o `.env.local`) de la UI con la variable:
+`VITE_API_URL=http://localhost:8003`
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Despliegue en Producción
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+El dashboard se compila utilizando `npm run build` y se sirve a través de un servidor Nginx contenido en la imagen oficial del dashboard definida en el `docker-compose.yml`. Nginx también funciona como proxy reverso para enrutar las peticiones `/api/*` hacia el contenedor de la API de Gestión.

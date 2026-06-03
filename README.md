@@ -8,77 +8,44 @@ Sistema distribuido de pase de lista automático mediante reconocimiento facial 
 
 ```
 /Kira
-├── /firmware
-│   └── /ESP32-S3-Reconocimiento   # C++ (PlatformIO) para Freenove ESP32-S3 WROOM
-│       ├── src/main.cpp           # Lógica de captura, detección multi-rotación, servo y LEDs
-│       └── src/config.h          # Credenciales WiFi, IP del servidor, pines GPIO
-├── /server1-face                  # FastAPI — Reconocimiento facial (Puerto 8001)
-│   └── main.py                    # MTCNN + InceptionResNetV1 (VGGFace2) con PyTorch/CUDA
-├── /server2-emotion               # FastAPI — Análisis emocional (Puerto 8002)
-│   └── app/                       # HSEmotion, mapeo 7 emociones → positivo/neutro/negativo
-├── /server3-bd                    # FastAPI + PostgreSQL + Dashboard (Puerto 8003)
-│   ├── /api-gestion               # CRUD completo (usuarios, grupos, horarios, asistencias)
-│   └── /dashboard                 # SPA Vanilla JS + HTML5 + CSS3 (multi-rol: admin/prof/alumno)
+├── /firmware                      # ESP32-S3: Captura de rostro, ESP-DL y control de puerta
+├── /server1-face                  # FastAPI: Reconocimiento Facial (Facenet) + Anti-Spoofing
+├── /server2-emotion               # FastAPI: Análisis Emocional (HSEmotion)
+├── /server3-bd                    # Base de datos PostgreSQL, API de Gestión y Dashboard React
+│   ├── /api-gestion               # FastAPI: CRUD completo, Autenticación y Alertas
+│   └── /dashboard                 # Vite + React + TypeScript: SPA Multi-rol
 ├── /simuladorESP32                # Utilidad web para probar Server 1 sin hardware
-└── /script_inicio
-    └── /arch                      # Scripts bash para lanzar los servidores (CachyOS / Arch)
+└── docker-compose.yml             # Orquestación de todos los microservicios
 ```
 
 ---
 
-## Inicio Rápido
+## Documentación Principal
 
-### Prerequisitos
-- Python 3.10+ y PostgreSQL 14+ instalados.
-- GPU NVIDIA con CUDA 12+ (recomendado para Server 1 y 2).
-- PlatformIO instalado para compilar el firmware.
+El proyecto Kira ha evolucionado hacia una arquitectura basada en microservicios dockerizados. Por favor, consulta los siguientes documentos para la instalación, despliegue y detalles técnicos:
 
-### 1. Instalar dependencias de cada servidor
+1. **[Guía de Despliegue con Docker (DOCKER_README.md)](./DOCKER_README.md)**
+   Aprende cómo configurar y levantar todo el sistema Kira en minutos utilizando Docker y `docker-compose`. (¡Esta es la forma recomendada de ejecutar Kira!)
 
-```bash
-# Ejemplo (repetir para server2-emotion y server3-bd)
-cd ~/Documentos/Kira/server1-face
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
+2. **[Documentación Oficial (DOCUMENTACION_OFICIAL.md)](./DOCUMENTACION_OFICIAL.md)**
+   Arquitectura detallada, flujos de autenticación (X-API-Key, JWT), Anti-Spoofing, Alertas Inteligentes y diseño de base de datos.
 
-### 2. Levantar servidores (Arch/CachyOS)
-
-> **Importante:** Levantar Server 3 primero, ya que los servidores de IA dependen de la BD.
-
-```bash
-# Terminal 1 — Base de datos + API de gestión + Dashboard
-bash ~/Documentos/Kira/script_inicio/arch/start_server3.sh
-
-# Terminal 2 — Reconocimiento facial
-bash ~/Documentos/Kira/script_inicio/arch/start_server1.sh
-
-# Terminal 3 — Análisis emocional
-bash ~/Documentos/Kira/script_inicio/arch/start_server2.sh
-```
-
-### 3. Configurar y flashear el ESP32-S3
-
-Editar `firmware/ESP32-S3-Reconocimiento/src/config.h`:
-
-```cpp
-const char *WIFI_SSID     = "TuRedWiFi";
-const char *WIFI_PASSWORD = "TuContraseña";
-const char *SERVER_URL    = "http://192.168.X.X:8001/api/capture";
-#define AULA_ID            "9"   // ID exacto del aula en el dashboard
-```
-
-Luego compilar y subir con PlatformIO desde VSCode.
+3. **[Análisis de Mejoras (ANALISIS_MEJORAS_KIRA.md)](./ANALISIS_MEJORAS_KIRA.md)**
+   Historial de actualizaciones, incluyendo la migración a React, alertas tempranas de deserción y seguridad Anti-Spoofing.
 
 ---
 
-## Documentación Completa
+## Microservicios
 
-Ver [DOCUMENTACION_OFICIAL.md](./DOCUMENTACION_OFICIAL.md) para:
-- Arquitectura detallada de cada módulo
-- Flujo completo del firmware (detección multi-rotación, servo, LEDs)
-- Endpoints de cada servidor
-- Roles de usuario y funcionalidades del dashboard
-- Lógica de puntuación de asistencia (a tiempo / retardo / ausente)
-- Casos de uso comunes
+Cada componente de Kira tiene su propia documentación técnica. Si deseas trabajar en un servicio específico, revisa su README:
+
+- 📷 **[Firmware ESP32-S3](./firmware/README.md)**
+- 👤 **[Server 1: Reconocimiento Facial](./server1-face/README.md)**
+- 🎭 **[Server 2: Análisis de Emociones](./server2-emotion/README.md)**
+- ⚙️ **[Server 3: API de Gestión y Base de Datos](./server3-bd/README.md)**
+- 🧠 **[Server 3 API: Lógica y Base de Datos](./server3-bd/api-gestion/README.md)**
+- 💻 **[Server 3 Dashboard: UI Web](./server3-bd/dashboard/README.md)**
+
+---
+
+**Nota:** Si necesitas ejecutar Kira sin Docker (modo desarrollo local), puedes usar el script `./start_all.sh` ubicado en la raíz del proyecto.
