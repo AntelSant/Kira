@@ -1,7 +1,22 @@
-Un microservicio dedicado (Python/FastAPI) en la laptop con la RTX 3050. (Este servidor correra en laptop de Emiliano)
+# 🎭 Kira — Server 2: Análisis Emocional
 
-	+ app/emotion_model/classifier.py: Es una clase clase que cargue el modelo HSEmotion o DeepFace. Debe incluir un metodo que reciba la imagen, ejecute la inferencia y mapee obligatoriamente el 
-	  resultado de 7 emociones a solo 3 categorias: positivo(happy, surprise), neutro(neutral) o negativo (sad, angry, fear, disgust).
+Este microservicio en Python (FastAPI) evalúa el estado emocional de los estudiantes al momento de registrar su asistencia.
 
-	+ app/routers/emotion.py: El endpoints POST /api/emotion. Recibira los datos reenviados por el Servidor 1, llamara al clasificador, y hara un POST sincrono al Servidor 3 (/api/emociones) para guardar 
-	  el registro de la emocion, la confianza y el contexto en la base de datos.
+## Características Principales
+
+- **Análisis de Emociones**: Utiliza el modelo HSEmotion y la librería EmotiEffLib.
+- **Aceleración GPU**: Optimizado para ejecutarse en CUDA, minimizando el tiempo de procesamiento.
+- **Clasificación Simplificada**: Mapea las emociones complejas a tres categorías accionables: Positivo, Neutro y Negativo. Esto alimenta el sistema de Alertas Tempranas de Deserción en el Dashboard.
+- **Operación en Segundo Plano**: Recibe las solicitudes del Server 1 (Reconocimiento Facial) después de que este le haya respondido al ESP32, garantizando una respuesta de acceso físico ultrarrápida.
+
+## Endpoints Principales
+
+- `POST /api/emotion`: Recibe la imagen y datos de contexto (ID del estudiante) desde el Server 1, procesa la imagen para determinar la emoción predominante, y envía los resultados de forma asíncrona al Server 3 (Base de datos).
+
+## Despliegue
+
+La forma recomendada de desplegar es mediante Docker (ver `DOCKER_README.md` en la raíz). Se utiliza una imagen base `nvidia/cuda:12.1.0`.
+
+Variables de Entorno (ver `.env.docker`):
+- `API_KEY`: Autenticación M2M.
+- `CUDA_DEVICE`: Dispositivo de procesamiento (ej. `cuda:0` o `cpu`).

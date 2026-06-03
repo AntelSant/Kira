@@ -1,15 +1,27 @@
-Este es el motor de inferencia principal (Python/FastAPI) que correra aprovechando la RTX 4050. (Este servidor estara en la lap de Santiago).
+# 👤 Kira — Server 1: Reconocimiento Facial y Liveness
 
-	+ app/core/vision.py: Una clase que inicialice los modelos de IA en la GPU (device='cuda'). Tendra un metodo para detectar y recordar rostros usando MTCNN, y otro metodo para generar el embedding 
-	  facial de 512 dimensiones usando InsightFace/ArcFace.
+Este microservicio en Python (FastAPI) procesa imágenes capturadas por el ESP32-S3 para autenticar a los alumnos mediante reconocimiento facial y medidas anti-spoofing.
 
-	+ app/core/attendance.py: La logica de negocio. Recibira la identidad detectada y consultara la base de datos (Servidor 3) para verificar si la persona pertenece al grupo especificado. Tambien 
-	  calculara si la hora de llegada esta dentro del rango permitido (hora de inicio/fin + tolerancia) para clasificarlo como a tiempo, retardo o fuera de horario.
+## Características Principales
 
-	+ app/routers/capture.py: Definira el endpoint POST /api/capture. Este endpoint coordina todo: dedodifica el JSON, llama a vision.py para identificar, llama a attendance.py para validar, y devuelve
-	  la respuesta sincronaal ESP32.
+- **Reconocimiento Facial**: Utiliza MTCNN para la detección de rostros e InceptionResNetV1 (VGGFace2) para la extracción de embeddings (características de 512 dimensiones).
+- **Aceleración GPU**: Diseñado para correr en CUDA (tarjetas NVIDIA) para máxima velocidad de inferencia en tiempo real.
+- **Seguridad Anti-Spoofing (Liveness)**: Integra MiniFASNet para detectar intentos de fraude (fotos impresas, pantallas de celular, etc.), asegurando que el rostro frente a la cámara es de una persona viva.
+- **Autenticación M2M**: Protegido por `X-API-Key` para comunicación segura entre el ESP32, Server 1 y la API principal.
+- **Procesamiento Asíncrono**: Despacha tareas en segundo plano hacia el Server 2 (Análisis Emocional) para no retrasar la respuesta al ESP32 y abrir la puerta rápidamente.
 
-	+ app/routers/register.py: Definira el endpoint POST /api/register para recibir multiples fotos de un usuario nuevo, calcular su embedding promedio y enviarlo a guardar a la base de datos.
+## Endpoints Principales
 
-	+ app/core/async_task.py: Una funcion que use httpx.AsyncClient para enviar la imagen (junto con el ID del usuario, fecha, hora y contexto) al Servidor 2 en segundo plano, para que el ESP32 no se
-	  quede esperando.
+- `POST /api/capture`: Recibe foto codificada en Base64 desde el ESP32, verifica si es real (Anti-Spoofing), extrae el embedding y consulta a la BD (Server 3) si hay coincidencia.
+- `POST /api/register`: Permite dar de alta a un usuario con múltiples fotos, calculando el embedding promedio y asegurando que las fotos cumplen las normas de Liveness.
+
+## Despliegue
+
+La forma recomendada de desplegar es mediante Docker (ver `DOCKER_README.md` en la raíz). Se utiliza una imagen base `nvidia/cuda:12.1.0`.
+
+Variables de Entorno (ver `.env.docker`):
+- `SERVER3_URL`
+- `SERVER2_URL`
+- `API_KEY`
+- `CUDA_DEVICE`
+- `ANTISPOOF_ENABLED` y `ANTISPOOF_THRESHOLD`
