@@ -26,7 +26,8 @@ using eloq::face::detection;
 #define OLED_RESET -1
 #define I2C_SDA 41
 #define I2C_SCL 42
-#define COOLDOWN_MS 8000
+#define COOLDOWN_MS_NEGATIVO RETRY_NEGATIVO_MS
+#define COOLDOWN_MS_POSITIVO RETRY_POSITIVO_MS
 
 static uint8_t *jpegBuffer = nullptr;
 static size_t jpegBufLen = 150 * 1024;
@@ -34,6 +35,7 @@ static uint8_t *base64Buffer = nullptr;
 static size_t base64BufLen = 210 * 1024;
 
 static unsigned long ultimoEnvio = 0;
+static bool ultimoResultadoPositivo = false;
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 Servo servoMotor;
@@ -398,9 +400,10 @@ void loop() {
     return;
   }
 
-  // Cooldown entre envíos
-  if (millis() - ultimoEnvio < COOLDOWN_MS) {
-    uint32_t restante = (COOLDOWN_MS - (millis() - ultimoEnvio)) / 1000;
+  // Cooldown entre envíos (diferenciado por resultado)
+  uint32_t cooldown_actual = (ultimoResultadoPositivo) ? COOLDOWN_MS_POSITIVO : COOLDOWN_MS_NEGATIVO;
+  if (ultimoEnvio > 0 && millis() - ultimoEnvio < cooldown_actual) {
+    uint32_t restante = (cooldown_actual - (millis() - ultimoEnvio)) / 1000;
     char buf[16];
     snprintf(buf, sizeof(buf), "Espere %lus", (unsigned long)restante);
     mostrarMensaje(buf);
@@ -609,9 +612,10 @@ void loop() {
         mostrarMensaje("ACCESO DENEGADO", msg);
         accesoDenegado(3000); // LED rojo 3 segundos
       }
-    }
 
-    ultimoEnvio = millis();
+      ultimoResultadoPositivo = (strcmp(status, "success") == 0);
+      ultimoEnvio = millis();
+    }
 
   } else if (httpResponseCode == 422) {
     Serial.println("ERROR 422: " + http.getString());
