@@ -59,6 +59,7 @@ print("-- ¡Verificación de columnas completada!")
 
 # --- Crear carpetas necesarias ---
 os.makedirs("app/static/perfiles", exist_ok=True)
+os.makedirs("app/static/perfiles_protegidos", exist_ok=True)
 
 # ============================================================
 #  CONFIGURACIÓN JWT & BCRYPT
@@ -667,8 +668,9 @@ async def registrar_usuario(
 
     extension = foto.filename.split(".")[-1]
     nombre_archivo = f"{matricula}.{extension}"
-    ruta_relativa = f"app/static/perfiles/{nombre_archivo}"
-    ruta_bd = f"/static/perfiles/{nombre_archivo}"
+    # Carpeta especial para evitar limpieza de basura
+    ruta_relativa = f"app/static/perfiles_protegidos/{nombre_archivo}"
+    ruta_bd = f"/static/perfiles_protegidos/{nombre_archivo}"
 
     with open(ruta_relativa, "wb") as buffer:
         shutil.copyfileobj(foto.file, buffer)
@@ -699,16 +701,17 @@ async def registrar_usuario(
 
 @app.delete("/api/usuarios/{usuario_id}")
 def eliminar_usuario(usuario_id: int, db: Session = Depends(get_db)):
-    """Elimina un usuario y su foto de perfil"""
+    """Elimina un usuario (conservando su foto de perfil en el servidor)"""
     usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
-    # Borrar foto si existe
-    if usuario.foto_perfil:
-        ruta_fisica = f"app{usuario.foto_perfil}"
-        if os.path.exists(ruta_fisica):
-            os.remove(ruta_fisica)
+    # Se ha solicitado impedir que la imagen de perfil sea eliminada,
+    # por lo que no se borra la foto del sistema de archivos.
+    # if usuario.foto_perfil:
+    #     ruta_fisica = f"app{usuario.foto_perfil}"
+    #     if os.path.exists(ruta_fisica):
+    #         os.remove(ruta_fisica)
 
     db.delete(usuario)
     db.commit()
