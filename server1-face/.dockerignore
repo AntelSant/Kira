@@ -1,0 +1,9 @@
+.env
+.env.docker
+venv/
+__pycache__/
+*.log
+*.pid
+capturas_temp/
+caras_recortadas/
+.pytest_cache/

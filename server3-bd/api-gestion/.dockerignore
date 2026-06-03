@@ -1,0 +1,8 @@
+.env
+.env.docker
+venv/
+__pycache__/
+*.log
+*.pid
+.pytest_cache/
+app/static/

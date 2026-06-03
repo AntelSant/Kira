@@ -1,0 +1,111 @@
+version: '3.8'
+
+services:
+  kira-db:
+    image: ankane/pgvector:latest
+    container_name: kira-db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: uas_ai_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./server3-bd/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    networks:
+      - kira-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d uas_ai_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  kira-api:
+    build:
+      context: ./server3-bd/api-gestion
+      dockerfile: Dockerfile
+    container_name: kira-api
+    ports:
+      - "8003:8003"
+    env_file:
+      - ./server3-bd/api-gestion/.env.docker
+    depends_on:
+      kira-db:
+        condition: service_healthy
+    volumes:
+      # Montamos directorios necesarios para que no se pierdan las imágenes y base de datos local SQLite (si la hubiera)
+      - ./server3-bd/api-gestion/app/static:/app/app/static
+    restart: unless-stopped
+    networks:
+      - kira-net
+
+  kira-dashboard:
+    build:
+      context: ./server3-bd/dashboard
+      dockerfile: Dockerfile
+    container_name: kira-dashboard
+    ports:
+      - "80:80"
+    depends_on:
+      - kira-api
+    restart: unless-stopped
+    networks:
+      - kira-net
+
+  kira-face:
+    build:
+      context: ./server1-face
+      dockerfile: Dockerfile
+    container_name: kira-face
+    ports:
+      - "8001:8001"
+    env_file:
+      - ./server1-face/.env.docker
+    depends_on:
+      - kira-api
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      # Volúmenes para persistir modelos descargados y evitar bajarlos en cada build
+      - ./server1-face/antispoof_models:/app/antispoof_models
+      - ./server1-face/capturas_temp:/app/capturas_temp
+      - ./server1-face/caras_recortadas:/app/caras_recortadas
+    restart: unless-stopped
+    networks:
+      - kira-net
+
+  kira-emotion:
+    build:
+      context: ./server2-emotion
+      dockerfile: Dockerfile
+    container_name: kira-emotion
+    ports:
+      - "8002:8002"
+    env_file:
+      - ./server2-emotion/.env.docker
+    depends_on:
+      - kira-api
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      - kira-net
+
+volumes:
+  pg_data:
+
+networks:
+  kira-net:
+    driver: bridge
