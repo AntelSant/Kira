@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func as sql_func, inspect, text
 from pydantic import BaseModel
 from typing import List, Optional
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, time
 import bcrypt
 from jose import jwt, JWTError, ExpiredSignatureError
 import numpy as np
@@ -180,7 +180,8 @@ async def check_ausencias_bg():
                 # Horarios de hoy que YA terminaron
                 horarios_terminados = db.query(Horario).filter(
                     Horario.dia_semana == dia_semana,
-                    Horario.hora_fin < ahora
+                    Horario.hora_fin < ahora,
+                    Horario.hora_fin > Horario.hora_inicio
                 ).all()
                 
                 for h in horarios_terminados:
@@ -451,7 +452,7 @@ def calcular_estado(horario: Horario, fecha_obj: date, hora_registro: time) -> E
 
     if hora_registro <= limite_a_tiempo:
         return EstadoAsistencia.a_tiempo
-    elif hora_registro <= horario.hora_fin:
+    elif horario.hora_fin <= horario.hora_inicio or hora_registro <= horario.hora_fin:
         return EstadoAsistencia.retardo
     else:
         # Se pasó del tiempo final de la clase
@@ -827,7 +828,11 @@ def registrar_asistencia(data: RegistroAsistenciaRequest, db: Session = Depends(
         horario_activo = None
         for h in horarios_hoy:
             dt_inicio = datetime.combine(fecha_obj, h.hora_inicio)
-            dt_fin = datetime.combine(fecha_obj, h.hora_fin)
+            # Si hora_fin es 00:00 o menor que hora_inicio, significa fin al día siguiente (ej: clase nocturna)
+            if h.hora_fin <= h.hora_inicio:
+                dt_fin = datetime.combine(fecha_obj, h.hora_fin) + timedelta(days=1)
+            else:
+                dt_fin = datetime.combine(fecha_obj, h.hora_fin)
             dt_actual = datetime.combine(fecha_obj, hora_obj)
             
             # Se considera activa desde 30 mins antes del inicio hasta la hora de fin
@@ -836,7 +841,9 @@ def registrar_asistencia(data: RegistroAsistenciaRequest, db: Session = Depends(
                 break
                 
         if not horario_activo:
-            print(f"!! -- No hay clase programada en '{data.aula}' para el día {dia_semana} a las {hora_obj}")
+            DIAS = {0:"Lunes", 1:"Martes", 2:"Miércoles", 3:"Jueves", 4:"Viernes", 5:"Sábado", 6:"Domingo"}
+            dia_nombre = DIAS.get(dia_semana, str(dia_semana))
+            print(f"!! -- No hay clase programada en aula '{data.aula}' para {dia_nombre} (día {dia_semana}) a las {hora_obj}")
             return {"status": "error", "mensaje": f"No hay clase activa en aula '{data.aula}'"}
             
         grupo_id_activo = horario_activo.grupo_id
@@ -1476,6 +1483,20 @@ def registrar_horario(data: HorarioCreate, db: Session = Depends(get_db)):
     except ValueError:
         raise HTTPException(status_code=400, detail="Formato de hora inválido. Use HH:MM")
 
+    # Validar que hora_fin sea posterior a hora_inicio (excepto si cruza medianoche / es 00:00)
+    if hora_fin != time(0, 0) and hora_fin <= hora_inicio:
+        raise HTTPException(status_code=400, detail="La hora de fin debe ser posterior a la de inicio")
+
+    # Validar duplicados
+    existente = db.query(Horario).filter(
+        Horario.grupo_id == data.grupo_id,
+        Horario.dia_semana == data.dia_semana,
+        Horario.hora_inicio == hora_inicio,
+        Horario.hora_fin == hora_fin
+    ).first()
+    if existente:
+        raise HTTPException(status_code=400, detail="Ya existe un horario idéntico para este grupo y día")
+
     nuevo_horario = Horario(
         grupo_id=data.grupo_id,
         dia_semana=data.dia_semana,
@@ -1531,8 +1552,6 @@ def listar_inscripciones_alumno(alumno_id: int, db: Session = Depends(get_db)):
     """Lista las clases (grupos) en las que un alumno específico está inscrito"""
     inscripciones = db.query(Inscripcion).filter(Inscripcion.alumno_id == alumno_id).all()
     resultado = []
-    dias = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"]
-
     inscripciones_por_grupo = {}
     for ins in inscripciones:
         if ins.grupo_id not in inscripciones_por_grupo:
@@ -1562,7 +1581,7 @@ def listar_inscripciones_alumno(alumno_id: int, db: Session = Depends(get_db)):
             )
             if inscripcion_para_horario:
                 horarios_con_inscripcion.append({
-                    "dia": dias[h.dia_semana] if h.dia_semana < len(dias) else "Sin día",
+                    "dia": DIAS_SEMANA.get(h.dia_semana, "Sin día"),
                     "hora_inicio": str(h.hora_inicio) if h.hora_inicio else "",
                     "hora_fin": str(h.hora_fin) if h.hora_fin else "",
                     "inscripcion_id": inscripcion_para_horario.id,

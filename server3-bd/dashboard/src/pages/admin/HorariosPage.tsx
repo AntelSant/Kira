@@ -17,7 +17,7 @@ export const HorariosPage: React.FC = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({ 
-    dia_semana: '1', 
+    dia_semana: '0', 
     hora_inicio: '08:00',
     hora_fin: '10:00',
     tolerancia_minutos: 15
@@ -162,13 +162,13 @@ export const HorariosPage: React.FC = () => {
         <div className="form-group">
           <label>Día de la semana</label>
           <select className="form-control" value={formData.dia_semana} onChange={e => setFormData({...formData, dia_semana: e.target.value})}>
-            <option value="1">Lunes</option>
-            <option value="2">Martes</option>
-            <option value="3">Miércoles</option>
-            <option value="4">Jueves</option>
-            <option value="5">Viernes</option>
-            <option value="6">Sábado</option>
-            <option value="0">Domingo</option>
+            <option value="0">Lunes</option>
+            <option value="1">Martes</option>
+            <option value="2">Miércoles</option>
+            <option value="3">Jueves</option>
+            <option value="4">Viernes</option>
+            <option value="5">Sábado</option>
+            <option value="6">Domingo</option>
           </select>
         </div>
         <div className="form-row">

@@ -29,6 +29,12 @@
 #ifndef COUNTDOWN_SEC
   #error "COUNTDOWN_SEC no definido. Crea el archivo .env basándote en .env.example"
 #endif
+#ifndef RETRY_NEGATIVO_MS
+  #error "RETRY_NEGATIVO_MS no definido. Crea el archivo .env basándote en .env.example"
+#endif
+#ifndef RETRY_POSITIVO_MS
+  #error "RETRY_POSITIVO_MS no definido. Crea el archivo .env basándote en .env.example"
+#endif
 
 // Convertir las macros numéricas/de cadena a variables de C
 const char *WIFI_SSID_STR     = WIFI_SSID;
