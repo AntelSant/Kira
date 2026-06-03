@@ -9,8 +9,13 @@ from pydantic import BaseModel
 import uvicorn
 
 # --- CONFIGURACIÓN ---
+from dotenv import load_dotenv
+load_dotenv()
+
 SERVER_URL = "http://127.0.0.1:8001/api/capture"
-API_KEY = os.getenv("API_KEY", "kira_default_secret_key")
+API_KEY = os.getenv("API_KEY")
+if not API_KEY or API_KEY == "CAMBIAR_POR_UNA_CLAVE_SEGURA":
+    print("⚠️ ADVERTENCIA: API_KEY no configurada correctamente en simuladorESP32/.env")
 
 app = FastAPI(title="Simulador Web ESP32")
 

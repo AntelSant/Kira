@@ -6,7 +6,9 @@ from models import Base
 load_dotenv()  # Cargar variables de entorno desde .env
 
 # Leer la URL de la base de datos desde .env
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://admin:admin@localhost:5432/uas_ai_db")
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL or "<usuario>" in DATABASE_URL:
+    raise RuntimeError("❌ DATABASE_URL no está configurada correctamente en .env")
 
 engine = create_engine(DATABASE_URL)
 

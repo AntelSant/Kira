@@ -39,20 +39,20 @@ npm run build
 cd "$DIR"
 
 echo -e "\n${YELLOW}[2/5] Levantando Servidor 3 (Base de Datos y Gestión)...${NC}"
-# Llamamos a los scripts con el flag --daemon
-bash script_inicio/$OS/start_server3.sh --daemon
+# Llamamos a los scripts con el flag --daemon y --update para asegurar dependencias
+bash script_inicio/$OS/start_server3.sh --daemon --update
 sleep 3 # Damos un margen para que la BD esté lista
 
 echo -e "\n${YELLOW}[3/5] Levantando Servidor 1 (Face/Cámara y Anti-Spoofing)...${NC}"
-bash script_inicio/$OS/start_server1.sh --daemon
+bash script_inicio/$OS/start_server1.sh --daemon --update
 sleep 1
 
 echo -e "\n${YELLOW}[4/5] Levantando Servidor 2 (Análisis de Emociones)...${NC}"
-bash script_inicio/$OS/start_server2.sh --daemon
+bash script_inicio/$OS/start_server2.sh --daemon --update
 sleep 1
 
 echo -e "\n${YELLOW}[5/5] Levantando Simulador Web ESP32...${NC}"
-bash script_inicio/$OS/start_simulador.sh --daemon
+bash script_inicio/$OS/start_simulador.sh --daemon --update
 
 echo -e "\n${GREEN}=======================================${NC}"
 echo -e "${GREEN}¡Todos los servicios iniciados exitosamente en 2do plano!${NC}"

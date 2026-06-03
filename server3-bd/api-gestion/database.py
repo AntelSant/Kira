@@ -6,7 +6,9 @@ from sqlalchemy.orm import sessionmaker
 load_dotenv()  # Cargar variables de entorno desde .env
 
 # Leer la URL de la base de datos desde .env
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://admin:admin@localhost:5432/uas_ai_db")
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
+if not SQLALCHEMY_DATABASE_URL or "<usuario>" in SQLALCHEMY_DATABASE_URL:
+    raise RuntimeError("❌ DATABASE_URL no está configurada correctamente en .env")
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
